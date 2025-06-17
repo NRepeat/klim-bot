@@ -14,7 +14,7 @@ export class UserService {
     const username = ctx.from?.username;
 
     if (userId && username) {
-      await this.userRepository.createUser({
+      await this.userRepository.create({
         username: username,
         onPause: true,
         roleId: role,

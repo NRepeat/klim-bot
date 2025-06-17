@@ -4,6 +4,10 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { TelegramModule } from './modules/telegram/telegram.module';
+import * as LocalSession from 'telegraf-session-local';
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+const session = new LocalSession({});
 
 @Module({
   imports: [
@@ -14,6 +18,8 @@ import { TelegramModule } from './modules/telegram/telegram.module';
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        middlewares: [session.middleware()],
         token: configService.get<string>('TELEGRAM_BOT_TOKEN') || '',
         launchOptions: {
           allowedUpdates: [
@@ -24,12 +30,13 @@ import { TelegramModule } from './modules/telegram/telegram.module';
             'callback_query',
             'inline_query',
           ],
-          webhook: {
-            path: '/telegram/webhook',
-            domain: configService.get<string>('WEBHOOK_DOMAIN') || '',
-          },
+          // webhook: {
+          //   path: '/telegram/webhook',
+          //   domain: configService.get<string>('WEBHOOK_DOMAIN') || '',
+          // },
         },
       }),
+
       inject: [ConfigService],
     }),
   ],

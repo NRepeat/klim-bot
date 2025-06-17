@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { getBotToken } from 'nestjs-telegraf';
-import { Telegraf } from 'telegraf';
+import { Telegraf, session } from 'telegraf';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

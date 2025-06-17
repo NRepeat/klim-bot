@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id              String            @id @default(cuid())
+  username        String?           @unique
+  telegramId      Int               @unique
+  onPause         Boolean           @default(false)
+  Role            Role?             @relation(fields: [roleId], references: [id])
+  roleId          String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  paymentRequests PaymentRequests[]
+  payedRequests   PaymentRequests[] @relation("payedByUser")
+}
+
+model Role {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
+}
+
+model Vendors {
+  id             String            @id @default(cuid())
+  chatId         Int               @unique
+  work           Boolean           @default(false)
+  showReceipt    Boolean           @default(false)
+  title          String            @unique
+  token          String?           @unique
+  lastReportedAt DateTime?         @default(now())
+  requests       PaymentRequests[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentRequests {
+  id               String                      @id @default(cuid())
+  vendorId         String
+  vendor           Vendors                     @relation(fields: [vendorId], references: [id])
+  rateId           String
+  rate             Rates                       @relation(fields: [rateId], references: [id])
+  userId           String?
+  user             User?                       @relation(fields: [userId], references: [id])
+  cardMethods      CardPaymentRequestsMethod[]
+  ibanMethods      IbanPaymentRequestsMethod[]
+  payedByUser      User?                       @relation("payedByUser", fields: [payedByUserId], references: [id])
+  payedByUserId    String?
+  amount           Float
+  status           Status                      @default(PENDING)
+  error            String?
+  currencyId       String
+  notificationSent Boolean                     @default(false)
+  currency         Currency                    @relation(fields: [currencyId], references: [id])
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+  completedAt      DateTime?
+  message          Message[]
+  blackList        BlackList?
+}
+
+model Message {
+  id              String          @id @default(cuid())
+  chatId          Int
+  messageId       Int
+  text            String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  requestId       String
+  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+}
+
+model CardPaymentRequestsMethod {
+  id              String          @id @default(cuid())
+  requestId       String
+  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  cardId          String
+  card            String
+  comment         String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model IbanPaymentRequestsMethod {
+  id              String          @id @default(cuid())
+  requestId       String
+  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  iban            String
+  inn             String
+  comment         String?
+  name            String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model SeededBankCards {
+  id         String @id @default(cuid())
+  number     String @unique
+  bankName   String
+  bankNameEn String
+}
+
+model Rates {
+  id              String            @id @default(cuid())
+  currencyId      String
+  minAmount       Float
+  maxAmount       Float
+  rate            Float
+  updatedAt       DateTime          @updatedAt
+  createdAt       DateTime          @default(now())
+  paymentMethodId String
+  paymentMethod   PaymentMethod     @relation(fields: [paymentMethodId], references: [id])
+  currency        Currency          @relation(fields: [currencyId], references: [id])
+  Requests        PaymentRequests[]
+}
+
+model PaymentMethod {
+  id            String  @id @default(cuid())
+  name          String  @unique
+  nameEn        String  @unique
+  description   String?
+  descriptionEn String?
+  icon          String?
+  rates         Rates[]
+}
+
+model Currency {
+  id              String            @id @default(cuid())
+  code            String            @unique
+  name            String
+  nameEn          String
+  symbol          String?
+  rates           Rates[]
+  paymentRequests PaymentRequests[]
+}
+
+model BlackList {
+  id        String           @id @default(cuid())
+  chatId    Int              @unique
+  requestId String?          @unique
+  request   PaymentRequests? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  reason    String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}

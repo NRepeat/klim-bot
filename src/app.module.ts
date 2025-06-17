@@ -16,6 +16,14 @@ import { TelegramModule } from './modules/telegram/telegram.module';
       useFactory: (configService: ConfigService) => ({
         token: configService.get<string>('TELEGRAM_BOT_TOKEN') || '',
         launchOptions: {
+          allowedUpdates: [
+            'message',
+            'edited_message',
+            'channel_post',
+            'edited_channel_post',
+            'callback_query',
+            'inline_query',
+          ],
           webhook: {
             path: '/telegram/webhook',
             domain: configService.get<string>('WEBHOOK_DOMAIN') || '',

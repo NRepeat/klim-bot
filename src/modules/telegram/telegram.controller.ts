@@ -1,9 +1,14 @@
-import { Ctx, Hears, InjectBot, On, Start, Update } from 'nestjs-telegraf';
+import { Action, Ctx, Hears, InjectBot, Start, Update } from 'nestjs-telegraf';
 import { Context, Markup, Telegraf } from 'telegraf';
+import { UserService } from '../user/user.service';
+import { UserRole } from 'src/types/types';
 
 @Update()
 export class TelegramController {
-  constructor(@InjectBot() private readonly bot: Telegraf<Context>) {}
+  constructor(
+    @InjectBot() private readonly bot: Telegraf<Context>,
+    private readonly userService: UserService,
+  ) {}
 
   @Start()
   async start(@Ctx() ctx: Context) {
@@ -19,20 +24,13 @@ export class TelegramController {
       reply_markup: inline_keyboard.reply_markup,
     });
   }
-  @On('callback_query')
-  async onCallbackQuery(@Ctx() ctx: Context) {
-    const callbackQuery = ctx.callbackQuery;
+  @Action('new_user')
+  async onNewUser(@Ctx() ctx: Context) {
+    await ctx.answerCbQuery();
 
-    console.log('Callback Query:', callbackQuery);
-    if (callbackQuery) {
-      const inline_keyboard = Markup.inlineKeyboard([
-        Markup.button.callback('Hi', 'hi'),
-        Markup.button.callback('Bye', 'bye'),
-      ]);
-      await ctx.reply('Please choose an option:', {
-        reply_markup: inline_keyboard.reply_markup,
-      });
-    }
+    await this.userService.createUser(ctx, UserRole.WORKER);
+
+    await ctx.reply('You pressed the "New user" button!');
   }
   @Hears('hi')
   async onHi(ctx: Context) {

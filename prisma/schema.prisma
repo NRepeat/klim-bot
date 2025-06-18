@@ -40,14 +40,17 @@ model Role {
 }
 
 model Vendors {
-  id             String            @id @default(cuid())
-  chatId         Int               @unique
-  work           Boolean           @default(false)
-  showReceipt    Boolean           @default(false)
-  title          String            @unique
-  token          String?           @unique
-  lastReportedAt DateTime?         @default(now())
-  requests       PaymentRequests[]
+  id             String    @id @default(cuid())
+  chatId         BigInt    @unique
+  work           Boolean   @default(false)
+  showReceipt    Boolean   @default(false)
+  title          String    @unique
+  token          String?   @unique
+  lastReportedAt DateTime? @default(now())
+
+  lastAllRatesSentAt   DateTime?         @default(now())
+  lastAllRateMessageId Int?              @unique
+  requests             PaymentRequests[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

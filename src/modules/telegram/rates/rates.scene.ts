@@ -1,15 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Scene,
-  SceneEnter,
-  Ctx,
-  On,
-  SceneLeave,
-  TelegrafContextType,
-} from 'nestjs-telegraf';
+import { Scene, SceneEnter, Ctx, On, SceneLeave } from 'nestjs-telegraf';
 import { RatesService } from 'src/modules/rates/rates.service';
-import { Currency, CustomSceneContext } from 'src/types/types';
-import { Context, Markup } from 'telegraf';
+import { CustomSceneContext } from 'src/types/types';
+import { Markup } from 'telegraf';
 
 @Injectable()
 @Scene('create-rates')
@@ -46,6 +39,7 @@ export class CreateRatesScene {
     }
     ctx.session.messagesToDelete = [];
     await ctx.reply('Exited rate creation.');
+    ctx.session.state = 'cancelled';
     await ctx.scene.leave();
   }
 
@@ -86,6 +80,7 @@ export class CreateRatesScene {
       }
       const msg = await ctx.reply('Rates received! (processing logic here)');
       ctx.session.messagesToDelete?.push(msg.message_id);
+      ctx.session.state = 'updated';
       await ctx.scene.leave();
     } catch (error) {
       if (error instanceof Error) {
@@ -99,6 +94,9 @@ export class CreateRatesScene {
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
     const messagesToDelete = ctx.session.messagesToDelete || [];
+    if (ctx.session.state === 'updated') {
+      await this.ratesService.sendAllRatesToAllVendors(ctx);
+    }
     if (messagesToDelete.length > 0) {
       for (const messageId of messagesToDelete) {
         try {

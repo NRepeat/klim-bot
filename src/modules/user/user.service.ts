@@ -25,4 +25,18 @@ export class UserService {
       console.error('User information is incomplete');
     }
   }
+
+  async getAdmins() {
+    const admins = await this.userRepository.getAllAdmins();
+    return admins;
+  }
+  async isAdminChat(ctx: Context): Promise<boolean> {
+    const chatId = ctx.chat?.id;
+    const admins = await this.getAdmins();
+    if (!chatId) {
+      return false;
+    }
+
+    return admins.some((admin) => admin.telegramId === chatId);
+  }
 }

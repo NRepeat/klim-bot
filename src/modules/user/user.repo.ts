@@ -17,7 +17,9 @@ export default class UserRepository implements Repository<SerializedUser> {
       data,
     });
   }
-
+  async getAllAdmins(where: { roleId: string } = { roleId: '1' }) {
+    return this.prisma.user.findMany({ where: { ...where } });
+  }
   async update(userId: string, data: SerializedUser) {
     return this.prisma.user.update({
       where: { id: userId },

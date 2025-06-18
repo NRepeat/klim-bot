@@ -7,9 +7,10 @@ import { RatesActions } from './rates/rates.actions';
 import { RatesModule } from '../rates/rates.module';
 import { UserActions } from './user/user.actions';
 import { CreateRatesScene } from './rates/rates.scene';
+import { VendorModule } from '../vendor/vendor.module';
 
 @Module({
-  imports: [UserModule, PrismaModule, RatesModule],
+  imports: [UserModule, PrismaModule, RatesModule, VendorModule],
   controllers: [],
   providers: [
     TelegramService,

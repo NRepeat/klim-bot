@@ -9,15 +9,20 @@ import {
 import RateRepository from './rates.repo';
 import { Context } from 'telegraf';
 import Rate from 'src/model/Rate';
+import { VendorService } from '../vendor/vendor.service';
 
 @Injectable()
 export class RatesService {
   // private readonly logger = new Logger(TelegramService.name);
 
-  constructor(private readonly rateRepository: RateRepository) {}
+  constructor(
+    private readonly rateRepository: RateRepository,
+    private readonly vendorService: VendorService,
+  ) {}
   async getAllRates() {
     return this.rateRepository.getAll();
   }
+
   async getAllRatesMarkupMessage() {
     const allRates = await this.getAllRates();
     const grouped: Record<string, string[]> = {};
@@ -113,6 +118,52 @@ export class RatesService {
       throw new Error(
         `Failed to create rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+    }
+  }
+  async sendAllRatesToAllVendors(ctx: Context) {
+    const allRates = await this.getAllRatesMarkupMessage();
+    const allVendors = await this.vendorService.getAllActiveVendors();
+    if (allVendors.length === 0) {
+      return;
+    }
+    for (const vendor of allVendors) {
+      try {
+        if (vendor.lastAllRateMessageId == null) {
+          const msg = await ctx.telegram.sendMessage(
+            Number(vendor.chatId),
+            allRates,
+          );
+          await this.vendorService.updateAllRatesLastMessageId(
+            vendor.id,
+            msg.message_id,
+          );
+        } else {
+          try {
+            await ctx.telegram.editMessageText(
+              Number(vendor.chatId),
+              Number(vendor.lastAllRateMessageId),
+              undefined,
+              allRates,
+            );
+          } catch (error) {
+            console.error(
+              `Failed to edit message for vendor ${vendor.id}:`,
+              error,
+            );
+            const msg = await ctx.telegram.sendMessage(
+              Number(vendor.chatId),
+              allRates,
+            );
+            await this.vendorService.updateAllRatesLastMessageId(
+              vendor.id,
+              msg.message_id,
+            );
+          }
+        }
+        console.log(`Sent rates to vendor ${vendor.id}`);
+      } catch (error) {
+        console.error(`Failed to send rates to vendor ${vendor.id}:`, error);
+      }
     }
   }
 }

@@ -61,23 +61,15 @@ export class RatesService {
     }
   }
 
-  async createRates(ctx: Context, currency: Currency) {
-    const userId = ctx.from?.id;
-    const username = ctx.from?.username;
-    const allRatesMarkupMessage = await this.getAllRatesMarkupMessage();
-    const parsedRates = this.parseAllRatesMarkupMessage(allRatesMarkupMessage);
-
-    console.log('Parsed Rates:', parsedRates);
-    await ctx.reply(allRatesMarkupMessage);
-    console.log(ctx.text, 'Message from user:', ctx.from);
+  async createRates(ctx: Context) {
     const message = ctx.text;
     if (!message) {
       console.error('No message text found in context');
-      return;
+      throw new Error('No message text found');
     }
-    if (parsedRates.length === 0) {
-      return;
-    }
+
+    const parsedRates = this.parseAllRatesMarkupMessage(message);
+
     const newRates: SerializedRate[] = [];
     for (const parsedRate of parsedRates) {
       const method = parsedRate.header.split(':')[1].trim();
@@ -96,12 +88,12 @@ export class RatesService {
     }
     if (newRates.length === 0) {
       console.error('No valid rates found to create');
-      return;
+      throw new Error('No valid rates found');
     }
     const isRateDeleted = await this.rateRepository.deleteAll();
     if (!isRateDeleted) {
       console.error('Failed to delete existing rates before creating new ones');
-      return;
+      throw new Error('Failed to delete existing rates');
     }
     const createRatePromises = newRates.map((rate) =>
       this.rateRepository.create({
@@ -114,11 +106,13 @@ export class RatesService {
     );
     try {
       const createdRates = await Promise.all(createRatePromises);
-      console.log('Created Rates:', createdRates);
-    } catch (error) {
-      console.error('Error creating rates:', error);
-    }
 
-    console.log(`User created: ${username} with ID: ${userId}`);
+      console.log('Created Rates:', createdRates);
+      return true;
+    } catch (error) {
+      throw new Error(
+        `Failed to create rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
   }
 }

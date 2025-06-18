@@ -18,7 +18,7 @@ export class UserService {
         username: username,
         onPause: true,
         roleId: role,
-        telegramId: userId,
+        telegramId: BigInt(userId),
       });
       console.log(`User created: ${username} with ID: ${userId}`);
     } else {
@@ -37,6 +37,6 @@ export class UserService {
       return false;
     }
 
-    return admins.some((admin) => admin.telegramId === chatId);
+    return admins.some((admin) => Number(admin.telegramId) === Number(chatId));
   }
 }

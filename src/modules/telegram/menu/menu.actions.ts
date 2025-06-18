@@ -21,6 +21,10 @@ export class MenuActions {
       });
     } else {
       await ctx.reply('Welcome');
+      const inline_keyboard = Markup.keyboard([[{ text: 'Menu' }]]).resize();
+      await ctx.reply('Welcome', {
+        reply_markup: inline_keyboard.reply_markup,
+      });
       console.log(
         `New user created: ${ctx.from?.username} with ID: ${ctx.from?.id}`,
       );
@@ -30,7 +34,10 @@ export class MenuActions {
   @Command('registration')
   async registration(@Ctx() ctx: Context) {
     console.log('Registration,', ctx.chat);
-    if (await this.userService.isAdminChat(ctx)) {
+    if (
+      (await this.userService.isAdminChat(ctx)) ||
+      (await this.vendorService.isVendorChat(ctx))
+    ) {
       await ctx.reply('You are already registered as an admin.');
       return;
     }

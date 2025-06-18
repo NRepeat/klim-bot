@@ -88,4 +88,12 @@ export class VendorService {
     console.log(`Created vendor ${vendor.id}`);
     return vendor;
   }
+  async isVendorChat(ctx: Context): Promise<boolean> {
+    const chatId = ctx.chat?.id;
+    if (!chatId) {
+      return false;
+    }
+    const vendor = await this.vendorRepository.getByChatId(chatId);
+    return !!vendor;
+  }
 }

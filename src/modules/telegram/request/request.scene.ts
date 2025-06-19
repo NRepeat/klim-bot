@@ -36,12 +36,12 @@ export class CreateRequestWizard {
       ctx.session.requestType = 'card';
       await ctx.reply('You selected Card request. Please provide the details.');
       ctx.session.customState = 'card_request';
-      await ctx.wizard.next();
+      ctx.wizard.next();
     } else if (callbackQuery.data === 'iban_request') {
       ctx.session.requestType = 'iban';
       await ctx.reply('You selected IBAN request. Please provide the details.');
       ctx.session.customState = 'iban_request';
-      await ctx.wizard.selectStep(2);
+      ctx.wizard.selectStep(2);
     }
   }
 
@@ -50,7 +50,7 @@ export class CreateRequestWizard {
     // Here you can handle card details input
     // For demo, just go to finish
     await ctx.reply('Card details step. (Demo: send any text to finish)');
-    await ctx.wizard.next();
+    ctx.wizard.next();
   }
 
   @WizardStep(2)
@@ -58,7 +58,7 @@ export class CreateRequestWizard {
     // Here you can handle IBAN details input
     // For demo, just go to finish
     await ctx.reply('IBAN details step. (Demo: send any text to finish)');
-    await ctx.wizard.next();
+    ctx.wizard.next();
   }
 
   @WizardStep(3)

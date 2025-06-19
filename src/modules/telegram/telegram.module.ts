@@ -10,6 +10,8 @@ import { CreateRatesScene } from './rates/rates.scene';
 import { VendorModule } from '../vendor/vendor.module';
 import { UtilsModule } from '../utils/utils.module';
 import { RequestModule } from '../request/request.module';
+import { CreateRequestWizard } from './request/request.scene';
+import { RequestActions } from './request/request.actions';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { RequestModule } from '../request/request.module';
   providers: [
     TelegramService,
     CreateRatesScene,
+    CreateRequestWizard,
+    RequestActions,
     MenuActions,
     RatesActions,
     UserActions,

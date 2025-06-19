@@ -5,16 +5,26 @@
       "data": {
         "__scenes": {},
         "messagesToDelete": [
-          540,
-          542
+          547,
+          549
         ],
-        "state": "updated"
+        "state": "updated",
+        "customState": "updated"
       }
     },
     {
       "id": "-1002510029234:375905624",
       "data": {
-        "__scenes": {}
+        "__scenes": {
+          "current": "create-request",
+          "state": {},
+          "cursor": 0
+        },
+        "messagesToDelete": [
+          571
+        ],
+        "requestType": "card",
+        "customState": "cancelled"
       }
     },
     {

@@ -8,14 +8,14 @@ import { RatesModule } from '../rates/rates.module';
 import { UserActions } from './user/user.actions';
 import { CreateRatesScene } from './rates/rates.scene';
 import { VendorModule } from '../vendor/vendor.module';
+import { UtilsModule } from '../utils/utils.module';
 
 @Module({
-  imports: [UserModule, PrismaModule, RatesModule, VendorModule],
+  imports: [UserModule, PrismaModule, RatesModule, VendorModule, UtilsModule],
   controllers: [],
   providers: [
     TelegramService,
-    CreateRatesScene, // Ensure this scene is imported from the correct path
-    // TelegramController,
+    CreateRatesScene,
     MenuActions,
     RatesActions,
     UserActions,

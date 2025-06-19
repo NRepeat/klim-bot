@@ -1,5 +1,6 @@
 import { Command, Ctx, Hears, Start, Update } from 'nestjs-telegraf';
 import { UserService } from 'src/modules/user/user.service';
+import { UtilsService } from 'src/modules/utils/utils.service';
 import { VendorService } from 'src/modules/vendor/vendor.service';
 import { Context, Markup } from 'telegraf';
 
@@ -8,6 +9,7 @@ export class MenuActions {
   constructor(
     private readonly userService: UserService,
     private readonly vendorService: VendorService,
+    private readonly utilsService: UtilsService, // Assuming UtilsService is similar to UserService
   ) {}
   @Start()
   async start(@Ctx() ctx: Context) {
@@ -34,10 +36,7 @@ export class MenuActions {
   @Command('registration')
   async registration(@Ctx() ctx: Context) {
     console.log('Registration,', ctx.chat);
-    if (
-      (await this.userService.isAdminChat(ctx)) ||
-      (await this.vendorService.isVendorChat(ctx))
-    ) {
+    if (await this.utilsService.isChatRegistrated(ctx)) {
       await ctx.reply('You are already registered');
       return;
     }

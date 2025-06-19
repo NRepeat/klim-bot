@@ -3,26 +3,31 @@
     {
       "id": "375905624:375905624",
       "data": {
-        "__scenes": {},
+        "__scenes": {
+          "current": "create-rates",
+          "state": {}
+        },
         "messagesToDelete": [
-          547,
-          549
+          610,
+          612,
+          614,
+          616,
+          618,
+          620,
+          622,
+          624,
+          626
         ],
         "state": "updated",
-        "customState": "updated"
+        "customState": "updated",
+        "requestType": "card"
       }
     },
     {
       "id": "-1002510029234:375905624",
       "data": {
-        "__scenes": {
-          "current": "create-request",
-          "state": {},
-          "cursor": 0
-        },
-        "messagesToDelete": [
-          571
-        ],
+        "__scenes": {},
+        "messagesToDelete": [],
         "requestType": "card",
         "customState": "cancelled"
       }

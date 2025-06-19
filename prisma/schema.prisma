@@ -25,7 +25,7 @@ model User {
   username        String?           @unique
   telegramId      BigInt            @unique
   onPause         Boolean           @default(false)
-  Role            Role[]            
+  Role            Role[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   paymentRequests PaymentRequests[]
@@ -59,8 +59,6 @@ model PaymentRequests {
   id               String                      @id @default(cuid())
   vendorId         String
   vendor           Vendors                     @relation(fields: [vendorId], references: [id])
-  rateId           String
-  rate             Rates                       @relation(fields: [rateId], references: [id])
   userId           String?
   user             User?                       @relation(fields: [userId], references: [id])
   cardMethods      CardPaymentRequestsMethod[]
@@ -78,12 +76,14 @@ model PaymentRequests {
   completedAt      DateTime?
   message          Message[]
   blackList        BlackList?
+  Rates            Rates?                      @relation(fields: [ratesId], references: [id])
+  ratesId          String?
 }
 
 model Message {
   id              String          @id @default(cuid())
-  chatId          Int
-  messageId       Int
+  chatId          BigInt
+  messageId       BigInt
   text            String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -95,7 +95,6 @@ model CardPaymentRequestsMethod {
   id              String          @id @default(cuid())
   requestId       String
   paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  cardId          String
   card            String
   comment         String?
   createdAt       DateTime        @default(now())
@@ -157,7 +156,7 @@ model Currency {
 
 model BlackList {
   id        String           @id @default(cuid())
-  chatId    Int              @unique
+  chatId    BigInt           @unique
   requestId String?          @unique
   request   PaymentRequests? @relation(fields: [requestId], references: [id], onDelete: Cascade)
   reason    String?

@@ -96,4 +96,8 @@ export class VendorService {
     const vendor = await this.vendorRepository.getByChatId(chatId);
     return !!vendor;
   }
+
+  async getVendorByChatId(chatId: number): Promise<Vendors | null> {
+    return this.vendorRepository.getByChatId(chatId);
+  }
 }

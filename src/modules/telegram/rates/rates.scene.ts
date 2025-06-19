@@ -94,6 +94,7 @@ export class CreateRatesScene {
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
     const messagesToDelete = ctx.session.messagesToDelete || [];
+    console.log('Leaving scene, messages to delete:', ctx.session.customState);
     if (ctx.session.customState === 'updated') {
       await this.ratesService.sendAllRatesToAllVendors(ctx);
     }

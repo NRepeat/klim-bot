@@ -1,10 +1,17 @@
-import { Rates, User, Vendors } from 'generated/prisma';
+import {
+  CardPaymentRequestsMethod,
+  Message,
+  PaymentRequests,
+  Rates,
+  User,
+  Vendors,
+} from 'generated/prisma';
 import { Scenes } from 'telegraf';
 
 export type SerializedUser = SerializedModel<User & { role?: UserRole }>;
 export type SerializedRate = SerializedModel<Rates>;
 export type SerializedVendors = SerializedModel<Vendors>;
-export type SerializedRequest = SerializedModel<Request>;
+export type SerializedRequest = SerializedModel<PaymentRequests>;
 
 export type SerializedModel<T> = Omit<T, 'createdAt' | 'updatedAt' | 'id'>;
 
@@ -14,6 +21,16 @@ export interface CustomSession extends Scenes.WizardSessionData {
   customState?: string; // renamed from 'state' to avoid conflict
   requestType?: string; // card, iban, etc
 }
+export type CardRequestType = Omit<
+  SerializedRequest,
+  'payedByUserId' | 'completedAt' | 'error' | 'user' | 'userId'
+> & {
+  message: Omit<Message, 'id' | 'createdAt' | 'requestId' | 'updatedAt'>;
+  card: Omit<
+    CardPaymentRequestsMethod,
+    'id' | 'createdAt' | 'updatedAt' | 'requestId'
+  >;
+};
 
 // Extend context for wizard scenes
 export type CustomSceneContext = Scenes.WizardContext & {

@@ -28,8 +28,9 @@ export class RatesService {
     const grouped: Record<string, string[]> = {};
 
     for (const rate of allRates) {
+      console.log(`Processing rate: ${JSON.stringify(rate)}`);
       const header = `${rate.currency.nameEn}:${rate.paymentMethod.nameEn}`;
-      const line = `${rate.minAmount}-${rate.maxAmount} ${rate.rate}`;
+      const line = `${rate.minAmount}${rate.maxAmount !== null && rate.maxAmount > 0 ? '-' + rate.maxAmount : '+'} ${rate.rate}`;
       if (!grouped[header]) {
         grouped[header] = [];
       }
@@ -83,10 +84,26 @@ export class RatesService {
       const currencyName = parsedRate.header.split(':')[0].trim();
       const currencyId = Currency[currencyName as keyof typeof Currency];
       for (const line of parsedRate.lines) {
-        const min = Number(line.split('-')[0]);
-        const max = Number(line.split('-')[1].split(' ')[0]);
-        const rate = Number(line.split(' ')[1]);
-        const newRate = new Rate(rate, min, max, currencyId, paymentMethodId);
+        let minAmount = 0;
+        let maxAmount: number | null = null;
+        let rate = 0;
+        const [amountPart, ratePart] = line.split(' ');
+        rate = Number(ratePart);
+        if (amountPart.includes('+')) {
+          minAmount = Number(amountPart.replace('+', ''));
+          maxAmount = null;
+        } else if (amountPart.includes('-')) {
+          const [min, max] = amountPart.split('-');
+          minAmount = Number(min);
+          maxAmount = Number(max);
+        }
+        const newRate = new Rate(
+          rate,
+          minAmount,
+          maxAmount ?? 0,
+          currencyId,
+          paymentMethodId,
+        );
         newRates.push(newRate);
         console.log(`Creating rate: ${JSON.stringify(newRate)}`);
       }
@@ -139,11 +156,17 @@ export class RatesService {
           );
         } else {
           try {
-            await ctx.telegram.editMessageText(
+            await ctx.telegram.deleteMessage(
               Number(vendor.chatId),
               Number(vendor.lastAllRateMessageId),
-              undefined,
+            );
+            const msg = await ctx.telegram.sendMessage(
+              Number(vendor.chatId),
               allRates,
+            );
+            await this.vendorService.updateAllRatesLastMessageId(
+              vendor.id,
+              msg.message_id,
             );
           } catch (error) {
             console.error(

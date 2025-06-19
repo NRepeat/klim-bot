@@ -1,12 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { RequestRepository } from './request.repo';
-import { SerializedRequest } from 'src/types/types';
+import { CardRequestType } from 'src/types/types';
 
 @Injectable()
 export class RequestService {
   constructor(private readonly requestRepo: RequestRepository) {}
 
-  async createRequest(data: SerializedRequest) {
-    return this.requestRepo.create(data);
+  // async createRequest(data: SerializedRequest) {
+  //   return this.requestRepo.create(data);
+  // }
+  async createCardRequest(data: CardRequestType) {
+    return this.requestRepo.createCardRequest({ data });
+  }
+  async findAllCardRequestsByCard(cardNumber?: string) {
+    return this.requestRepo.findAllCardRequestsByCard(cardNumber);
   }
 }

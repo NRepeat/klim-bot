@@ -9,7 +9,19 @@ export class RequestService {
   // async createRequest(data: SerializedRequest) {
   //   return this.requestRepo.create(data);
   // }
+  async isInBlackList(cardNumber: string) {
+    const isBlackListed = this.requestRepo.isInBlackList(cardNumber);
+    return isBlackListed;
+  }
+
   async createCardRequest(data: CardRequestType) {
+    const cardNumber = data.card?.card;
+    const isBlackListed = await this.isInBlackList(cardNumber);
+    if (isBlackListed) {
+      data.blackList = isBlackListed;
+      return this.requestRepo.createCardRequest({ data });
+    }
+
     return this.requestRepo.createCardRequest({ data });
   }
   async findAllCardRequestsByCard(cardNumber?: string) {

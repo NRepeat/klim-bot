@@ -6,13 +6,29 @@ import { PrismaService } from '../prisma/prisma.service';
 export default class UserRepository implements Repository<SerializedUser> {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getAllActiveWorkers() {
+    return this.prisma.user.findMany({
+      where: {
+        onPause: false,
+        Role: {
+          some: {
+            id: UserRole.WORKER,
+          },
+        },
+      },
+      include: {
+        Role: true,
+      },
+    });
+  }
+
   async getAllActiveAdmins() {
     return this.prisma.user.findMany({
       where: {
         onPause: false,
         Role: {
-          every: {
-            name: UserRole.ADMIN,
+          some: {
+            id: UserRole.ADMIN,
           },
         },
       },

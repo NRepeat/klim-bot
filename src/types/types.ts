@@ -1,4 +1,5 @@
 import {
+  BlackList,
   CardPaymentRequestsMethod,
   Message,
   PaymentRequests,
@@ -26,19 +27,20 @@ export type CardRequestType = Omit<
   'payedByUserId' | 'completedAt' | 'error' | 'user' | 'userId' | 'ratesId'
 > & {
   rateId: string;
+  blackList?: BlackList;
   card: Omit<
     CardPaymentRequestsMethod,
     'id' | 'createdAt' | 'updatedAt' | 'requestId'
   >;
 };
 export type FullRequestType = PaymentRequests & {
-  cardMethods?: CardPaymentRequestsMethod[];
+  cardMethods?: (CardPaymentRequestsMethod & { blackList?: BlackList[] })[];
   message?: Message[];
   vendor?: Vendors;
   currency?: Currency;
   rates?: Rates;
 };
-
+export type MessageAccessType = 'public' | 'admin' | 'worker';
 // Extend context for wizard scenes
 export type CustomSceneContext = Scenes.WizardContext & {
   session: CustomSession;

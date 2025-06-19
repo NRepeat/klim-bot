@@ -3,7 +3,7 @@ import { Context } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
-import { ReadStream } from 'fs';
+import { createReadStream } from 'fs';
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -12,9 +12,39 @@ export class TelegramService {
     @InjectBot() private bot: Telegraf<Context>,
     private readonly userService: UserService,
   ) {}
-
+  async sendPhotoMessageToAllWorkers(message: {
+    source: string;
+    caption?: string;
+  }) {
+    try {
+      const workers = await this.userService.getAllActiveWorkers();
+      if (!workers || workers.length === 0) {
+        this.logger.warn('No active workers found');
+        return;
+      }
+      for (const worker of workers) {
+        if (worker.telegramId) {
+          const chatId = Number(worker.telegramId);
+          this.logger.log(
+            `Sending message to worker ${worker.username} (${chatId})`,
+          );
+          await this.bot.telegram.sendPhoto(
+            chatId,
+            {
+              source: createReadStream(message.source),
+            },
+            {
+              caption: message.caption || '',
+            },
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error sending message to workers', error);
+    }
+  }
   async sendPhotoMessageToAllAdmins(message: {
-    source: ReadStream;
+    source: string;
     caption?: string;
   }) {
     try {
@@ -29,7 +59,15 @@ export class TelegramService {
           this.logger.log(
             `Sending message to admin ${admin.username} (${chatId})`,
           );
-          await this.bot.telegram.sendPhoto(chatId, message);
+          await this.bot.telegram.sendPhoto(
+            chatId,
+            {
+              source: createReadStream(message.source),
+            },
+            {
+              caption: message.caption || '',
+            },
+          );
         }
       }
     } catch (error) {

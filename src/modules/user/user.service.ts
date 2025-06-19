@@ -9,9 +9,14 @@ export class UserService {
   // private readonly logger = new Logger(TelegramService.name);
 
   constructor(private readonly userRepository: UserRepository) {}
-
+  async getAllActiveWorkers(): Promise<User[]> {
+    const workers = await this.userRepository.getAllActiveWorkers();
+    console.log('Active workers:', workers);
+    return workers;
+  }
   async getAllActiveAdmins(): Promise<User[]> {
     const admins = await this.userRepository.getAllActiveAdmins();
+    console.log('Active admins:', admins);
     return admins;
   }
 

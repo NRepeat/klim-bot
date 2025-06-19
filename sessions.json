@@ -4,9 +4,12 @@
       "id": "375905624:375905624",
       "data": {
         "__scenes": {},
-        "messagesToDelete": [],
+        "messagesToDelete": [
+          676,
+          678
+        ],
         "state": "updated",
-        "customState": "cancelled",
+        "customState": "updated",
         "requestType": "card"
       }
     },
@@ -15,18 +18,8 @@
       "data": {
         "__scenes": {},
         "messagesToDelete": [
-          699,
-          720,
-          729,
-          736,
-          764,
-          770,
-          775,
-          780,
-          786,
-          791,
-          796,
-          826
+          887,
+          913
         ],
         "requestType": "card",
         "customState": "card_request"
@@ -43,7 +36,12 @@
           806,
           811,
           816,
-          821
+          821,
+          859,
+          892,
+          898,
+          903,
+          908
         ],
         "requestType": "card",
         "customState": "card_request"

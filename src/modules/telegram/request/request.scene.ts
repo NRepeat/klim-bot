@@ -35,9 +35,12 @@ export class CreateRequestWizard {
         Markup.button.callback('Iban', 'iban_request'),
       ],
     ]);
-    const msg = await ctx.reply('Оберіть метод заявки\n\n', inline_keyboard);
     ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
-    ctx.session.messagesToDelete.push(msg.message_id);
+    if (ctx.session.customState !== 'select_method') {
+      const msg = await ctx.reply('Оберіть метод заявки\n\n', inline_keyboard);
+      ctx.session.customState = 'select_method';
+      ctx.session.messagesToDelete.push(msg.message_id);
+    }
   }
 
   @On('callback_query')
@@ -156,22 +159,25 @@ export class CreateRequestWizard {
           console.log('Created request:', request);
           // Ensure the request object matches FullRequestType for buildCardRequestMessage
 
-          const caption = this.utilsService.buildCardRequestMessage(
+          const caption = this.utilsService.buildRequestMessage(
             request as unknown as FullRequestType,
+            'card',
+            'admin',
           );
           const requestPhotoMessage = {
-            source: createReadStream(
-              '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-            ),
+            source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
             caption,
           };
           const requestMessage = await ctx.replyWithPhoto(
             {
-              source: requestPhotoMessage.source,
+              source: createReadStream(requestPhotoMessage.source),
             },
             { caption: requestPhotoMessage.caption },
           );
           await this.telegramService.sendPhotoMessageToAllAdmins(
+            requestPhotoMessage,
+          );
+          await this.telegramService.sendPhotoMessageToAllWorkers(
             requestPhotoMessage,
           );
           if (!requestMessage || !request) {
@@ -185,9 +191,11 @@ export class CreateRequestWizard {
         } catch (error) {
           console.error('Error creating card request:', error);
           await ctx.scene.leave();
+          return;
         }
       }
       await ctx.scene.leave();
+      return;
     }
   }
 
@@ -219,7 +227,6 @@ export class CreateRequestWizard {
       }
     }
     ctx.session.messagesToDelete = [];
-    await ctx.reply('Exited rate creation.');
     ctx.session.customState = 'cancelled';
     await ctx.scene.leave();
   }
@@ -227,15 +234,14 @@ export class CreateRequestWizard {
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
     const messagesToDelete = ctx.session.messagesToDelete || [];
-
-    // if (messagesToDelete.length > 0) {
-    //   for (const messageId of messagesToDelete) {
-    //     try {
-    //       await ctx.deleteMessage(messageId);
-    //     } catch (error) {
-    //       console.error('Failed to delete message:', error);
-    //     }
-    //   }
-    // }
+    if (messagesToDelete.length > 0) {
+      for (const messageId of messagesToDelete) {
+        try {
+          await ctx.deleteMessage(messageId);
+        } catch (error) {
+          console.error('Failed to delete message:', error);
+        }
+      }
+    }
   }
 }

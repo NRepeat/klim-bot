@@ -6,6 +6,12 @@ import { PrismaService } from '../prisma/prisma.service';
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async isInBlackList(cardNumber: string) {
+    return this.prisma.blackList.findFirst({
+      where: { card: { some: { card: cardNumber } } },
+    });
+  }
+
   createCardRequest({ data }: { data: CardRequestType }) {
     return this.prisma.paymentRequests.create({
       data: {
@@ -18,15 +24,28 @@ export class RequestRepository {
         cardMethods: {
           create: {
             ...data.card,
+            blackList: data.blackList
+              ? {
+                  connect: {
+                    id: data.blackList.id,
+                  },
+                }
+              : undefined,
           },
         },
       },
       include: {
-        cardMethods: true,
+        cardMethods: {
+          include: {
+            blackList: true,
+          },
+        },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
+        ibanMethods: true,
+        user: true,
       },
     });
   }
@@ -47,10 +66,18 @@ export class RequestRepository {
         },
       },
       include: {
-        cardMethods: true,
+        cardMethods: {
+          include: {
+            blackList: true,
+          },
+        },
         message: true,
         vendor: true,
         currency: true,
+
+        ibanMethods: true,
+        user: true,
+        rates: true,
       },
     });
   }

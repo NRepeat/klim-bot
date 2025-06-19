@@ -1,17 +1,24 @@
 import { Rates, User, Vendors } from 'generated/prisma';
-import { SceneContext } from 'telegraf/typings/scenes';
+import { Scenes } from 'telegraf';
 
 export type SerializedUser = SerializedModel<User & { role?: UserRole }>;
 export type SerializedRate = SerializedModel<Rates>;
 export type SerializedVendors = SerializedModel<Vendors>;
+export type SerializedRequest = SerializedModel<Request>;
 
 export type SerializedModel<T> = Omit<T, 'createdAt' | 'updatedAt' | 'id'>;
-interface CustomSession {
+
+// Extend session for wizard scenes
+export interface CustomSession extends Scenes.WizardSessionData {
   messagesToDelete?: number[];
-  state: 'updated' | 'cancelled' | 'done';
+  customState?: string; // renamed from 'state' to avoid conflict
+  requestType?: string; // card, iban, etc
 }
 
-export type CustomSceneContext = SceneContext & { session: CustomSession };
+// Extend context for wizard scenes
+export type CustomSceneContext = Scenes.WizardContext & {
+  session: CustomSession;
+};
 
 export enum UserRole {
   ADMIN = '1',

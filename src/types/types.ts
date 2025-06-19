@@ -23,13 +23,20 @@ export interface CustomSession extends Scenes.WizardSessionData {
 }
 export type CardRequestType = Omit<
   SerializedRequest,
-  'payedByUserId' | 'completedAt' | 'error' | 'user' | 'userId'
+  'payedByUserId' | 'completedAt' | 'error' | 'user' | 'userId' | 'ratesId'
 > & {
-  message: Omit<Message, 'id' | 'createdAt' | 'requestId' | 'updatedAt'>;
+  rateId: string;
   card: Omit<
     CardPaymentRequestsMethod,
     'id' | 'createdAt' | 'updatedAt' | 'requestId'
   >;
+};
+export type FullRequestType = PaymentRequests & {
+  cardMethods?: CardPaymentRequestsMethod[];
+  message?: Message[];
+  vendor?: Vendors;
+  currency?: Currency;
+  rates?: Rates;
 };
 
 // Extend context for wizard scenes

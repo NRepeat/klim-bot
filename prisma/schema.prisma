@@ -76,7 +76,7 @@ model PaymentRequests {
   completedAt      DateTime?
   message          Message[]
   blackList        BlackList?
-  Rates            Rates?                      @relation(fields: [ratesId], references: [id])
+  rates            Rates?                      @relation(fields: [ratesId], references: [id])
   ratesId          String?
 }
 
@@ -129,9 +129,9 @@ model Rates {
   updatedAt       DateTime          @updatedAt
   createdAt       DateTime          @default(now())
   paymentMethodId String
-  paymentMethod   PaymentMethod     @relation(fields: [paymentMethodId], references: [id])
   currency        Currency          @relation(fields: [currencyId], references: [id])
-  Requests        PaymentRequests[]
+  paymentMethod   PaymentMethod     @relation(fields: [paymentMethodId], references: [id])
+  paymentRequests PaymentRequests[]
 }
 
 model PaymentMethod {
@@ -150,8 +150,8 @@ model Currency {
   name            String
   nameEn          String
   symbol          String?
-  rates           Rates[]
   paymentRequests PaymentRequests[]
+  Rates           Rates[]
 }
 
 model BlackList {

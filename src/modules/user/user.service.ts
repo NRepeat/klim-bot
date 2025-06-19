@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Context } from 'telegraf';
 import UserRepository from './user.repo';
-import { UserRole } from 'src/types/types';
+
+import { User } from 'generated/prisma';
 
 @Injectable()
 export class UserService {
@@ -9,7 +10,12 @@ export class UserService {
 
   constructor(private readonly userRepository: UserRepository) {}
 
-  async createUser(ctx: Context, role: UserRole): Promise<void> {
+  async getAllActiveAdmins(): Promise<User[]> {
+    const admins = await this.userRepository.getAllActiveAdmins();
+    return admins;
+  }
+
+  async createUser(ctx: Context): Promise<void> {
     const userId = ctx.from?.id;
     const username = ctx.from?.username;
 

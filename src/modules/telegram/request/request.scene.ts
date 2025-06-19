@@ -1,10 +1,18 @@
 import { Injectable } from '@nestjs/common';
+import { createReadStream } from 'fs';
 import { Wizard, WizardStep, Ctx, SceneLeave, On } from 'nestjs-telegraf';
 import { RatesService } from 'src/modules/rates/rates.service';
 import { RequestService } from 'src/modules/request/request.service';
+import { UserService } from 'src/modules/user/user.service';
+import { UtilsService } from 'src/modules/utils/utils.service';
 import { VendorService } from 'src/modules/vendor/vendor.service';
-import { CardRequestType, CustomSceneContext } from 'src/types/types';
+import {
+  CardRequestType,
+  CustomSceneContext,
+  FullRequestType,
+} from 'src/types/types';
 import { Markup } from 'telegraf';
+import { TelegramService } from '../telegram.service';
 
 @Injectable()
 @Wizard('create-request')
@@ -13,6 +21,9 @@ export class CreateRequestWizard {
     private readonly requestService: RequestService,
     private readonly ratesService: RatesService,
     private readonly vendorService: VendorService,
+    private readonly utilsService: UtilsService,
+    private readonly userService: UserService,
+    private readonly telegramService: TelegramService,
   ) {}
 
   @WizardStep(0)
@@ -89,11 +100,14 @@ export class CreateRequestWizard {
           await ctx.reply('No rates available. Please create a rate first.');
           return;
         }
-        const foundRate = rates.find(
-          (rate) =>
+        const foundRate = rates.find((rate) => {
+          return (
+            console.log('Checking rate:', rate),
+            console.log('Card amount:', cardDetail.amount),
             cardDetail.amount >= rate.minAmount &&
-            (rate.maxAmount === null || cardDetail.amount <= rate.maxAmount),
-        );
+              (rate.maxAmount === 0 || cardDetail.amount <= rate.maxAmount)
+          );
+        });
         const vendor = await this.vendorService.getVendorByChatId(
           ctx.chat?.id || 0,
         );
@@ -111,7 +125,6 @@ export class CreateRequestWizard {
         }
         const allCardRequests =
           await this.requestService.findAllCardRequestsByCard();
-        console.log('allCardRequests:', allCardRequests);
         const requestExists = allCardRequests.find(
           (request) =>
             request.amount === cardDetail.amount &&
@@ -123,27 +136,58 @@ export class CreateRequestWizard {
           );
           continue;
         }
+
         const cardRequest: CardRequestType = {
           amount: cardDetail.amount,
           currencyId: foundRate.currencyId,
           notificationSent: false,
-          rateId: foundRate.id,
           status: 'PENDING',
           vendorId: vendor?.id,
-          message: {
-            chatId: BigInt(ctx.chat?.id || 0),
-            text: message,
-            messageId: BigInt(ctx.message?.message_id || 0),
-          },
+          rateId: foundRate.id,
           card: {
             card: cardDetail.cardNumber,
             comment: 'Card request created via bot',
           },
         };
-        await this.requestService.createCardRequest(cardRequest);
-        await ctx.reply('Card details step. (Demo: send any text to finish)');
-        ctx.wizard.selectStep(3);
+        try {
+          const request =
+            await this.requestService.createCardRequest(cardRequest);
+
+          console.log('Created request:', request);
+          // Ensure the request object matches FullRequestType for buildCardRequestMessage
+
+          const caption = this.utilsService.buildCardRequestMessage(
+            request as unknown as FullRequestType,
+          );
+          const requestPhotoMessage = {
+            source: createReadStream(
+              '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
+            ),
+            caption,
+          };
+          const requestMessage = await ctx.replyWithPhoto(
+            {
+              source: requestPhotoMessage.source,
+            },
+            { caption: requestPhotoMessage.caption },
+          );
+          await this.telegramService.sendPhotoMessageToAllAdmins(
+            requestPhotoMessage,
+          );
+          if (!requestMessage || !request) {
+            await ctx.reply('Failed to create card request. Please try again.');
+            return;
+          }
+          await this.requestService.createCardRequestMessageId(request.id, {
+            messageId: requestMessage.message_id,
+            chatId: ctx.chat?.id || 0,
+          });
+        } catch (error) {
+          console.error('Error creating card request:', error);
+          await ctx.scene.leave();
+        }
       }
+      await ctx.scene.leave();
     }
   }
 

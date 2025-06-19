@@ -15,4 +15,10 @@ export class RequestService {
   async findAllCardRequestsByCard(cardNumber?: string) {
     return this.requestRepo.findAllCardRequestsByCard(cardNumber);
   }
+  async createCardRequestMessageId(
+    requestId: string,
+    message: { messageId: number; chatId: number },
+  ) {
+    return this.requestRepo.createCardRequestMessageId(requestId, message);
+  }
 }

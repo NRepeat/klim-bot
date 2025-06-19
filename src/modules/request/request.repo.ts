@@ -9,16 +9,24 @@ export class RequestRepository {
   createCardRequest({ data }: { data: CardRequestType }) {
     return this.prisma.paymentRequests.create({
       data: {
-        message: { create: { ...data.message } },
         amount: data.amount || 0,
         vendor: { connect: { id: data.vendorId } },
-        rate: { connect: { id: data.rateId } },
-        currency: { connect: { id: data.currencyId } },
+        currency: { connect: { id: data.currencyId! } },
+        rates: {
+          connect: { id: data.rateId },
+        },
         cardMethods: {
           create: {
             ...data.card,
           },
         },
+      },
+      include: {
+        cardMethods: true,
+        message: true,
+        vendor: true,
+        rates: true,
+        currency: true,
       },
     });
   }
@@ -42,12 +50,26 @@ export class RequestRepository {
         cardMethods: true,
         message: true,
         vendor: true,
-        rate: true,
         currency: true,
       },
     });
   }
-
+  async createCardRequestMessageId(
+    requestId: string,
+    message: { messageId: number; chatId: number },
+  ) {
+    return this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: {
+        message: {
+          create: {
+            chatId: message.chatId,
+            messageId: message.messageId,
+          },
+        },
+      },
+    });
+  }
   // async create(data: SerializedRequest) {
   //   return this.prisma.paymentRequests.create({ data:{} });
   // }

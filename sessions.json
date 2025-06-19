@@ -3,23 +3,10 @@
     {
       "id": "375905624:375905624",
       "data": {
-        "__scenes": {
-          "current": "create-rates",
-          "state": {}
-        },
-        "messagesToDelete": [
-          610,
-          612,
-          614,
-          616,
-          618,
-          620,
-          622,
-          624,
-          626
-        ],
+        "__scenes": {},
+        "messagesToDelete": [],
         "state": "updated",
-        "customState": "updated",
+        "customState": "cancelled",
         "requestType": "card"
       }
     },
@@ -27,15 +14,39 @@
       "id": "-1002510029234:375905624",
       "data": {
         "__scenes": {},
-        "messagesToDelete": [],
+        "messagesToDelete": [
+          699,
+          720,
+          729,
+          736,
+          764,
+          770,
+          775,
+          780,
+          786,
+          791,
+          796,
+          826
+        ],
         "requestType": "card",
-        "customState": "cancelled"
+        "customState": "card_request"
       }
     },
     {
       "id": "-1002510029234:8045572818",
       "data": {
-        "__scenes": {}
+        "__scenes": {},
+        "messagesToDelete": [
+          748,
+          754,
+          801,
+          806,
+          811,
+          816,
+          821
+        ],
+        "requestType": "card",
+        "customState": "card_request"
       }
     },
     {

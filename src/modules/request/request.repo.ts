@@ -74,7 +74,6 @@ export class RequestRepository {
         message: true,
         vendor: true,
         currency: true,
-
         ibanMethods: true,
         user: true,
         rates: true,

@@ -24,7 +24,13 @@ export interface CustomSession extends Scenes.WizardSessionData {
 }
 export type CardRequestType = Omit<
   SerializedRequest,
-  'payedByUserId' | 'completedAt' | 'error' | 'user' | 'userId' | 'ratesId'
+  | 'payedByUserId'
+  | 'completedAt'
+  | 'error'
+  | 'user'
+  | 'userId'
+  | 'ratesId'
+  | 'activeUserId'
 > & {
   rateId: string;
   blackList?: BlackList;

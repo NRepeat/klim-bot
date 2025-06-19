@@ -30,6 +30,7 @@ model User {
   updatedAt       DateTime          @updatedAt
   paymentRequests PaymentRequests[]
   payedRequests   PaymentRequests[] @relation("payedByUser")
+  activeRequests  PaymentRequests[] @relation("activeRequests")
 }
 
 model Role {
@@ -77,6 +78,8 @@ model PaymentRequests {
   message          Message[]
   rates            Rates?                      @relation(fields: [ratesId], references: [id])
   ratesId          String?
+  activeUserId     String?
+  activeUser       User?                       @relation("activeRequests", fields: [activeUserId], references: [id])
 }
 
 model Message {

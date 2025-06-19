@@ -1,28 +1,15 @@
 {
   "sessions": [
     {
-      "id": "375905624:375905624",
-      "data": {
-        "__scenes": {},
-        "messagesToDelete": [
-          676,
-          678
-        ],
-        "state": "updated",
-        "customState": "updated",
-        "requestType": "card"
-      }
-    },
-    {
       "id": "-1002510029234:375905624",
       "data": {
         "__scenes": {},
         "messagesToDelete": [
-          887,
-          913
+          925,
+          935
         ],
-        "requestType": "card",
-        "customState": "card_request"
+        "customState": "card_request",
+        "requestType": "card"
       }
     },
     {
@@ -30,27 +17,16 @@
       "data": {
         "__scenes": {},
         "messagesToDelete": [
-          748,
-          754,
-          801,
-          806,
-          811,
-          816,
-          821,
-          859,
-          892,
-          898,
-          903,
-          908
+          930,
+          940,
+          945,
+          950,
+          955,
+          960,
+          965
         ],
-        "requestType": "card",
-        "customState": "card_request"
-      }
-    },
-    {
-      "id": "8045572818:8045572818",
-      "data": {
-        "__scenes": {}
+        "customState": "card_request",
+        "requestType": "card"
       }
     }
   ]

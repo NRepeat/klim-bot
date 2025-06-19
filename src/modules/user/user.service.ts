@@ -9,7 +9,7 @@ export class UserService {
   // private readonly logger = new Logger(TelegramService.name);
 
   constructor(private readonly userRepository: UserRepository) {}
-  async getAllActiveWorkers(): Promise<User[]> {
+  async getAllActiveWorkers() {
     const workers = await this.userRepository.getAllActiveWorkers();
     console.log('Active workers:', workers);
     return workers;
@@ -50,5 +50,8 @@ export class UserService {
     return admins?.users.some(
       (admin) => Number(admin.telegramId) === Number(chatId),
     );
+  }
+  async appendRequestToUser(userId: string, requestId: string): Promise<void> {
+    return this.userRepository.appendRequestToUser(userId, requestId);
   }
 }

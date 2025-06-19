@@ -131,6 +131,8 @@ export class CreateRequestWizard {
         const requestExists = allCardRequests.find(
           (request) =>
             request.amount === cardDetail.amount &&
+            Array.isArray(request.cardMethods) &&
+            request.cardMethods.length > 0 &&
             request.cardMethods[0].card === cardDetail.cardNumber,
         );
         if (requestExists) {
@@ -159,26 +161,32 @@ export class CreateRequestWizard {
           console.log('Created request:', request);
           // Ensure the request object matches FullRequestType for buildCardRequestMessage
 
-          const caption = this.utilsService.buildRequestMessage(
+          const adminCaption = this.utilsService.buildRequestMessage(
             request as unknown as FullRequestType,
             'card',
             'admin',
           );
-          const requestPhotoMessage = {
+          const publicCaption = this.utilsService.buildRequestMessage(
+            request as unknown as FullRequestType,
+            'card',
+            'public',
+          );
+          const adminRequestPhotoMessage = {
             source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-            caption,
+            caption: adminCaption,
           };
           const requestMessage = await ctx.replyWithPhoto(
             {
-              source: createReadStream(requestPhotoMessage.source),
+              source: createReadStream(adminRequestPhotoMessage.source),
             },
-            { caption: requestPhotoMessage.caption },
+            { caption: publicCaption },
           );
           await this.telegramService.sendPhotoMessageToAllAdmins(
-            requestPhotoMessage,
+            adminRequestPhotoMessage,
           );
           await this.telegramService.sendPhotoMessageToAllWorkers(
-            requestPhotoMessage,
+            adminRequestPhotoMessage,
+            request.id,
           );
           if (!requestMessage || !request) {
             await ctx.reply('Failed to create card request. Please try again.');

@@ -83,14 +83,16 @@ model PaymentRequests {
 }
 
 model Message {
-  id              String          @id @default(cuid())
-  chatId          BigInt
-  messageId       BigInt
-  text            String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  requestId       String
-  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  id                         String                    @id @default(cuid())
+  chatId                     BigInt
+  messageId                  BigInt
+  text                       String?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+  requestId                  String
+  paymentRequests            PaymentRequests           @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  AdminRequestPhotoMessage   AdminRequestPhotoMessage? @relation(fields: [adminRequestPhotoMessageId], references: [id])
+  adminRequestPhotoMessageId String?
 }
 
 model CardPaymentRequestsMethod {
@@ -165,4 +167,11 @@ model BlackList {
   reason    String?
   createdAt DateTime                    @default(now())
   updatedAt DateTime                    @updatedAt
+}
+
+model AdminRequestPhotoMessage {
+  id        String    @id @default(cuid())
+  message   Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }

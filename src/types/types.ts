@@ -1,7 +1,7 @@
 import { Rates, User, Vendors } from 'generated/prisma';
 import { SceneContext } from 'telegraf/typings/scenes';
 
-export type SerializedUser = SerializedModel<User>;
+export type SerializedUser = SerializedModel<User & { role?: UserRole }>;
 export type SerializedRate = SerializedModel<Rates>;
 export type SerializedVendors = SerializedModel<Vendors>;
 

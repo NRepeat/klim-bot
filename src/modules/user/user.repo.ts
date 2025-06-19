@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, SerializedUser } from 'src/types/types';
+import { Repository, SerializedUser, UserRole } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -14,11 +14,25 @@ export default class UserRepository implements Repository<SerializedUser> {
 
   async create(data: SerializedUser) {
     return this.prisma.user.create({
-      data,
+      data: {
+        ...data,
+        Role: {
+          connect: {
+            id: data.role,
+          },
+        },
+      },
     });
   }
   async getAllAdmins(where: { roleId: string } = { roleId: '1' }) {
-    return this.prisma.user.findMany({ where: { ...where } });
+    return this.prisma.role.findFirst({
+      where: {
+        id: where.roleId,
+      },
+      include: {
+        users: true,
+      },
+    });
   }
   async update(userId: string, data: SerializedUser) {
     return this.prisma.user.update({

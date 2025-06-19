@@ -38,7 +38,7 @@ export class MenuActions {
       (await this.userService.isAdminChat(ctx)) ||
       (await this.vendorService.isVendorChat(ctx))
     ) {
-      await ctx.reply('You are already registered as an admin.');
+      await ctx.reply('You are already registered');
       return;
     }
     await this.vendorService.createVendor(ctx);

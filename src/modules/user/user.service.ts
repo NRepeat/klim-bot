@@ -17,7 +17,6 @@ export class UserService {
       await this.userRepository.create({
         username: username,
         onPause: true,
-        roleId: role,
         telegramId: BigInt(userId),
       });
       console.log(`User created: ${username} with ID: ${userId}`);
@@ -33,10 +32,12 @@ export class UserService {
   async isAdminChat(ctx: Context): Promise<boolean> {
     const chatId = ctx.chat?.id;
     const admins = await this.getAdmins();
-    if (!chatId) {
+    if (!chatId || !admins) {
       return false;
     }
 
-    return admins.some((admin) => Number(admin.telegramId) === Number(chatId));
+    return admins?.users.some(
+      (admin) => Number(admin.telegramId) === Number(chatId),
+    );
   }
 }

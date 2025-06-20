@@ -23,6 +23,7 @@ import { RequestActions } from './request/request.actions';
     RequestModule,
   ],
   controllers: [],
+  exports: [TelegramService],
   providers: [
     TelegramService,
     CreateRatesScene,

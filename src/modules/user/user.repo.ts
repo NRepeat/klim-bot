@@ -10,7 +10,22 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export default class UserRepository implements Repository<SerializedUser> {
   constructor(private readonly prisma: PrismaService) {}
-
+  async findAllAdminMessagesWithRequestsId(requestId: string) {
+    const allMessages = await this.prisma.adminRequestPhotoMessage.findMany({
+      where: {
+        requestId: requestId,
+      },
+      include: {
+        message: true,
+      },
+    });
+    console.log(allMessages, '--------------------');
+    console.log(
+      `Fetching all admin messages with request ID ${requestId}`,
+      allMessages.forEach((msg) => console.log(msg.message)),
+    );
+    return allMessages;
+  }
   async appendRequestToUser(userId: string, requestId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -69,13 +84,13 @@ export default class UserRepository implements Repository<SerializedUser> {
     });
   }
 
-  async create(data: SerializedUser) {
+  async create(data: SerializedUser, roleId: string = UserRole.GEEST) {
     return this.prisma.user.create({
       data: {
         ...data,
         Role: {
           connect: {
-            id: data.role,
+            id: roleId,
           },
         },
       },
@@ -103,9 +118,13 @@ export default class UserRepository implements Repository<SerializedUser> {
     requestId: string,
     userId: string,
   ) {
+    console.log(
+      `Saving photo message for user ${userId} with request ID ${requestId}`,
+    );
     return this.prisma.adminRequestPhotoMessage.create({
       data: {
-        userId,
+        userId: userId,
+        requestId: requestId,
         message: {
           create: {
             chatId: message.chatId,

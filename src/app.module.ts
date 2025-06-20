@@ -5,12 +5,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import * as LocalSession from 'telegraf-session-local';
+import { RequestTaskModule } from './modules/request-task/request-task.module';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
 const session = new LocalSession({});
 
 @Module({
   imports: [
+    RequestTaskModule,
     TelegramModule,
     ConfigModule.forRoot({
       isGlobal: true,

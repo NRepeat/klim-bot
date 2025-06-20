@@ -29,10 +29,14 @@ export class RequestService {
   async findAllCardRequestsByCard(cardNumber?: string) {
     return this.requestRepo.findAllCardRequestsByCard(cardNumber);
   }
-  async createCardRequestMessageId(
+  async insertCardRequestMessageId(
     requestId: string,
     message: { messageId: number; chatId: number },
   ) {
-    return this.requestRepo.createCardRequestMessageId(requestId, message);
+    return this.requestRepo.insertCardRequestMessageId(requestId, message);
+  }
+
+  async findAllNotProcessedRequests() {
+    return this.requestRepo.findAllNotProcessedRequests();
   }
 }

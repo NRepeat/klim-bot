@@ -15,6 +15,7 @@ export class TelegramService {
     private readonly userService: UserService,
     private readonly requestService: RequestService,
   ) {}
+
   async sendPhotoMessageToAllWorkers(
     message: {
       source: string;
@@ -34,12 +35,14 @@ export class TelegramService {
         this.logger.warn('No active workers found');
         return;
       }
+      const processedRequestsId: {
+        requestId: string;
+      }[] = [];
       for (const worker of workers) {
         const activeRequests = worker.paymentRequests.length;
         console.log(
           `Worker ${worker.username} has ${activeRequests} active requests`,
         );
-        // If worker has no
         if (activeRequests <= 1 && requestId) {
           await this.userService.appendRequestToUser(worker.id, requestId);
           if (worker.telegramId) {
@@ -64,6 +67,9 @@ export class TelegramService {
               text: message.caption || '',
               requestId: requestId,
             };
+            processedRequestsId.push({
+              requestId: requestId,
+            });
             if (photoMsg) {
               await this.userService.saveRequestPhotoMessage(
                 messageToSave,
@@ -77,6 +83,7 @@ export class TelegramService {
           continue;
         }
       }
+      return processedRequestsId;
     } catch (error) {
       this.logger.error('Error sending message to workers', error);
     }
@@ -98,6 +105,7 @@ export class TelegramService {
         this.logger.warn('No active admins found');
         return;
       }
+      const processedAdmins = new Set<string>();
       for (const admin of admins) {
         if (admin.telegramId) {
           const chatId = Number(admin.telegramId);
@@ -106,24 +114,82 @@ export class TelegramService {
           );
           if (requestId) {
             const request = await this.requestService.findById(requestId);
-            await this.bot.telegram.sendPhoto(
+            const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
                 source: createReadStream(message.source),
               },
               {
                 caption:
-                  message.caption +
-                    '\n' +
-                    `Воркер ${request?.user?.username}` || '',
+                  (message.caption || '') +
+                  '\n' +
+                  `Воркер ${request?.user?.username || ''}`,
                 reply_markup: inline_keyboard.reply_markup,
               },
             );
+            console.log(photoMsg ? photoMsg.message_id : 'No message ID');
+            const messageToSave: SerializedMessage = {
+              chatId: BigInt(chatId),
+              photoUrl: message.source,
+              messageId: BigInt(photoMsg.message_id),
+              text: message.caption || '',
+              requestId: requestId,
+            };
+            if (photoMsg.message_id) {
+              await this.userService.saveRequestPhotoMessage(
+                messageToSave,
+                requestId,
+                admin.id,
+              );
+              processedAdmins.add(admin.id);
+            }
           }
         }
       }
+      return processedAdmins;
     } catch (error) {
       this.logger.error('Error sending message to admins', error);
+    }
+  }
+
+  async updateAdminMessage(
+    chatId: number,
+    messageId: number,
+    text: string,
+    imageUrl?: string,
+  ) {
+    try {
+      if (imageUrl) {
+        await this.updateTelegramMessage(chatId, messageId, text, imageUrl);
+      }
+    } catch (error) {
+      this.logger.error('Error updating admin message', error);
+    }
+  }
+
+  async updateTelegramMessage(
+    chatId: number,
+    messageId: number,
+    text: string,
+    imageUrl?: string,
+  ) {
+    try {
+      if (imageUrl) {
+        await this.bot.telegram.editMessageMedia(chatId, messageId, undefined, {
+          type: 'photo',
+          media: imageUrl,
+          caption: text,
+        });
+      } else {
+        await this.bot.telegram.editMessageText(
+          chatId,
+          messageId,
+          undefined,
+          text,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error updating message', error);
     }
   }
 }

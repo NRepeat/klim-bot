@@ -11,7 +11,25 @@ export class RequestRepository {
       where: { card: { some: { card: cardNumber } } },
     });
   }
-
+  async findAllNotProcessedRequests() {
+    return this.prisma.paymentRequests.findMany({
+      where: {
+        userId: null,
+      },
+      include: {
+        cardMethods: {
+          include: {
+            blackList: true,
+          },
+        },
+        message: true,
+        vendor: true,
+        rates: true,
+        currency: true,
+        ibanMethods: true,
+      },
+    });
+  }
   createCardRequest({ data }: { data: CardRequestType }) {
     return this.prisma.paymentRequests.create({
       data: {
@@ -83,7 +101,7 @@ export class RequestRepository {
       },
     });
   }
-  async createCardRequestMessageId(
+  async insertCardRequestMessageId(
     requestId: string,
     message: { messageId: number; chatId: number },
   ) {

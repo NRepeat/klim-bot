@@ -60,29 +60,30 @@ model Vendors {
 }
 
 model PaymentRequests {
-  id               String                      @id @default(cuid())
-  vendorId         String
-  vendor           Vendors                     @relation(fields: [vendorId], references: [id])
-  userId           String?
-  user             User?                       @relation(fields: [userId], references: [id])
-  cardMethods      CardPaymentRequestsMethod[]
-  ibanMethods      IbanPaymentRequestsMethod[]
-  payedByUser      User?                       @relation("payedByUser", fields: [payedByUserId], references: [id])
-  payedByUserId    String?
-  amount           Float
-  status           Status                      @default(PENDING)
-  error            String?
-  currencyId       String
-  notificationSent Boolean                     @default(false)
-  currency         Currency                    @relation(fields: [currencyId], references: [id])
-  createdAt        DateTime                    @default(now())
-  updatedAt        DateTime                    @updatedAt
-  completedAt      DateTime?
-  message          Message[]
-  rates            Rates?                      @relation(fields: [ratesId], references: [id])
-  ratesId          String?
-  activeUserId     String?
-  activeUser       User?                       @relation("activeRequests", fields: [activeUserId], references: [id])
+  id                       String                      @id @default(cuid())
+  vendorId                 String
+  vendor                   Vendors                     @relation(fields: [vendorId], references: [id])
+  userId                   String?
+  user                     User?                       @relation(fields: [userId], references: [id])
+  cardMethods              CardPaymentRequestsMethod[]
+  ibanMethods              IbanPaymentRequestsMethod[]
+  payedByUser              User?                       @relation("payedByUser", fields: [payedByUserId], references: [id])
+  payedByUserId            String?
+  amount                   Float
+  status                   Status                      @default(PENDING)
+  error                    String?
+  currencyId               String
+  notificationSent         Boolean                     @default(false)
+  currency                 Currency                    @relation(fields: [currencyId], references: [id])
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  completedAt              DateTime?
+  message                  Message[]
+  rates                    Rates?                      @relation(fields: [ratesId], references: [id])
+  ratesId                  String?
+  activeUserId             String?
+  activeUser               User?                       @relation("activeRequests", fields: [activeUserId], references: [id])
+  adminRequestPhotoMessage AdminRequestPhotoMessage[]
 }
 
 model Message {
@@ -174,10 +175,12 @@ model BlackList {
 }
 
 model AdminRequestPhotoMessage {
-  id        String    @id @default(cuid())
-  message   Message[]
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id              String          @id @default(cuid())
+  message         Message[]
+  requestId       String
+  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }

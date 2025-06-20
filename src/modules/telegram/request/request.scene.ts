@@ -191,7 +191,7 @@ export class CreateRequestWizard {
             await ctx.reply('Failed to create card request. Please try again.');
             return;
           }
-          await this.requestService.createCardRequestMessageId(request.id, {
+          await this.requestService.insertCardRequestMessageId(request.id, {
             messageId: requestMessage.message_id,
             chatId: ctx.chat?.id || 0,
           });
@@ -224,15 +224,15 @@ export class CreateRequestWizard {
   async cancel(ctx: CustomSceneContext) {
     ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
     const messagesToDelete = ctx.session.messagesToDelete;
-    if (messagesToDelete.length > 0) {
-      for (const messageId of messagesToDelete) {
-        try {
-          await ctx.deleteMessage(messageId);
-        } catch (error) {
-          console.error('Failed to delete message:', error);
-        }
-      }
-    }
+    // if (messagesToDelete.length > 0) {
+    //   for (const messageId of messagesToDelete) {
+    //     try {
+    //       await ctx.deleteMessage(messageId);
+    //     } catch (error) {
+    //       console.error('Failed to delete message:', error);
+    //     }
+    //   }
+    // }
     ctx.session.messagesToDelete = [];
     ctx.session.customState = 'cancelled';
     await ctx.scene.leave();
@@ -241,14 +241,14 @@ export class CreateRequestWizard {
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
     const messagesToDelete = ctx.session.messagesToDelete || [];
-    if (messagesToDelete.length > 0) {
-      for (const messageId of messagesToDelete) {
-        try {
-          await ctx.deleteMessage(messageId);
-        } catch (error) {
-          console.error('Failed to delete message:', error);
-        }
-      }
-    }
+    // if (messagesToDelete.length > 0) {
+    //   for (const messageId of messagesToDelete) {
+    //     try {
+    //       await ctx.deleteMessage(messageId);
+    //     } catch (error) {
+    //       console.error('Failed to delete message:', error);
+    //     }
+    //   }
+    // }
   }
 }

@@ -112,29 +112,54 @@ export class RatesService {
       console.error('No valid rates found to create');
       throw new Error('No valid rates found');
     }
-    const isRateDeleted = await this.rateRepository.deleteAll();
-    if (!isRateDeleted) {
-      console.error('Failed to delete existing rates before creating new ones');
-      throw new Error('Failed to delete existing rates');
-    }
-    const createRatePromises = newRates.map((rate) =>
-      this.rateRepository.create({
-        rate: rate.rate,
-        minAmount: rate.minAmount,
-        maxAmount: rate.maxAmount,
-        currencyId: rate.currencyId,
-        paymentMethodId: rate.paymentMethodId,
-      }),
-    );
-    try {
-      const createdRates = await Promise.all(createRatePromises);
-
-      console.log('Created Rates:', createdRates);
-      return true;
-    } catch (error) {
-      throw new Error(
-        `Failed to create rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    const existingRates = await this.getAllRates();
+    if (existingRates.length > 0) {
+      const isRateDeleted = await this.rateRepository.deleteAll();
+      if (!isRateDeleted) {
+        console.error(
+          'Failed to delete existing rates before creating new ones',
+        );
+        throw new Error('Failed to delete existing rates');
+      }
+      const createRatePromises = newRates.map((rate) =>
+        this.rateRepository.create({
+          rate: rate.rate,
+          minAmount: rate.minAmount,
+          maxAmount: rate.maxAmount,
+          currencyId: rate.currencyId,
+          paymentMethodId: rate.paymentMethodId,
+        }),
       );
+      try {
+        const createdRates = await Promise.all(createRatePromises);
+
+        console.log('Created Rates:', createdRates);
+        return true;
+      } catch (error) {
+        throw new Error(
+          `Failed to create rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
+    } else {
+      const createRatePromises = newRates.map((rate) =>
+        this.rateRepository.create({
+          rate: rate.rate,
+          minAmount: rate.minAmount,
+          maxAmount: rate.maxAmount,
+          currencyId: rate.currencyId,
+          paymentMethodId: rate.paymentMethodId,
+        }),
+      );
+      try {
+        const createdRates = await Promise.all(createRatePromises);
+
+        console.log('Created Rates:', createdRates);
+        return true;
+      } catch (error) {
+        throw new Error(
+          `Failed to create rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
     }
   }
   async sendAllRatesToAllVendors(ctx: Context) {

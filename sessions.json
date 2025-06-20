@@ -14,12 +14,7 @@
       "data": {
         "__scenes": {},
         "messagesToDelete": [
-          992,
-          997,
-          1002,
-          1007,
-          1012,
-          1017
+          1164
         ],
         "customState": "card_request",
         "requestType": "card"

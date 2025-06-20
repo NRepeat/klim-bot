@@ -10,6 +10,7 @@ import {
   CardRequestType,
   CustomSceneContext,
   FullRequestType,
+  SerializedMessage,
 } from 'src/types/types';
 import { Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
@@ -178,23 +179,22 @@ export class CreateRequestWizard {
             },
             { caption: publicCaption },
           );
-          await this.telegramService.sendPhotoMessageToAllWorkers(
-            adminRequestPhotoMessage,
-            request.id,
-          );
-          await this.telegramService.sendPhotoMessageToAllAdmins(
-            adminRequestPhotoMessage,
-            request.id,
-          );
-
           if (!requestMessage || !request) {
             await ctx.reply('Failed to create card request. Please try again.');
             return;
           }
-          await this.requestService.insertCardRequestMessageId(request.id, {
-            messageId: requestMessage.message_id,
-            chatId: ctx.chat?.id || 0,
-          });
+          const messageToSave: SerializedMessage = {
+            photoUrl: adminRequestPhotoMessage.source,
+            text: adminCaption,
+            chatId: BigInt(ctx.chat?.id || 0),
+            messageId: BigInt(requestMessage.message_id),
+            requestId: request.id,
+            accessType: 'PUBLIC',
+          };
+          await this.requestService.insertCardRequestMessage(
+            request.id,
+            messageToSave,
+          );
         } catch (error) {
           console.error('Error creating card request:', error);
           await ctx.scene.leave();

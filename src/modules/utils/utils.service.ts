@@ -43,8 +43,9 @@ export class UtilsService {
     const amount = request.amount || 0;
     const rate = request.rates?.rate || 0;
     const usdt = (amount / rate).toFixed(2);
+    const isBlacklisted = (cardMethods[0]?.blackList || []).length > 0;
     const blacklist =
-      cardMethods[0].blackList && cardMethods[0].blackList?.length > 0
+      isBlacklisted && cardMethods[0]?.blackList?.[0]
         ? '🚫Карта в чёрном списке: ' + cardMethods[0].blackList[0].reason
         : '';
     let message = '';
@@ -68,7 +69,7 @@ export class UtilsService {
           `💎USDT: ${usdt} \n` +
           `💳Номер карты: ${card}\n` +
           `💱Курс: ${typeof rate === 'number' ? rate.toFixed(2) : '-'}\n` +
-          blacklist;
+          (isBlacklisted ? '🚫Карта в чёрном списке: ' + blacklist : '');
 
         break;
       }

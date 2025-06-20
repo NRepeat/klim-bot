@@ -1,4 +1,5 @@
 import {
+  AdminRequestPhotoMessage,
   BlackList,
   CardPaymentRequestsMethod,
   Message,
@@ -15,7 +16,9 @@ export type SerializedVendors = SerializedModel<Vendors>;
 export type SerializedRequest = SerializedModel<PaymentRequests>;
 export type SerializedMessage = Omit<
   SerializedModel<Message>,
-  'adminRequestPhotoMessageId'
+  | 'adminRequestPhotoMessageId'
+  | 'workerRequestPhotoMessageId'
+  | 'vendorRequestPhotoMessageId'
 >;
 export type SerializedModel<T> = Omit<T, 'createdAt' | 'updatedAt' | 'id'>;
 
@@ -46,6 +49,7 @@ export type FullRequestType = PaymentRequests & {
   cardMethods?: (CardPaymentRequestsMethod & { blackList?: BlackList[] })[];
   message?: Message[];
   vendor?: Vendors;
+  adminRequestPhotoMessage?: AdminRequestPhotoMessage[];
   currency?: Currency;
   rates?: Rates;
 };

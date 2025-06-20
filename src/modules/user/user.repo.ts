@@ -112,8 +112,7 @@ export default class UserRepository implements Repository<SerializedUser> {
       data,
     });
   }
-
-  async saveRequestPhotoMessage(
+  async saveWorkerRequestPhotoMessage(
     message: SerializedMessage,
     requestId: string,
     userId: string,
@@ -121,7 +120,8 @@ export default class UserRepository implements Repository<SerializedUser> {
     console.log(
       `Saving photo message for user ${userId} with request ID ${requestId}`,
     );
-    return this.prisma.adminRequestPhotoMessage.create({
+
+    return this.prisma.workerRequestPhotoMessage.create({
       data: {
         userId: userId,
         requestId: requestId,
@@ -131,11 +131,39 @@ export default class UserRepository implements Repository<SerializedUser> {
             messageId: message.messageId,
             text: message.text,
             requestId: requestId,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             photoUrl: message.photoUrl ? message.photoUrl : '',
           },
         },
       },
     });
+  }
+  async saveRequestPhotoMessage(
+    message: SerializedMessage,
+    requestId: string,
+    userId: string,
+  ) {
+    console.log(
+      `Saving photo message for user ${userId} with request ID ${requestId}`,
+    );
+
+    return this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: {
+        message: {
+          create: {
+            chatId: message.chatId,
+            messageId: message.messageId,
+            text: message.text,
+            accessType: message.accessType,
+            photoUrl: message.photoUrl ? message.photoUrl : '',
+          },
+        },
+      },
+    });
+    // return this.prisma.message.create({
+    //   data: {
+
+    //   },
+    // });
   }
 }

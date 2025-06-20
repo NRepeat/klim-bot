@@ -20,7 +20,6 @@ export class UserService {
 
   async getAllActiveWorkers() {
     const workers = await this.userRepository.getAllActiveWorkers();
-    console.log('Active workers:', workers);
     return workers;
   }
   async getAllActiveAdmins(): Promise<User[]> {
@@ -67,11 +66,28 @@ export class UserService {
     return this.userRepository.appendRequestToUser(userId, requestId);
   }
 
+  async saveWorkerRequestPhotoMessage(
+    message: SerializedMessage,
+    requestId: string,
+    userId: string,
+  ) {
+    return this.userRepository.saveWorkerRequestPhotoMessage(
+      message,
+      requestId,
+      userId,
+    );
+  }
   async saveRequestPhotoMessage(
     message: SerializedMessage,
     requestId: string,
     userId: string,
   ) {
+    console.log(
+      'Saving request photo message with userId:',
+      userId,
+      'and requestId:',
+      requestId,
+    );
     return this.userRepository.saveRequestPhotoMessage(
       message,
       requestId,

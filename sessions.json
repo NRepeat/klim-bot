@@ -14,7 +14,21 @@
       "data": {
         "__scenes": {},
         "messagesToDelete": [
-          1164
+          1164,
+          1169,
+          1175,
+          1180,
+          1185,
+          1190,
+          1195,
+          1200,
+          1205,
+          1210,
+          1215,
+          1220,
+          1225,
+          1230,
+          1235
         ],
         "customState": "card_request",
         "requestType": "card"
@@ -23,9 +37,15 @@
     {
       "id": "8045572818:8045572818",
       "data": {
-        "__scenes": {},
-        "messagesToDelete": [],
-        "customState": "cancelled",
+        "__scenes": {
+          "current": "create-request",
+          "state": {},
+          "cursor": 1
+        },
+        "messagesToDelete": [
+          880
+        ],
+        "customState": "card_request",
         "requestType": "card"
       }
     }

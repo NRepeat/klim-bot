@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RequestRepository } from './request.repo';
-import { CardRequestType } from 'src/types/types';
+import { CardRequestType, SerializedMessage } from 'src/types/types';
 
 @Injectable()
 export class RequestService {
@@ -29,11 +29,11 @@ export class RequestService {
   async findAllCardRequestsByCard(cardNumber?: string) {
     return this.requestRepo.findAllCardRequestsByCard(cardNumber);
   }
-  async insertCardRequestMessageId(
+  async insertCardRequestMessage(
     requestId: string,
-    message: { messageId: number; chatId: number },
+    message: SerializedMessage,
   ) {
-    return this.requestRepo.insertCardRequestMessageId(requestId, message);
+    return this.requestRepo.insertCardRequestMessage(requestId, message);
   }
 
   async findAllNotProcessedRequests() {

@@ -4,6 +4,7 @@ import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
 import { createReadStream } from 'fs';
+
 import { SerializedMessage } from 'src/types/types';
 import { RequestService } from '../request/request.service';
 @Injectable()
@@ -15,6 +16,8 @@ export class TelegramService {
     private readonly userService: UserService,
     private readonly requestService: RequestService,
   ) {}
+
+  private lastWorkerIndex = -1;
 
   async sendPhotoMessageToAllWorkers(
     message: {
@@ -33,59 +36,66 @@ export class TelegramService {
       ]);
       if (!workers || workers.length === 0) {
         this.logger.warn('No active workers found');
-        return;
+        return [];
       }
+      // --- Очередь через переменную ---
+      this.lastWorkerIndex = (this.lastWorkerIndex + 1) % workers.length;
+      const worker = workers[this.lastWorkerIndex];
       const processedRequestsId: {
         requestId: string;
+        username: string;
+        proceeded: boolean;
       }[] = [];
-      for (const worker of workers) {
-        const activeRequests = worker.paymentRequests.length;
-        console.log(
-          `Worker ${worker.username} has ${activeRequests} active requests`,
-        );
-        if (activeRequests <= 1 && requestId) {
-          await this.userService.appendRequestToUser(worker.id, requestId);
-          if (worker.telegramId) {
-            const chatId = Number(worker.telegramId);
-            this.logger.log(
-              `Sending message to worker ${worker.username} (${chatId})`,
+      const activeRequests = worker.paymentRequests.length;
+      console.log(
+        `Worker ${worker.username} has ${activeRequests} active requests`,
+      );
+      if (activeRequests <= 1 && requestId) {
+        await this.userService.appendRequestToUser(worker.id, requestId);
+        if (worker.telegramId) {
+          const chatId = Number(worker.telegramId);
+          const photoMsg = await this.bot.telegram.sendPhoto(
+            chatId,
+            {
+              source: createReadStream(message.source),
+            },
+            {
+              reply_markup: inline_keyboard.reply_markup,
+              caption: message.caption || '',
+            },
+          );
+          const messageToSave: SerializedMessage = {
+            chatId: BigInt(chatId),
+            photoUrl: message.source,
+            messageId: BigInt(photoMsg.message_id),
+            text: message.caption || '',
+            requestId: requestId,
+            accessType: 'WORKER',
+          };
+          processedRequestsId.push({
+            requestId: requestId,
+            username: worker.username ? worker.username : 'Unknown',
+            proceeded: true,
+          });
+          if (photoMsg) {
+            await this.userService.saveWorkerRequestPhotoMessage(
+              messageToSave,
+              requestId,
+              worker.id,
             );
-            const photoMsg = await this.bot.telegram.sendPhoto(
-              chatId,
-              {
-                source: createReadStream(message.source),
-              },
-              {
-                reply_markup: inline_keyboard.reply_markup,
-                caption: message.caption || '',
-              },
-            );
-            const messageToSave: SerializedMessage = {
-              chatId: BigInt(chatId),
-              photoUrl: message.source,
-              messageId: BigInt(photoMsg.message_id),
-              text: message.caption || '',
-              requestId: requestId,
-            };
-            processedRequestsId.push({
-              requestId: requestId,
-            });
-            if (photoMsg) {
-              await this.userService.saveRequestPhotoMessage(
-                messageToSave,
-                requestId,
-                worker.id,
-              );
-              break;
-            }
           }
-        } else {
-          continue;
         }
+      } else {
+        processedRequestsId.push({
+          requestId: requestId ? requestId : 'No Request ID',
+          username: 'All Workers busy',
+          proceeded: false,
+        });
       }
       return processedRequestsId;
-    } catch (error) {
-      this.logger.error('Error sending message to workers', error);
+    } catch (e) {
+      this.logger.error('Error in sendPhotoMessageToAllWorkers', e);
+      throw e;
     }
   }
   async sendPhotoMessageToAllAdmins(
@@ -134,6 +144,7 @@ export class TelegramService {
               messageId: BigInt(photoMsg.message_id),
               text: message.caption || '',
               requestId: requestId,
+              accessType: 'ADMIN',
             };
             if (photoMsg.message_id) {
               await this.userService.saveRequestPhotoMessage(

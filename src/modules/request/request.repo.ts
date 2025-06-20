@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CardRequestType } from 'src/types/types';
+import { CardRequestType, SerializedMessage } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -26,6 +26,7 @@ export class RequestRepository {
         vendor: true,
         rates: true,
         currency: true,
+        adminRequestPhotoMessage: true,
         ibanMethods: true,
       },
     });
@@ -101,9 +102,9 @@ export class RequestRepository {
       },
     });
   }
-  async insertCardRequestMessageId(
+  async insertCardRequestMessage(
     requestId: string,
-    message: { messageId: number; chatId: number },
+    message: SerializedMessage,
   ) {
     return this.prisma.paymentRequests.update({
       where: { id: requestId },
@@ -112,6 +113,9 @@ export class RequestRepository {
           create: {
             chatId: message.chatId,
             messageId: message.messageId,
+            text: message.text,
+            photoUrl: message.photoUrl || '',
+            accessType: message.accessType,
           },
         },
       },

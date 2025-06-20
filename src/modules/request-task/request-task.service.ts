@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RequestService } from '../request/request.service';
 import { TelegramService } from '../telegram/telegram.service';
@@ -7,7 +7,6 @@ import { FullRequestType } from 'src/types/types';
 import { UserService } from '../user/user.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Context, Telegraf } from 'telegraf';
-import { createReadStream } from 'fs';
 
 @Injectable()
 export class RequestTaskService {
@@ -22,7 +21,8 @@ export class RequestTaskService {
   @Cron(CronExpression.EVERY_10_SECONDS)
   async handleRequests() {
     try {
-      const requests = await this.requestService.findAllNotProcessedRequests();
+      const requests =
+        (await this.requestService.findAllNotProcessedRequests()) as any as FullRequestType[];
       this.logger.log(
         `Found ${requests.length} not processed requests at ${new Date().toISOString()}`,
       );
@@ -31,109 +31,143 @@ export class RequestTaskService {
       for (const request of requests) {
         await this.processRequest(request);
       }
+      // const processRequests = requests.map((request) =>
+      //   this.processRequest(request),
+      // );
+      // await Promise.race(processRequests);
     } catch (error) {
       this.logger.error('Error while processing requests', error);
     }
   }
 
-  private async processRequest(request: any) {
+  hasAdminMassages(request: FullRequestType) {
+    if (request.message && request.message.length > 0) {
+      return {
+        has: true,
+        requests:
+          (request.message?.filter((msg) => {
+            return msg.accessType === 'ADMIN';
+          }) as any as FullRequestType[]) || [],
+      };
+    } else {
+      return { has: false, requests: [] };
+    }
+  }
+  hasMassages(request: FullRequestType) {
+    if (request.message && request.message.length > 0) {
+      return {
+        has: true,
+      };
+    } else {
+      return { has: false };
+    }
+  }
+  private async processRequest(request: FullRequestType) {
     try {
       const workerCaption = this.utilsService.buildRequestMessage(
         request as unknown as FullRequestType,
         'card',
         'admin',
       );
-      const adminRequestPhotoMessage = {
+      const workerRequestPhotoMessage = {
         source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
         caption: workerCaption,
       };
-      console.log(
-        `Processing request ${request.id} with caption: ${workerCaption}`,
-      );
-      const processedMessages =
+      const workerNotifications =
         await this.telegramService.sendPhotoMessageToAllWorkers(
+          workerRequestPhotoMessage,
+          request.id,
+        );
+
+      let username = '';
+      if (workerNotifications.length === 0) {
+        username = 'No workers available';
+      } else {
+        const worker = workerNotifications[0];
+        username = worker.username || 'Unknown Worker';
+        this.logger.log(
+          `Request ${request.id} sent to worker ${username} (${worker.requestId})`,
+        );
+      }
+      const adminRequestPhotoMessage = {
+        source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
+        caption: workerCaption + '\n' + username,
+      };
+
+      const hasAdminMessages = this.hasAdminMassages(request);
+      console.log(
+        `Checking for admin messages in request ${request.id}: ${hasAdminMessages.has}`,
+      );
+      const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
+      if (!hasA) {
+        console.log(`Request ${request.id} has admin messages: ${hasA}`);
+
+        await this.telegramService.sendPhotoMessageToAllAdmins(
           adminRequestPhotoMessage,
           request.id,
         );
-      console.log(
-        `Processed messages for request ${request.id}: ${processedMessages}`,
-      );
-      if (!processedMessages || processedMessages.length === 0) {
-        this.logger.warn(`No workers available for request ${request.id}`);
-        return;
       }
-
-      for (const message of processedMessages) {
-        const processedRequestId = message.requestId;
-        const allAdminsRequestMessages =
-          await this.userService.getAllAdminsWithRequestsId(processedRequestId);
-        console.log(
-          `Found ${allAdminsRequestMessages.length} admins for request ${processedRequestId}`,
-        );
-        if (
-          !allAdminsRequestMessages ||
-          allAdminsRequestMessages.length === 0
-        ) {
-          this.logger.warn(`No admins found for request ${processedRequestId}`);
-          continue;
+      for (const worker of workerNotifications) {
+        if (hasA && worker.proceeded) {
+          await this.updateAdminMessages(request);
         }
-
-        await this.updateAdminMessages(
-          allAdminsRequestMessages,
-          processedRequestId,
-          '/home/nikita/Code/klim-bot/src/assets/placeholder.jpg',
-        );
       }
     } catch (error) {
       this.logger.error('Error creating card request:', error);
     }
   }
 
-  private async updateAdminMessages(
-    adminMessages: any[],
-    processedRequestId: string,
-    adminRequestPhotoMessage: any,
-  ) {
-    console.log(`Updating admin messages for request ${processedRequestId}`);
-    const request = await this.requestService.findById(processedRequestId);
-    if (!request) {
-      this.logger.warn(`Request with ID ${processedRequestId} not found`);
+  private async updateAdminMessages(req: FullRequestType) {
+    console.log(
+      `Updating admin messages for  requests ------------------------------------------`,
+    );
+    const adminCaption = this.utilsService.buildRequestMessage(
+      req as unknown as FullRequestType,
+      'card',
+      'admin',
+    );
+    const adminMessages =
+      req.message?.filter((r) => r.accessType === 'ADMIN') || [];
+    console.log(`------- ${adminMessages.length}`);
+    if (adminMessages.length === 0) {
+      this.logger.warn(
+        `No admin messages found for request ${req.id}, skipping update`,
+      );
       return;
     }
-    console.log(
-      `Request found for ID ${processedRequestId}: ${JSON.stringify(request)}`,
-    );
-    console.log(`Admin messages to update: ${JSON.stringify(adminMessages)}`);
     for (const adminMessage of adminMessages) {
-      console.log(`Found ${adminMessage} admins for request ${request.id}`);
-      //   const adminMessageId = adminMessage.message[0]?.messageId;
-      //   const adminChatId = adminMessage.message[0]?.chatId;
-      //   if (!adminMessageId || !adminChatId) {
-      //     this.logger.warn(
-      //       `Admin message or chat ID not found for request ${request.id}`,
-      //     );
-      //     continue;
-      //   }
-      //   const adminMessageCaption = this.utilsService.buildRequestMessage(
-      //     request as unknown as FullRequestType,
-      //     'card',
-      //     'admin',
-      //   );
-      //   await this.bot.telegram.editMessageMedia(
-      //     Number(adminChatId),
-      //     Number(adminMessageId),
-      //     undefined,
-      //     {
-      //       type: 'photo',
-      //       media: {
-      //         source: createReadStream(adminRequestPhotoMessage),
-      //       },
-      //       caption: adminMessageCaption + '\n' + worker.username,
-      //     },
-      //   );
-      //   this.logger.log(
-      //     `Updated admin message for request ${request.id} with worker ${worker.username}`,
-      //   );
+      try {
+        console.log(
+          `Updating admin message for request ${req.id} with caption: ${adminMessage.text}`,
+        );
+        const chatId = Number(adminMessage.chatId);
+        const messageId = Number(adminMessage.messageId);
+        if (!chatId || !messageId) {
+          this.logger.warn(
+            `Invalid chatId or messageId for request ${req.id}, skipping update`,
+          );
+          continue;
+        }
+        await this.bot.telegram.editMessageCaption(
+          chatId,
+          messageId,
+          undefined,
+          adminCaption,
+        );
+        await this.bot.telegram.editMessageMedia(chatId, messageId, undefined, {
+          type: 'photo',
+          media:
+            'https://lh3.googleusercontent.com/oeqS763H5PDQ7RL3gUnJlvDgZx6MYr5VE7bV7MBanuv7hgB-98wF1JYy-KI-Zxurxc5trLpksuPNUcY=w544-h544-l90-rj',
+          caption: adminCaption,
+        });
+        this.logger.log(
+          `Admin message for request ${req.id} updated successfully`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Error updating admin message for request ${req.id}: ${error.message}`,
+        );
+      }
     }
   }
 }

@@ -13,7 +13,9 @@ export class RequestService {
     const isBlackListed = this.requestRepo.isInBlackList(cardNumber);
     return isBlackListed;
   }
-
+  async findById(id: string) {
+    return this.requestRepo.findOne(id);
+  }
   async createCardRequest(data: CardRequestType) {
     const cardNumber = data.card?.card;
     const isBlackListed = await this.isInBlackList(cardNumber);

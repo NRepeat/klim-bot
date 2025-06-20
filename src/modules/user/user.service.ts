@@ -3,6 +3,7 @@ import { Context } from 'telegraf';
 import UserRepository from './user.repo';
 
 import { User } from 'generated/prisma';
+import { SerializedMessage } from 'src/types/types';
 
 @Injectable()
 export class UserService {
@@ -53,5 +54,17 @@ export class UserService {
   }
   async appendRequestToUser(userId: string, requestId: string): Promise<void> {
     return this.userRepository.appendRequestToUser(userId, requestId);
+  }
+
+  async saveRequestPhotoMessage(
+    message: SerializedMessage,
+    requestId: string,
+    userId: string,
+  ) {
+    return this.userRepository.saveRequestPhotoMessage(
+      message,
+      requestId,
+      userId,
+    );
   }
 }

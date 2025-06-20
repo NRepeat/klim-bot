@@ -13,7 +13,10 @@ export type SerializedUser = SerializedModel<User & { role?: UserRole }>;
 export type SerializedRate = SerializedModel<Rates>;
 export type SerializedVendors = SerializedModel<Vendors>;
 export type SerializedRequest = SerializedModel<PaymentRequests>;
-
+export type SerializedMessage = Omit<
+  SerializedModel<Message>,
+  'adminRequestPhotoMessageId'
+>;
 export type SerializedModel<T> = Omit<T, 'createdAt' | 'updatedAt' | 'id'>;
 
 // Extend session for wizard scenes

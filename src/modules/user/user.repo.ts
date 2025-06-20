@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Repository, SerializedUser, UserRole } from 'src/types/types';
+import {
+  Repository,
+  SerializedMessage,
+  SerializedUser,
+  UserRole,
+} from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -90,6 +95,28 @@ export default class UserRepository implements Repository<SerializedUser> {
     return this.prisma.user.update({
       where: { id: userId },
       data,
+    });
+  }
+
+  async saveRequestPhotoMessage(
+    message: SerializedMessage,
+    requestId: string,
+    userId: string,
+  ) {
+    return this.prisma.adminRequestPhotoMessage.create({
+      data: {
+        userId,
+        message: {
+          create: {
+            chatId: message.chatId,
+            messageId: message.messageId,
+            text: message.text,
+            requestId: requestId,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            photoUrl: message.photoUrl ? message.photoUrl : '',
+          },
+        },
+      },
     });
   }
 }

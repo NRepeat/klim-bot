@@ -4,6 +4,8 @@ import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
 import { createReadStream } from 'fs';
+import { SerializedMessage } from 'src/types/types';
+import { RequestService } from '../request/request.service';
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -11,6 +13,7 @@ export class TelegramService {
   constructor(
     @InjectBot() private bot: Telegraf<Context>,
     private readonly userService: UserService,
+    private readonly requestService: RequestService,
   ) {}
   async sendPhotoMessageToAllWorkers(
     message: {
@@ -44,7 +47,7 @@ export class TelegramService {
             this.logger.log(
               `Sending message to worker ${worker.username} (${chatId})`,
             );
-            await this.bot.telegram.sendPhoto(
+            const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
                 source: createReadStream(message.source),
@@ -54,17 +57,37 @@ export class TelegramService {
                 caption: message.caption || '',
               },
             );
+            const messageToSave: SerializedMessage = {
+              chatId: BigInt(chatId),
+              photoUrl: message.source,
+              messageId: BigInt(photoMsg.message_id),
+              text: message.caption || '',
+              requestId: requestId,
+            };
+            if (photoMsg) {
+              await this.userService.saveRequestPhotoMessage(
+                messageToSave,
+                requestId,
+                worker.id,
+              );
+              break;
+            }
           }
+        } else {
+          continue;
         }
       }
     } catch (error) {
       this.logger.error('Error sending message to workers', error);
     }
   }
-  async sendPhotoMessageToAllAdmins(message: {
-    source: string;
-    caption?: string;
-  }) {
+  async sendPhotoMessageToAllAdmins(
+    message: {
+      source: string;
+      caption?: string;
+    },
+    requestId?: string,
+  ) {
     try {
       const admins = await this.userService.getAllActiveAdmins();
       const inline_keyboard = Markup.inlineKeyboard([
@@ -81,16 +104,22 @@ export class TelegramService {
           this.logger.log(
             `Sending message to admin ${admin.username} (${chatId})`,
           );
-          await this.bot.telegram.sendPhoto(
-            chatId,
-            {
-              source: createReadStream(message.source),
-            },
-            {
-              caption: message.caption || '',
-              reply_markup: inline_keyboard.reply_markup,
-            },
-          );
+          if (requestId) {
+            const request = await this.requestService.findById(requestId);
+            await this.bot.telegram.sendPhoto(
+              chatId,
+              {
+                source: createReadStream(message.source),
+              },
+              {
+                caption:
+                  message.caption +
+                    '\n' +
+                    `Воркер ${request?.user?.username}` || '',
+                reply_markup: inline_keyboard.reply_markup,
+              },
+            );
+          }
         }
       }
     } catch (error) {

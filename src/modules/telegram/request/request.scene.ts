@@ -157,10 +157,7 @@ export class CreateRequestWizard {
         try {
           const request =
             await this.requestService.createCardRequest(cardRequest);
-
           console.log('Created request:', request);
-          // Ensure the request object matches FullRequestType for buildCardRequestMessage
-
           const adminCaption = this.utilsService.buildRequestMessage(
             request as unknown as FullRequestType,
             'card',
@@ -181,13 +178,15 @@ export class CreateRequestWizard {
             },
             { caption: publicCaption },
           );
-          await this.telegramService.sendPhotoMessageToAllAdmins(
-            adminRequestPhotoMessage,
-          );
           await this.telegramService.sendPhotoMessageToAllWorkers(
             adminRequestPhotoMessage,
             request.id,
           );
+          await this.telegramService.sendPhotoMessageToAllAdmins(
+            adminRequestPhotoMessage,
+            request.id,
+          );
+
           if (!requestMessage || !request) {
             await ctx.reply('Failed to create card request. Please try again.');
             return;

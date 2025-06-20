@@ -17,7 +17,7 @@ export class RequestRepository {
       data: {
         amount: data.amount || 0,
         vendor: { connect: { id: data.vendorId } },
-        currency: { connect: { id: data.currencyId! } },
+        currency: { connect: { id: data.currencyId } },
         rates: {
           connect: { id: data.rateId },
         },
@@ -55,7 +55,10 @@ export class RequestRepository {
   }
 
   async findOne(id: string) {
-    return this.prisma.paymentRequests.findUnique({ where: { id } });
+    return this.prisma.paymentRequests.findUnique({
+      where: { id },
+      include: { user: true },
+    });
   }
 
   async findAllCardRequestsByCard(cardNumber?: string) {

@@ -6,7 +6,7 @@ import { UtilsService } from '../utils/utils.service';
 import { FullRequestType, ReplyPhotoMessage } from 'src/types/types';
 import { UserService } from '../user/user.service';
 import { InjectBot } from 'nestjs-telegraf';
-import { Context, Telegraf } from 'telegraf';
+import { Context, Markup, Telegraf } from 'telegraf';
 
 @Injectable()
 export class RequestTaskService {
@@ -63,15 +63,19 @@ export class RequestTaskService {
           `Request ${request.id} sent to worker ${username} (${worker.requestId})`,
         );
       }
-      const adminRequestPhotoMessage = {
+      const inline_keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('Отменить', 'dummy')],
+        [Markup.button.callback('Не в работе', 'dummy')],
+      ]);
+      const adminRequestPhotoMessage: ReplyPhotoMessage = {
         source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-        caption: workerCaption + '\n' + username,
+        text: workerCaption.text,
+        inline_keyboard: inline_keyboard.reply_markup,
       };
 
       const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
       if (!hasA) {
         console.log(`Request ${request.id} has admin messages: ${hasA}`);
-
         await this.telegramService.sendPhotoMessageToAllAdmins(
           adminRequestPhotoMessage,
           request.id,
@@ -119,6 +123,10 @@ export class RequestTaskService {
           );
           continue;
         }
+        const inline_keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('Отменить', 'dummy')],
+          [Markup.button.callback('В работе', 'dummy')],
+        ]);
         await this.bot.telegram.editMessageMedia(
           chatId,
           messageId,
@@ -129,7 +137,7 @@ export class RequestTaskService {
               'https://lh3.googleusercontent.com/oeqS763H5PDQ7RL3gUnJlvDgZx6MYr5VE7bV7MBanuv7hgB-98wF1JYy-KI-Zxurxc5trLpksuPNUcY=w544-h544-l90-rj',
             caption: adminCaption.text,
           },
-          { reply_markup: adminCaption.inline_keyboard },
+          { reply_markup: inline_keyboard.reply_markup },
         );
         this.logger.log(
           `Admin message for request ${req.id} updated successfully`,

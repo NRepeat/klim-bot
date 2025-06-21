@@ -48,11 +48,14 @@ export class TelegramService {
         username: string;
         proceeded: boolean;
       }[] = [];
-      const activeRequests = worker.paymentRequests.length;
-      console.log(
-        `Worker ${worker.username} has ${activeRequests} active requests`,
+      const notDoneActiveRequests = worker.paymentRequests.filter(
+        (request) =>
+          request.status !== 'COMPLETED' && request.status !== 'FAILED',
       );
-      if (activeRequests <= 1 && requestId) {
+      console.log(
+        `Worker ${worker.username} has ${notDoneActiveRequests.length} active requests`,
+      );
+      if (notDoneActiveRequests.length <= 1 && requestId) {
         await this.userService.appendRequestToUser(worker.id, requestId);
         if (worker.telegramId) {
           const chatId = Number(worker.telegramId);
@@ -101,11 +104,7 @@ export class TelegramService {
     }
   }
   async sendPhotoMessageToAllAdmins(
-    message: {
-      source: string;
-      caption?: string;
-      inline_keyboard?: InlineKeyboardMarkup;
-    },
+    message: ReplyPhotoMessage,
     requestId?: string,
   ) {
     try {
@@ -124,6 +123,10 @@ export class TelegramService {
           );
           if (requestId) {
             const request = await this.requestService.findById(requestId);
+            console.log(
+              `Request found for ID ${requestId}: ${JSON.stringify(request?.user)}`,
+            );
+            const user = request?.user;
             const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
@@ -131,9 +134,7 @@ export class TelegramService {
               },
               {
                 caption:
-                  (message.caption || '') +
-                  '\n' +
-                  `Воркер ${request?.user?.username || ''}`,
+                  message.text + (user ? `\nUser: ${user.username}` : ''),
                 reply_markup: message.inline_keyboard,
               },
             );
@@ -142,7 +143,7 @@ export class TelegramService {
               chatId: BigInt(chatId),
               photoUrl: message.source,
               messageId: BigInt(photoMsg.message_id),
-              text: message.caption || '',
+              text: message.text || '',
               requestId: requestId,
               accessType: 'ADMIN',
             };

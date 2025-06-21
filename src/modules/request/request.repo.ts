@@ -11,6 +11,24 @@ export class RequestRepository {
       where: { card: { some: { card: cardNumber } } },
     });
   }
+  async acceptRequest(
+    requestId: string,
+    userId: string,
+    chatId?: number,
+  ): Promise<void> {
+    console.log(
+      `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
+    );
+    await this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: {
+        status: 'ACCEPTED',
+        activeUser: {
+          connect: { id: userId },
+        },
+      },
+    });
+  }
   async findAllNotProcessedRequests() {
     return this.prisma.paymentRequests.findMany({
       where: {
@@ -40,6 +58,11 @@ export class RequestRepository {
         currency: { connect: { id: data.currencyId } },
         rates: {
           connect: { id: data.rateId },
+        },
+        paymentMethod: {
+          connect: {
+            nameEn: 'CARD',
+          },
         },
         cardMethods: {
           create: {
@@ -77,7 +100,7 @@ export class RequestRepository {
   async findOne(id: string) {
     return this.prisma.paymentRequests.findUnique({
       where: { id },
-      include: { user: true },
+      include: { user: true, paymentMethod: true },
     });
   }
 

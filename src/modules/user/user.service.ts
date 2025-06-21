@@ -10,8 +10,11 @@ export class UserService {
   // private readonly logger = new Logger(TelegramService.name);
 
   constructor(private readonly userRepository: UserRepository) {}
-
-  async getAllAdminsWithRequestsId(requestId: string) {
+  async findByTelegramId(id: number) {
+    const user = await this.userRepository.findByTelegramId(id);
+    return user;
+  }
+  async getAllAdminsMessagesWithRequestsId(requestId: string) {
     const admins =
       await this.userRepository.findAllAdminMessagesWithRequestsId(requestId);
     console.log('Admins with requests:', admins);

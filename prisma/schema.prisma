@@ -17,7 +17,13 @@ datasource db {
 enum Status {
   PENDING
   COMPLETED
+  ACCEPTED
   FAILED
+}
+
+enum PaymentMethodEnum {
+  CARD
+  IBAN
 }
 
 model User {
@@ -68,6 +74,7 @@ model PaymentRequests {
   user                      User?                       @relation(fields: [userId], references: [id])
   cardMethods               CardPaymentRequestsMethod[]
   ibanMethods               IbanPaymentRequestsMethod[]
+  paymentMethod             PaymentMethod?              @relation(fields: [paymentMethodId], references: [id])
   payedByUser               User?                       @relation("payedByUser", fields: [payedByUserId], references: [id])
   payedByUserId             String?
   amount                    Float
@@ -86,6 +93,7 @@ model PaymentRequests {
   activeUser                User?                       @relation("activeRequests", fields: [activeUserId], references: [id])
   adminRequestPhotoMessage  AdminRequestPhotoMessage[]
   workerRequestPhotoMessage WorkerRequestPhotoMessage[]
+  paymentMethodId           String?
 }
 
 enum AccessType {
@@ -156,13 +164,13 @@ model Rates {
 }
 
 model PaymentMethod {
-  id            String  @id @default(cuid())
-  name          String  @unique
-  nameEn        String  @unique
-  description   String?
-  descriptionEn String?
-  icon          String?
-  rates         Rates[]
+  id              String            @id @default(cuid())
+  nameEn          PaymentMethodEnum @unique
+  description     String?
+  descriptionEn   String?
+  icon            String?
+  rates           Rates[]
+  paymentRequests PaymentRequests[]
 }
 
 model Currency {

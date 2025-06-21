@@ -1,14 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { RequestRepository } from './request.repo';
 import { CardRequestType, SerializedMessage } from 'src/types/types';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class RequestService {
-  constructor(private readonly requestRepo: RequestRepository) {}
+  constructor(
+    private readonly requestRepo: RequestRepository,
+    private readonly userService: UserService,
+  ) {}
 
   // async createRequest(data: SerializedRequest) {
   //   return this.requestRepo.create(data);
   // }
+  async acceptRequest(
+    requestId: string,
+    userId: number,
+    chatId?: number,
+  ): Promise<void> {
+    console.log(
+      `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
+    );
+    const dbUser = await this.userService.findByTelegramId(userId);
+    if (!dbUser) {
+      throw new Error('User not found');
+    }
+    await this.requestRepo.acceptRequest(requestId, dbUser.id, chatId);
+  }
   async isInBlackList(cardNumber: string) {
     const isBlackListed = this.requestRepo.isInBlackList(cardNumber);
     return isBlackListed;

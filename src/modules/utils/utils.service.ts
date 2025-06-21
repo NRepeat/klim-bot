@@ -53,6 +53,8 @@ export class UtilsService {
       isBlacklisted && cardMethods[0]?.blackList?.[0]
         ? '🚫Карта в чёрном списке: ' + cardMethods[0].blackList[0].reason
         : '';
+    const acceptedBy = request?.activeUser ? request.activeUser.username : '';
+
     let message = '';
     let inline_keyboard: InlineKeyboardMarkup = {
       inline_keyboard: [],
@@ -81,6 +83,7 @@ export class UtilsService {
             `💎USDT: ${usdt} \n` +
             `💳Номер карты: ${card}\n` +
             `💱Курс: ${typeof rate === 'number' ? rate.toFixed(2) : '-'}\n` +
+            acceptedBy +
             (isBlacklisted ? '🚫Карта в чёрном списке: ' + blacklist : '');
         }
         inline_keyboard = Markup.inlineKeyboard([
@@ -99,7 +102,7 @@ export class UtilsService {
           (isBlacklisted ? '🚫Карта в чёрном списке: ' + blacklist : '');
         inline_keyboard = Markup.inlineKeyboard([
           [Markup.button.callback('Отказаться', 'cancel_request')],
-          [Markup.button.callback('Взять', 'card_request')],
+          [Markup.button.callback('Взять', 'accept_request_' + request.id)],
         ]).reply_markup;
         break;
       }

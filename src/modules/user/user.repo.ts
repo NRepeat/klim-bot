@@ -10,20 +10,26 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export default class UserRepository implements Repository<SerializedUser> {
   constructor(private readonly prisma: PrismaService) {}
+  async findByTelegramId(id: number) {
+    return this.prisma.user.findUnique({
+      where: {
+        telegramId: id,
+      },
+    });
+  }
+
   async findAllAdminMessagesWithRequestsId(requestId: string) {
-    const allMessages = await this.prisma.adminRequestPhotoMessage.findMany({
+    const allMessages = await this.prisma.message.findMany({
       where: {
         requestId: requestId,
+        accessType: 'ADMIN',
       },
       include: {
-        message: true,
+        paymentRequests: true,
       },
     });
     console.log(allMessages, '--------------------');
-    console.log(
-      `Fetching all admin messages with request ID ${requestId}`,
-      allMessages.forEach((msg) => console.log(msg.message)),
-    );
+    console.log(`Fetching all admin messages with request ID ${requestId}`);
     return allMessages;
   }
   async appendRequestToUser(userId: string, requestId: string): Promise<void> {

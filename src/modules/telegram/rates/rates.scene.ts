@@ -11,6 +11,7 @@ export class CreateRatesScene {
 
   @On('callback_query')
   async onCallbackQuery(@Ctx() ctx: CustomSceneContext) {
+    console.log('@Scene(create-rates) callBack');
     const callbackQuery = ctx.callbackQuery;
     if (!callbackQuery) {
       console.error('No callback query found');

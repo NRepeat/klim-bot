@@ -46,6 +46,7 @@ export class CreateRequestWizard {
 
   @On('callback_query')
   async onCallbackQuery(@Ctx() ctx: CustomSceneContext) {
+    console.log('@WizardStep callBack');
     const callbackQuery = ctx.callbackQuery;
     if (!callbackQuery || !('data' in callbackQuery)) {
       await ctx.answerCbQuery('Unknown action');
@@ -90,6 +91,7 @@ export class CreateRequestWizard {
         await ctx.reply(
           'Invalid card details format. Please use "CardNumber Amount" format.',
         );
+
         return;
       }
       cardDetails.push({
@@ -203,6 +205,7 @@ export class CreateRequestWizard {
       await ctx.scene.leave();
       return;
     }
+    await ctx.scene.leave();
   }
 
   @WizardStep(2)

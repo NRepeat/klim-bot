@@ -14,6 +14,7 @@ import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 export type SerializedUser = SerializedModel<User & { role?: UserRole }>;
 export type SerializedRate = SerializedModel<Rates>;
 export type SerializedVendors = SerializedModel<Vendors>;
+export type SerializedPaymentMethod = SerializedModel<PaymentMethod>;
 export type SerializedRequest = SerializedModel<PaymentRequests>;
 export type SerializedMessage = Omit<
   SerializedModel<Message>,
@@ -38,6 +39,7 @@ export type CardRequestType = Omit<
   | 'userId'
   | 'ratesId'
   | 'activeUserId'
+  | 'paymentMethodId'
 > & {
   rateId: string;
   blackList?: BlackList;
@@ -51,6 +53,8 @@ export type FullRequestType = PaymentRequests & {
   message?: Message[];
   vendor?: Vendors;
   user?: SerializedUser;
+  activeUser?: User;
+  paymentMethod?: SerializedPaymentMethod;
   adminRequestPhotoMessage?: AdminRequestPhotoMessage[];
   currency?: Currency;
   rates?: Rates;

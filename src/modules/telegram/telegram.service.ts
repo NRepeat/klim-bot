@@ -11,7 +11,7 @@ import {
   SerializedMessage,
 } from 'src/types/types';
 import { RequestService } from '../request/request.service';
-import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
+import { UtilsService } from '../utils/utils.service';
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -20,6 +20,7 @@ export class TelegramService {
     @InjectBot() private bot: Telegraf<Context>,
     private readonly userService: UserService,
     private readonly requestService: RequestService,
+    private readonly utilsService: UtilsService,
   ) {}
 
   private lastWorkerIndex = -1;
@@ -33,7 +34,7 @@ export class TelegramService {
       const inline_keyboard = Markup.inlineKeyboard([
         [
           Markup.button.callback('Отказаться', 'cancel_request'),
-          Markup.button.callback('Взять', 'card_request'),
+          Markup.button.callback('Взять', 'accept_request_' + requestId),
         ],
       ]);
       if (!workers || workers.length === 0) {
@@ -123,10 +124,9 @@ export class TelegramService {
           );
           if (requestId) {
             const request = await this.requestService.findById(requestId);
-            console.log(
-              `Request found for ID ${requestId}: ${JSON.stringify(request?.user)}`,
-            );
-            const user = request?.user;
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const user = request?.user ? request?.user : '';
             const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
@@ -134,6 +134,7 @@ export class TelegramService {
               },
               {
                 caption:
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                   message.text + (user ? `\nUser: ${user.username}` : ''),
                 reply_markup: message.inline_keyboard,
               },
@@ -163,7 +164,32 @@ export class TelegramService {
       this.logger.error('Error sending message to admins', error);
     }
   }
-
+  async updateAllAdminsMessagesWithRequestsId(
+    newMessage: ReplyMessage,
+    requestId?: string,
+  ) {
+    try {
+      if (!requestId) {
+        this.logger.warn('No request ID provided for updating admin messages');
+        return;
+      }
+      const messages =
+        await this.userService.getAllAdminsMessagesWithRequestsId(requestId);
+      if (!messages || messages.length === 0) {
+        this.logger.warn('No active admins found');
+        return;
+      }
+      for (const message of messages) {
+        await this.updateAdminMessage(
+          Number(message.chatId),
+          Number(message.messageId),
+          newMessage.text,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error updating admin messages', error);
+    }
+  }
   async updateAdminMessage(
     chatId: number,
     messageId: number,

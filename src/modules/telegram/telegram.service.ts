@@ -5,7 +5,11 @@ import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
 import { createReadStream } from 'fs';
 
-import { SerializedMessage } from 'src/types/types';
+import {
+  ReplyMessage,
+  ReplyPhotoMessage,
+  SerializedMessage,
+} from 'src/types/types';
 import { RequestService } from '../request/request.service';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 @Injectable()
@@ -21,10 +25,7 @@ export class TelegramService {
   private lastWorkerIndex = -1;
 
   async sendPhotoMessageToAllWorkers(
-    message: {
-      source: string;
-      caption?: string;
-    },
+    message: ReplyPhotoMessage,
     requestId?: string,
   ) {
     try {
@@ -62,14 +63,14 @@ export class TelegramService {
             },
             {
               reply_markup: inline_keyboard.reply_markup,
-              caption: message.caption || '',
+              caption: message.text || '',
             },
           );
           const messageToSave: SerializedMessage = {
             chatId: BigInt(chatId),
             photoUrl: message.source,
             messageId: BigInt(photoMsg.message_id),
-            text: message.caption || '',
+            text: message.text || '',
             requestId: requestId,
             accessType: 'WORKER',
           };

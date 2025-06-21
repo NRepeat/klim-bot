@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { RequestService } from '../request/request.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { UtilsService } from '../utils/utils.service';
-import { FullRequestType } from 'src/types/types';
+import { FullRequestType, ReplyPhotoMessage } from 'src/types/types';
 import { UserService } from '../user/user.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Context, Telegraf } from 'telegraf';
@@ -43,9 +43,9 @@ export class RequestTaskService {
         'card',
         'admin',
       );
-      const workerRequestPhotoMessage = {
+      const workerRequestPhotoMessage: ReplyPhotoMessage = {
         source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-        caption: workerCaption,
+        text: workerCaption.text,
       };
       const workerNotifications =
         await this.telegramService.sendPhotoMessageToAllWorkers(
@@ -119,12 +119,6 @@ export class RequestTaskService {
           );
           continue;
         }
-        // await this.bot.telegram.editMessageCaption(
-        //   chatId,
-        //   messageId,
-        //   undefined,
-        //   adminCaption.text,
-        // );
         await this.bot.telegram.editMessageMedia(
           chatId,
           messageId,

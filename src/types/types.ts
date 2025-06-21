@@ -92,3 +92,6 @@ export interface ReplyMessage {
   text: string;
   inline_keyboard?: InlineKeyboardMarkup;
 }
+export interface ReplyPhotoMessage extends ReplyMessage {
+  source: string;
+}

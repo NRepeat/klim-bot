@@ -26,6 +26,7 @@ export class RequestRepository {
         vendor: true,
         rates: true,
         currency: true,
+        user: true,
         adminRequestPhotoMessage: true,
         ibanMethods: true,
       },

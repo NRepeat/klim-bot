@@ -50,6 +50,7 @@ export type FullRequestType = PaymentRequests & {
   cardMethods?: (CardPaymentRequestsMethod & { blackList?: BlackList[] })[];
   message?: Message[];
   vendor?: Vendors;
+  user?: SerializedUser;
   adminRequestPhotoMessage?: AdminRequestPhotoMessage[];
   currency?: Currency;
   rates?: Rates;

@@ -41,7 +41,7 @@ export class RequestTaskService {
       const workerCaption = this.utilsService.buildRequestMessage(
         request as unknown as FullRequestType,
         'card',
-        'admin',
+        'worker',
       );
       const workerRequestPhotoMessage: ReplyPhotoMessage = {
         source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
@@ -83,7 +83,7 @@ export class RequestTaskService {
       }
       for (const worker of workerNotifications) {
         if (hasA && worker.proceeded) {
-          await this.updateAdminMessages(request);
+          await this.updateAdminMessages(request, worker.username);
         }
       }
     } catch (error) {
@@ -91,10 +91,11 @@ export class RequestTaskService {
     }
   }
 
-  private async updateAdminMessages(req: FullRequestType) {
+  private async updateAdminMessages(req: FullRequestType, newWorker?: string) {
     console.log(
       `Updating admin messages for  requests ------------------------------------------`,
     );
+
     const adminCaption = this.utilsService.buildRequestMessage(
       req as unknown as FullRequestType,
       'card',
@@ -135,7 +136,7 @@ export class RequestTaskService {
             type: 'photo',
             media:
               'https://lh3.googleusercontent.com/oeqS763H5PDQ7RL3gUnJlvDgZx6MYr5VE7bV7MBanuv7hgB-98wF1JYy-KI-Zxurxc5trLpksuPNUcY=w544-h544-l90-rj',
-            caption: adminCaption.text,
+            caption: adminCaption.text + ' @' + (newWorker || ''),
           },
           { reply_markup: inline_keyboard.reply_markup },
         );

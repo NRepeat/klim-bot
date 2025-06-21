@@ -164,6 +164,52 @@ export class TelegramService {
       this.logger.error('Error sending message to admins', error);
     }
   }
+  async updateAllWorkersMessagesWithRequestsId(
+    newMessage: ReplyMessage,
+    requestId?: string,
+  ) {
+    try {
+      console.log('!------------------');
+      if (!requestId) {
+        this.logger.warn('No request ID provided for updating admin messages');
+        return;
+      }
+      const messages =
+        await this.userService.getAllAdminsMessagesWithRequestsId(requestId);
+      if (!messages || messages.length === 0) {
+        this.logger.warn('No active admins found');
+        return;
+      }
+      for (const message of messages) {
+        console.log(message, '------------------');
+        const chatId = Number(message.chatId);
+        const messageId = Number(message.messageId);
+        const newCaption = message.text + 'Accepted'; // Здесь ваша логика для caption
+        const newPaymentButton = Markup.button.callback(
+          'Перевел',
+          'payment_done_' + requestId,
+        );
+        const newCancelButton = Markup.button.callback(
+          'Отмена',
+          'cancel_payment_' + requestId,
+        );
+        const inline_keyboard = Markup.inlineKeyboard([
+          [newPaymentButton, newCancelButton],
+        ]);
+        if (chatId && messageId) {
+          await this.bot.telegram.editMessageCaption(
+            chatId,
+            messageId,
+            undefined,
+            newCaption,
+            { reply_markup: inline_keyboard.reply_markup },
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error updating admin messages', error);
+    }
+  }
   async updateAllAdminsMessagesWithRequestsId(
     newMessage: ReplyMessage,
     requestId?: string,
@@ -208,7 +254,7 @@ export class TelegramService {
   async updateTelegramMessage(
     chatId: number,
     messageId: number,
-    text: string,
+    text?: string,
     imageUrl?: string,
   ) {
     try {
@@ -223,7 +269,7 @@ export class TelegramService {
           chatId,
           messageId,
           undefined,
-          text,
+          text ? text : 'asdasdasd',
         );
       }
     } catch (error) {

@@ -17,7 +17,19 @@ export default class UserRepository implements Repository<SerializedUser> {
       },
     });
   }
+  async findAllWorkerMessagesWithRequestsId(requestId: string) {
+    const allMessages = await this.prisma.message.findMany({
+      where: {
+        requestId: requestId,
+        accessType: 'WORKER',
+      },
+      include: {
+        paymentRequests: true,
+      },
+    });
 
+    return allMessages;
+  }
   async findAllAdminMessagesWithRequestsId(requestId: string) {
     const allMessages = await this.prisma.message.findMany({
       where: {
@@ -133,6 +145,7 @@ export default class UserRepository implements Repository<SerializedUser> {
         requestId: requestId,
         message: {
           create: {
+            accessType: 'WORKER',
             chatId: message.chatId,
             messageId: message.messageId,
             text: message.text,

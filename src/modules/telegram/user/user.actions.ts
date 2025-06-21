@@ -1,5 +1,5 @@
 import { Action, Ctx, On, Update } from 'nestjs-telegraf';
-import { Context } from 'telegraf';
+import { Context, Markup } from 'telegraf';
 import { UserService } from 'src/modules/user/user.service';
 import { RequestService } from 'src/modules/request/request.service';
 import { TelegramService } from '../telegram.service';
@@ -47,6 +47,22 @@ export class UserActions {
           request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
           'admin',
         );
+        const inline_keyboard = Markup.inlineKeyboard([
+          [
+            { callback_data: '', text: 'Перевел' },
+            {
+              callback_data: '',
+              text: 'Отменить ',
+            },
+          ],
+        ]);
+        await this.telegramService.updateAllWorkersMessagesWithRequestsId(
+          {
+            text: message.text,
+            inline_keyboard: inline_keyboard.reply_markup,
+          },
+          requestId,
+        );
         await this.telegramService.updateAllAdminsMessagesWithRequestsId(
           message,
           requestId,
@@ -57,6 +73,5 @@ export class UserActions {
       console.error('Unknown callback query data:', callbackQuery);
       await ctx.answerCbQuery('Unknown action');
     }
-    await ctx.reply('You pressed a callback query!');
   }
 }

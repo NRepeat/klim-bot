@@ -14,10 +14,14 @@ export class UserService {
     const user = await this.userRepository.findByTelegramId(id);
     return user;
   }
-  async getAllAdminsMessagesWithRequestsId(requestId: string) {
+  async getAlWorkerMessagesWithRequestsId(requestId: string) {
     const admins =
       await this.userRepository.findAllAdminMessagesWithRequestsId(requestId);
-    console.log('Admins with requests:', admins);
+    return admins;
+  }
+  async getAllAdminsMessagesWithRequestsId(requestId: string) {
+    const admins =
+      await this.userRepository.findAllWorkerMessagesWithRequestsId(requestId);
     return admins;
   }
 

@@ -53,7 +53,9 @@ export class UtilsService {
       isBlacklisted && cardMethods[0]?.blackList?.[0]
         ? '🚫Карта в чёрном списке: ' + cardMethods[0].blackList[0].reason
         : '';
-    const acceptedBy = request?.activeUser ? request.activeUser.username : '';
+    const acceptedBy = request?.activeUser
+      ? 'Принята:@' + request.activeUser.username
+      : '';
 
     let message = '';
     let inline_keyboard: InlineKeyboardMarkup = {
@@ -74,7 +76,6 @@ export class UtilsService {
         break;
       }
       case 'admin':
-        console.log(request?.user, 'request?.user');
         {
           message =
             `✉️Заявка номер: ${request.id ? request.id : '-'}\n` +

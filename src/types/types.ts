@@ -9,6 +9,7 @@ import {
   Vendors,
 } from 'generated/prisma';
 import { Scenes } from 'telegraf';
+import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
 export type SerializedUser = SerializedModel<User & { role?: UserRole }>;
 export type SerializedRate = SerializedModel<Rates>;
@@ -85,4 +86,9 @@ export interface Repository<T> {
 export interface ParsedMessageRates {
   header: string;
   lines: string[];
+}
+
+export interface ReplyMessage {
+  text: string;
+  inline_keyboard?: InlineKeyboardMarkup;
 }

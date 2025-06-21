@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { VendorService } from '../vendor/vendor.service';
-import { Context } from 'telegraf';
-import { FullRequestType, MessageAccessType } from 'src/types/types';
+import { Context, Markup } from 'telegraf';
+import {
+  FullRequestType,
+  MessageAccessType,
+  ReplyMessage,
+} from 'src/types/types';
+import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
 @Injectable()
 export class UtilsService {
@@ -24,10 +29,10 @@ export class UtilsService {
     request: FullRequestType,
     method: 'card' | 'iban',
     accessType: MessageAccessType,
-  ) {
+  ): ReplyMessage {
     const message = {
       card: this.buildCardRequestMessage(request, accessType),
-      iban: 'TODO: Implement IBAN request message',
+      iban: this.buildCardRequestMessage(request, accessType),
     };
 
     return message[method];
@@ -49,6 +54,9 @@ export class UtilsService {
         ? '🚫Карта в чёрном списке: ' + cardMethods[0].blackList[0].reason
         : '';
     let message = '';
+    let inline_keyboard: InlineKeyboardMarkup = {
+      inline_keyboard: [],
+    };
     switch (accessType) {
       case 'public': {
         message =
@@ -58,9 +66,27 @@ export class UtilsService {
           `💎USDT: ${usdt} \n` +
           `💳Номер карты: ${card}\n` +
           `💱Курс: ${typeof rate === 'number' ? rate.toFixed(2) : '-'}\n`;
+        inline_keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('В работе', 'dummy')],
+        ]).reply_markup;
         break;
       }
       case 'admin':
+        {
+          message =
+            `✉️Заявка номер: ${request.id ? request.id : '-'}\n` +
+            `🏦Банк: ${bank || '-'}\n` +
+            `💵Сумма: ${amount}\n` +
+            `💎USDT: ${usdt} \n` +
+            `💳Номер карты: ${card}\n` +
+            `💱Курс: ${typeof rate === 'number' ? rate.toFixed(2) : '-'}\n` +
+            (isBlacklisted ? '🚫Карта в чёрном списке: ' + blacklist : '');
+        }
+        inline_keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('Отказаться', 'cancel_request')],
+          [Markup.button.callback('Не в работе', 'dummy')],
+        ]).reply_markup;
+        break;
       case 'worker': {
         message =
           `✉️Заявка номер: ${request.id ? request.id : '-'}\n` +
@@ -70,13 +96,22 @@ export class UtilsService {
           `💳Номер карты: ${card}\n` +
           `💱Курс: ${typeof rate === 'number' ? rate.toFixed(2) : '-'}\n` +
           (isBlacklisted ? '🚫Карта в чёрном списке: ' + blacklist : '');
-
+        inline_keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('Отказаться', 'cancel_request')],
+          [Markup.button.callback('Взять', 'card_request')],
+        ]).reply_markup;
         break;
       }
       default: {
-        throw new Error(`Unknown access type: ${String(accessType)}`);
+        return {
+          text: message,
+          inline_keyboard: inline_keyboard,
+        };
       }
     }
-    return message;
+    return {
+      text: message,
+      inline_keyboard: inline_keyboard,
+    };
   }
 }

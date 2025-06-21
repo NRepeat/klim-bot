@@ -159,33 +159,32 @@ export class CreateRequestWizard {
           const request =
             await this.requestService.createCardRequest(cardRequest);
           console.log('Created request:', request);
-          const adminCaption = this.utilsService.buildRequestMessage(
-            request as unknown as FullRequestType,
-            'card',
-            'admin',
-          );
+
           const publicCaption = this.utilsService.buildRequestMessage(
             request as unknown as FullRequestType,
             'card',
             'public',
           );
-          const adminRequestPhotoMessage = {
+          const vendorRequestPhotoMessage = {
             source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-            caption: adminCaption,
+            caption: publicCaption,
           };
           const requestMessage = await ctx.replyWithPhoto(
             {
-              source: createReadStream(adminRequestPhotoMessage.source),
+              source: createReadStream(vendorRequestPhotoMessage.source),
             },
-            { caption: publicCaption },
+            {
+              caption: publicCaption.text,
+              reply_markup: publicCaption.inline_keyboard,
+            },
           );
           if (!requestMessage || !request) {
             await ctx.reply('Failed to create card request. Please try again.');
             return;
           }
           const messageToSave: SerializedMessage = {
-            photoUrl: adminRequestPhotoMessage.source,
-            text: adminCaption,
+            photoUrl: vendorRequestPhotoMessage.source,
+            text: publicCaption.text,
             chatId: BigInt(ctx.chat?.id || 0),
             messageId: BigInt(requestMessage.message_id),
             requestId: request.id,

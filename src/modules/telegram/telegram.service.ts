@@ -7,6 +7,7 @@ import { createReadStream } from 'fs';
 
 import { SerializedMessage } from 'src/types/types';
 import { RequestService } from '../request/request.service';
+import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -102,15 +103,13 @@ export class TelegramService {
     message: {
       source: string;
       caption?: string;
+      inline_keyboard?: InlineKeyboardMarkup;
     },
     requestId?: string,
   ) {
     try {
       const admins = await this.userService.getAllActiveAdmins();
-      const inline_keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('Отказаться', 'cancel_request')],
-        [Markup.button.callback('Не в работе', 'dummy')],
-      ]);
+
       if (!admins || admins.length === 0) {
         this.logger.warn('No active admins found');
         return;
@@ -134,7 +133,7 @@ export class TelegramService {
                   (message.caption || '') +
                   '\n' +
                   `Воркер ${request?.user?.username || ''}`,
-                reply_markup: inline_keyboard.reply_markup,
+                reply_markup: message.inline_keyboard,
               },
             );
             console.log(photoMsg ? photoMsg.message_id : 'No message ID');

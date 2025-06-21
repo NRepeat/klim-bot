@@ -31,37 +31,11 @@ export class RequestTaskService {
       for (const request of requests) {
         await this.processRequest(request);
       }
-      // const processRequests = requests.map((request) =>
-      //   this.processRequest(request),
-      // );
-      // await Promise.race(processRequests);
     } catch (error) {
       this.logger.error('Error while processing requests', error);
     }
   }
 
-  hasAdminMassages(request: FullRequestType) {
-    if (request.message && request.message.length > 0) {
-      return {
-        has: true,
-        requests:
-          (request.message?.filter((msg) => {
-            return msg.accessType === 'ADMIN';
-          }) as any as FullRequestType[]) || [],
-      };
-    } else {
-      return { has: false, requests: [] };
-    }
-  }
-  hasMassages(request: FullRequestType) {
-    if (request.message && request.message.length > 0) {
-      return {
-        has: true,
-      };
-    } else {
-      return { has: false };
-    }
-  }
   private async processRequest(request: FullRequestType) {
     try {
       const workerCaption = this.utilsService.buildRequestMessage(
@@ -94,10 +68,6 @@ export class RequestTaskService {
         caption: workerCaption + '\n' + username,
       };
 
-      const hasAdminMessages = this.hasAdminMassages(request);
-      console.log(
-        `Checking for admin messages in request ${request.id}: ${hasAdminMessages.has}`,
-      );
       const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
       if (!hasA) {
         console.log(`Request ${request.id} has admin messages: ${hasA}`);
@@ -126,6 +96,7 @@ export class RequestTaskService {
       'card',
       'admin',
     );
+
     const adminMessages =
       req.message?.filter((r) => r.accessType === 'ADMIN') || [];
     console.log(`------- ${adminMessages.length}`);
@@ -148,18 +119,24 @@ export class RequestTaskService {
           );
           continue;
         }
-        await this.bot.telegram.editMessageCaption(
+        // await this.bot.telegram.editMessageCaption(
+        //   chatId,
+        //   messageId,
+        //   undefined,
+        //   adminCaption.text,
+        // );
+        await this.bot.telegram.editMessageMedia(
           chatId,
           messageId,
           undefined,
-          adminCaption,
+          {
+            type: 'photo',
+            media:
+              'https://lh3.googleusercontent.com/oeqS763H5PDQ7RL3gUnJlvDgZx6MYr5VE7bV7MBanuv7hgB-98wF1JYy-KI-Zxurxc5trLpksuPNUcY=w544-h544-l90-rj',
+            caption: adminCaption.text,
+          },
+          { reply_markup: adminCaption.inline_keyboard },
         );
-        await this.bot.telegram.editMessageMedia(chatId, messageId, undefined, {
-          type: 'photo',
-          media:
-            'https://lh3.googleusercontent.com/oeqS763H5PDQ7RL3gUnJlvDgZx6MYr5VE7bV7MBanuv7hgB-98wF1JYy-KI-Zxurxc5trLpksuPNUcY=w544-h544-l90-rj',
-          caption: adminCaption,
-        });
         this.logger.log(
           `Admin message for request ${req.id} updated successfully`,
         );

@@ -98,5 +98,6 @@ export interface ReplyMessage {
   inline_keyboard?: InlineKeyboardMarkup;
 }
 export interface ReplyPhotoMessage extends ReplyMessage {
-  source: string;
+  source?: Buffer<ArrayBufferLike>;
+  photoUrl?: string;
 }

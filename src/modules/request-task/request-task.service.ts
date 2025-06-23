@@ -44,7 +44,7 @@ export class RequestTaskService {
         'worker',
       );
       const workerRequestPhotoMessage: ReplyPhotoMessage = {
-        source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
+        photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
         text: workerCaption.text,
       };
       const workerNotifications =
@@ -68,7 +68,7 @@ export class RequestTaskService {
         [Markup.button.callback('Не в работе', 'dummy')],
       ]);
       const adminRequestPhotoMessage: ReplyPhotoMessage = {
-        source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
+        photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
         text: workerCaption.text,
         inline_keyboard: inline_keyboard.reply_markup,
       };
@@ -92,10 +92,6 @@ export class RequestTaskService {
   }
 
   private async updateAdminMessages(req: FullRequestType, newWorker?: string) {
-    console.log(
-      `Updating admin messages for  requests ------------------------------------------`,
-    );
-
     const adminCaption = this.utilsService.buildRequestMessage(
       req as unknown as FullRequestType,
       'card',

@@ -168,12 +168,12 @@ export class CreateRequestWizard {
             'public',
           );
           const vendorRequestPhotoMessage = {
-            source: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
+            photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
             caption: publicCaption,
           };
           const requestMessage = await ctx.replyWithPhoto(
             {
-              source: createReadStream(vendorRequestPhotoMessage.source),
+              source: createReadStream(vendorRequestPhotoMessage.photoUrl),
             },
             {
               caption: publicCaption.text,
@@ -185,7 +185,7 @@ export class CreateRequestWizard {
             return;
           }
           const messageToSave: SerializedMessage = {
-            photoUrl: vendorRequestPhotoMessage.source,
+            photoUrl: vendorRequestPhotoMessage.photoUrl,
             text: publicCaption.text,
             chatId: BigInt(ctx.chat?.id || 0),
             messageId: BigInt(requestMessage.message_id),

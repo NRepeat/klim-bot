@@ -41,7 +41,6 @@ export class TelegramService {
         this.logger.warn('No active workers found');
         return [];
       }
-      // --- Очередь через переменную ---
       this.lastWorkerIndex = (this.lastWorkerIndex + 1) % workers.length;
       const worker = workers[this.lastWorkerIndex];
       const processedRequestsId: {
@@ -63,7 +62,9 @@ export class TelegramService {
           const photoMsg = await this.bot.telegram.sendPhoto(
             chatId,
             {
-              source: createReadStream(message.source),
+              source: createReadStream(
+                message.photoUrl ? message.photoUrl : './src/assets/0056.jpg',
+              ),
             },
             {
               reply_markup: inline_keyboard.reply_markup,
@@ -72,7 +73,7 @@ export class TelegramService {
           );
           const messageToSave: SerializedMessage = {
             chatId: BigInt(chatId),
-            photoUrl: message.source,
+            photoUrl: message.photoUrl ? message.photoUrl : '',
             messageId: BigInt(photoMsg.message_id),
             text: message.text || '',
             requestId: requestId,
@@ -125,16 +126,16 @@ export class TelegramService {
           if (requestId) {
             const request = await this.requestService.findById(requestId);
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const user = request?.user ? request?.user : '';
             const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
-                source: createReadStream(message.source),
+                source: message.photoUrl
+                  ? createReadStream(message.photoUrl)
+                  : createReadStream('./src/assets/0056.jpg'),
               },
               {
                 caption:
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                   message.text + (user ? `\nUser: ${user.username}` : ''),
                 reply_markup: message.inline_keyboard,
               },
@@ -142,7 +143,7 @@ export class TelegramService {
             console.log(photoMsg ? photoMsg.message_id : 'No message ID');
             const messageToSave: SerializedMessage = {
               chatId: BigInt(chatId),
-              photoUrl: message.source,
+              photoUrl: message.photoUrl ? message.photoUrl : '',
               messageId: BigInt(photoMsg.message_id),
               text: message.text || '',
               requestId: requestId,
@@ -165,11 +166,10 @@ export class TelegramService {
     }
   }
   async updateAllWorkersMessagesWithRequestsId(
-    newMessage: ReplyMessage,
+    newMessage: ReplyPhotoMessage,
     requestId?: string,
   ) {
     try {
-      console.log('!------------------');
       if (!requestId) {
         this.logger.warn('No request ID provided for updating admin messages');
         return;
@@ -181,29 +181,31 @@ export class TelegramService {
         return;
       }
       for (const message of messages) {
-        console.log(message, '------------------');
         const chatId = Number(message.chatId);
         const messageId = Number(message.messageId);
-        const newCaption = message.text + 'Accepted'; // Здесь ваша логика для caption
-        const newPaymentButton = Markup.button.callback(
-          'Перевел',
-          'payment_done_' + requestId,
-        );
-        const newCancelButton = Markup.button.callback(
-          'Отмена',
-          'cancel_payment_' + requestId,
-        );
-        const inline_keyboard = Markup.inlineKeyboard([
-          [newPaymentButton, newCancelButton],
-        ]);
+        const newCaption = newMessage.text ? newMessage.text : message.text;
         if (chatId && messageId) {
-          await this.bot.telegram.editMessageCaption(
-            chatId,
-            messageId,
-            undefined,
-            newCaption,
-            { reply_markup: inline_keyboard.reply_markup },
-          );
+          if (newMessage.source) {
+            await this.bot.telegram.editMessageMedia(
+              chatId,
+              messageId,
+              undefined,
+              {
+                caption: newCaption || '',
+                type: 'photo',
+                media: { source: newMessage.source },
+              },
+              { reply_markup: newMessage.inline_keyboard },
+            );
+          } else {
+            await this.bot.telegram.editMessageCaption(
+              chatId,
+              messageId,
+              undefined,
+              newCaption || '',
+              { reply_markup: newMessage.inline_keyboard },
+            );
+          }
         }
       }
     } catch (error) {

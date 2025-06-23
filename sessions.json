@@ -41,7 +41,17 @@
           1285,
           1290,
           1295,
-          1300
+          1300,
+          1305,
+          1310,
+          1315,
+          1320,
+          1325,
+          1330,
+          1335,
+          1340,
+          1345,
+          1350
         ],
         "customState": "card_request",
         "requestType": "card"
@@ -51,10 +61,8 @@
       "id": "8045572818:8045572818",
       "data": {
         "__scenes": {},
-        "messagesToDelete": [
-          880
-        ],
-        "customState": "finished",
+        "messagesToDelete": [],
+        "customState": "cancelled",
         "requestType": "card"
       }
     }

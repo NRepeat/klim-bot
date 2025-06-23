@@ -12,6 +12,7 @@ import { UtilsModule } from '../utils/utils.module';
 import { RequestModule } from '../request/request.module';
 import { CreateRequestWizard } from './request/request.scene';
 import { RequestActions } from './request/request.actions';
+import PaymentWizard from './paymnet/paymnet.scene';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RequestActions } from './request/request.actions';
     TelegramService,
     CreateRatesScene,
     CreateRequestWizard,
+    PaymentWizard,
     RequestActions,
     MenuActions,
     RatesActions,

@@ -40,7 +40,6 @@ export default class UserRepository implements Repository<SerializedUser> {
         paymentRequests: true,
       },
     });
-    console.log(allMessages, '--------------------');
     console.log(`Fetching all admin messages with request ID ${requestId}`);
     return allMessages;
   }

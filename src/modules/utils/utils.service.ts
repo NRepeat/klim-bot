@@ -8,7 +8,7 @@ import {
   ReplyMessage,
 } from 'src/types/types';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
-
+import * as sharp from 'sharp';
 @Injectable()
 export class UtilsService {
   constructor(
@@ -118,5 +118,54 @@ export class UtilsService {
       text: message,
       inline_keyboard: inline_keyboard,
     };
+  }
+  async downloadTelegramPhoto(
+    botToken: string,
+    fileId: string,
+  ): Promise<Buffer> {
+    const fileInfo = await fetch(
+      `https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`,
+    );
+    const { result } = await fileInfo.json();
+    const url = `https://api.telegram.org/file/bot${botToken}/${result.file_path}`;
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
+  async mergeImagesHorizontal(images: Buffer[]): Promise<Buffer> {
+    const sharpImages = images.map((img) => sharp(img));
+    const metadatas = await Promise.all(
+      sharpImages.map((img) => img.metadata()),
+    );
+    // Для горизонтального объединения: суммируем ширины, берём максимальную высоту
+    const totalWidth = metadatas.reduce(
+      (sum, meta) => sum + (meta.width || 0),
+      0,
+    );
+    const height = Math.max(...metadatas.map((meta) => meta.height || 0));
+
+    // Приводим все изображения к одной высоте
+    const resizedBuffers = await Promise.all(
+      sharpImages.map((img) => img.resize({ height }).toBuffer()),
+    );
+
+    let left = 0;
+    const composites = resizedBuffers.map((buffer, i) => {
+      const composite = { input: buffer, top: 0, left };
+      left += metadatas[i].width || 0;
+      return composite;
+    });
+
+    return sharp({
+      create: {
+        width: totalWidth,
+        height,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
+      },
+    })
+      .composite(composites)
+      .png()
+      .toBuffer();
   }
 }

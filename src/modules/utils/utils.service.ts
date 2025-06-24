@@ -42,8 +42,6 @@ export class UtilsService {
     request: FullRequestType,
     accessType: MessageAccessType,
   ) {
-    console.log('Building IBAN request message for request:', request);
-    console.log('Access type:', accessType);
     if (request && request.ibanMethods) {
       if (request.ibanMethods.length === 0) {
         console.error('No IBAN methods found in request:', request);
@@ -188,14 +186,12 @@ export class UtilsService {
     const metadatas = await Promise.all(
       sharpImages.map((img) => img.metadata()),
     );
-    // Для горизонтального объединения: суммируем ширины, берём максимальную высоту
     const totalWidth = metadatas.reduce(
       (sum, meta) => sum + (meta.width || 0),
       0,
     );
     const height = Math.max(...metadatas.map((meta) => meta.height || 0));
 
-    // Приводим все изображения к одной высоте
     const resizedBuffers = await Promise.all(
       sharpImages.map((img) => img.resize({ height }).toBuffer()),
     );

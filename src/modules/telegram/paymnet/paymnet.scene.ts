@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Ctx, SceneLeave, Wizard, WizardStep } from 'nestjs-telegraf';
-import { CustomSceneContext } from 'src/types/types';
+import { CustomSceneContext, FullRequestType } from 'src/types/types';
 import { Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
 import { UtilsService } from 'src/modules/utils/utils.service';
@@ -61,6 +61,7 @@ export default class PaymentWizard {
   @WizardStep(1)
   async proceedFinalStep(@Ctx() ctx: CustomSceneContext) {
     const message = ctx.message as { photo?: PaymentPhoto[] };
+    ctx.session.messagesToDelete?.push(ctx.message?.message_id || 0);
     if (message && Array.isArray(message.photo)) {
       this.paymentPhotos.push(message.photo[message.photo.length - 1]);
       if (Array.isArray(this.paymentPhotos)) {
@@ -86,7 +87,7 @@ export default class PaymentWizard {
         await this.telegramService.updateAllAdminsMessagesWithRequestsId(
           {
             source: mergedImageBuffer,
-            text: 'Пользователь отправил фото подтверждения оплаты',
+            text: 'Пользователь отправил фото подтверждения оплаты для запроса',
           },
           requestId,
         );
@@ -98,6 +99,29 @@ export default class PaymentWizard {
           requestId,
           'COMPLETED',
           userId,
+        );
+        const request = await this.requestService.findById(requestId);
+        if (!request) {
+          await ctx.scene.leave();
+          throw new Error('Request not found');
+        }
+        const publicMessage = this.utilsService.buildRequestMessage(
+          request as any as FullRequestType,
+          request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
+          'public',
+        );
+        const newPaymentButton = Markup.button.callback(
+          'Оплатил',
+          'dummy_payment',
+        );
+        await this.telegramService.updateAllPublicMessagesWithRequestsId(
+          {
+            text: publicMessage.text,
+            inline_keyboard: Markup.inlineKeyboard([[newPaymentButton]])
+              .reply_markup,
+            source: mergedImageBuffer,
+          },
+          requestId,
         );
       }
 

@@ -288,7 +288,7 @@ export class CreateRequestWizard {
   @WizardStep(2)
   async ibanStep(@Ctx() ctx: CustomSceneContext) {
     const input = ctx.text;
-    if (!input) {
+    if (!input || input.split('\n').length < 4) {
       await ctx.reply(
         'Пожалуйста, введите данные в формате: Имя\\nIBAN\\nИНН\\nСумма\\nКомментарий (если нужно)',
       );

@@ -11,6 +11,18 @@ import { Status } from 'generated/prisma';
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getAllPublicMessagesWithRequestsId(
+    requestId: string,
+  ): Promise<SerializedMessage[]> {
+    if (!requestId) {
+      throw new Error('Request ID is required');
+    }
+    return this.prisma.message.findMany({
+      where: { requestId, accessType: 'PUBLIC' },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async updateRequestStatus(
     requestId: string,
     status: Status,

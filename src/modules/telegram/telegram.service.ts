@@ -20,7 +20,54 @@ export class TelegramService {
   ) {}
 
   private lastWorkerIndex = -1;
-
+  async updateAllPublicMessagesWithRequestsId(
+    newMessage: ReplyPhotoMessage,
+    requestId?: string,
+  ) {
+    try {
+      if (!requestId) {
+        this.logger.warn('No request ID provided for updating public messages');
+        return;
+      }
+      const messages =
+        await this.requestService.getAllPublicMessagesWithRequestsId(requestId);
+      if (!messages || messages.length === 0) {
+        this.logger.warn('No public messages found for the given request ID');
+        return;
+      }
+      for (const message of messages) {
+        const chatId = Number(message.chatId);
+        const messageId = Number(message.messageId);
+        const newCaption = newMessage.text ? newMessage.text : message.text;
+        if (chatId && messageId) {
+          if (newMessage.source) {
+            await this.bot.telegram.editMessageMedia(
+              chatId,
+              messageId,
+              undefined,
+              {
+                caption: newCaption || '',
+                type: 'photo',
+                media: { source: newMessage.source },
+              },
+              { reply_markup: newMessage.inline_keyboard },
+            );
+          } else {
+            await this.bot.telegram.editMessageCaption(
+              chatId,
+              messageId,
+              undefined,
+              newCaption || '',
+              { reply_markup: newMessage.inline_keyboard },
+            );
+          }
+        }
+        await new Promise((res) => setTimeout(res, 300));
+      }
+    } catch (error) {
+      this.logger.error('Error updating public messages', error);
+    }
+  }
   async sendPhotoMessageToAllWorkers(
     message: ReplyPhotoMessage,
     requestId?: string,
@@ -170,7 +217,7 @@ export class TelegramService {
         return;
       }
       const messages =
-        await this.userService.getAllAdminsMessagesWithRequestsId(requestId);
+        await this.userService.getAlWorkerMessagesWithRequestsId(requestId);
       if (!messages || messages.length === 0) {
         this.logger.warn('No active admins found');
         return;
@@ -202,7 +249,6 @@ export class TelegramService {
             );
           }
         }
-        await new Promise((res) => setTimeout(res, 300));
       }
     } catch (error) {
       this.logger.error('Error updating admin messages', error);
@@ -224,10 +270,16 @@ export class TelegramService {
         return;
       }
       for (const message of messages) {
+        console.log(
+          `Updating admin message for chatId: ${message.chatId}, messageId: ${message.messageId}`,
+          messages,
+        );
         await this.updateAdminMessage(
           Number(message.chatId),
           Number(message.messageId),
           newMessage.text,
+          newMessage.photoUrl ? newMessage.photoUrl : undefined,
+          newMessage.source,
         );
       }
     } catch (error) {
@@ -239,10 +291,32 @@ export class TelegramService {
     messageId: number,
     text: string,
     imageUrl?: string,
+    source?: Buffer<ArrayBufferLike>,
   ) {
     try {
       if (imageUrl) {
-        await this.updateTelegramMessage(chatId, messageId, text, imageUrl);
+        await this.updateTelegramMessage(
+          chatId,
+          messageId,
+          text,
+          imageUrl,
+          source,
+        );
+      } else if (source) {
+        await this.updateTelegramMessage(
+          chatId,
+          messageId,
+          text,
+          undefined,
+          source,
+        );
+      } else {
+        await this.bot.telegram.editMessageText(
+          chatId,
+          messageId,
+          undefined,
+          text ? text : '',
+        );
       }
     } catch (error) {
       this.logger.error('Error updating admin message', error);
@@ -254,12 +328,19 @@ export class TelegramService {
     messageId: number,
     text?: string,
     imageUrl?: string,
+    source?: Buffer<ArrayBufferLike>,
   ) {
     try {
       if (imageUrl) {
         await this.bot.telegram.editMessageMedia(chatId, messageId, undefined, {
           type: 'photo',
           media: imageUrl,
+          caption: text,
+        });
+      } else if (source) {
+        await this.bot.telegram.editMessageMedia(chatId, messageId, undefined, {
+          type: 'photo',
+          media: { source: source },
           caption: text,
         });
       } else {

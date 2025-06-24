@@ -20,12 +20,12 @@ export class UserService {
   }
   async getAlWorkerMessagesWithRequestsId(requestId: string) {
     const admins =
-      await this.userRepository.findAllAdminMessagesWithRequestsId(requestId);
+      await this.userRepository.findAllWorkerMessagesWithRequestsId(requestId);
     return admins;
   }
   async getAllAdminsMessagesWithRequestsId(requestId: string) {
     const admins =
-      await this.userRepository.findAllWorkerMessagesWithRequestsId(requestId);
+      await this.userRepository.findAllAdminMessagesWithRequestsId(requestId);
     return admins;
   }
 

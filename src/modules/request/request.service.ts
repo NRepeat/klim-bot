@@ -14,8 +14,21 @@ export class RequestService {
   constructor(
     private readonly requestRepo: RequestRepository,
     private readonly userService: UserService,
-    private readonly vendorService: VendorService, // Assuming vendorService is used somewhere in the future
+    private readonly vendorService: VendorService,
   ) {}
+
+  async getAllPublicMessagesWithRequestsId(
+    requestId: string | undefined,
+  ): Promise<SerializedMessage[]> {
+    console.log(`Fetching all public messages with request ID: ${requestId}`);
+    if (!requestId) {
+      throw new Error('Request ID is required');
+    }
+    const messages =
+      await this.requestRepo.getAllPublicMessagesWithRequestsId(requestId);
+    return messages;
+  }
+
   async updateRequestStatus(
     requestId: string,
     status: Status,

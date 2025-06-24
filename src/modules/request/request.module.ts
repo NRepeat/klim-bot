@@ -4,9 +4,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import RatesRepository from '../rates/rates.repo';
 import { RequestRepository } from './request.repo';
 import { UserModule } from '../user/user.module';
+import { VendorModule } from '../vendor/vendor.module';
 
 @Module({
-  imports: [PrismaModule, UserModule],
+  imports: [PrismaModule, UserModule, VendorModule],
   providers: [RatesRepository, RequestService, RequestRepository],
   exports: [RatesRepository, RequestService, RequestRepository],
 })

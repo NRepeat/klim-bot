@@ -13,6 +13,7 @@ import { RequestModule } from '../request/request.module';
 import { CreateRequestWizard } from './request/request.scene';
 import { RequestActions } from './request/request.actions';
 import PaymentWizard from './paymnet/paymnet.scene';
+import { ReportModule } from '../report/report.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import PaymentWizard from './paymnet/paymnet.scene';
     VendorModule,
     UtilsModule,
     RequestModule,
+    ReportModule,
   ],
   controllers: [],
   exports: [TelegramService],

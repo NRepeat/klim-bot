@@ -1,7 +1,7 @@
 import { Ctx, Hears, Update } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { RatesService } from 'src/modules/rates/rates.service';
-import { Currency } from 'src/types/types';
+import { CurrencyEnum } from 'src/types/types';
 import { SceneContext } from 'telegraf/typings/scenes';
 @Update()
 export class RatesActions {

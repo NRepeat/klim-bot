@@ -6,6 +6,24 @@ import { PrismaService } from '../prisma/prisma.service';
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getAllRequests() {
+    return this.prisma.paymentRequests.findMany({
+      include: {
+        cardMethods: {
+          include: {
+            blackList: true,
+          },
+        },
+        message: true,
+        vendor: true,
+        rates: true,
+        currency: true,
+        ibanMethods: true,
+        user: true,
+      },
+    });
+  }
+
   async isInBlackList(cardNumber: string) {
     return this.prisma.blackList.findFirst({
       where: { card: { some: { card: cardNumber } } },
@@ -142,6 +160,27 @@ export class RequestRepository {
             accessType: message.accessType,
           },
         },
+      },
+    });
+  }
+  async getRequestsForVendorBetween(vendorId: string, from: Date, to: Date) {
+    return this.prisma.paymentRequests.findMany({
+      where: {
+        status: 'COMPLETED',
+        vendorId,
+        createdAt: {
+          gte: from,
+          lte: to,
+        },
+      },
+      include: {
+        cardMethods: { include: { blackList: true } },
+        message: true,
+        vendor: true,
+        rates: true,
+        currency: true,
+        ibanMethods: true,
+        user: true,
       },
     });
   }

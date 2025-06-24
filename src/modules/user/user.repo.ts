@@ -17,6 +17,14 @@ export default class UserRepository implements Repository<SerializedUser> {
       },
     });
   }
+  async findAll() {
+    return this.prisma.user.findMany({
+      include: {
+        Role: true,
+        paymentRequests: true,
+      },
+    });
+  }
   async findAllWorkerMessagesWithRequestsId(requestId: string) {
     const allMessages = await this.prisma.message.findMany({
       where: {

@@ -213,7 +213,7 @@ export class TelegramService {
     }
   }
   async updateAllAdminsMessagesWithRequestsId(
-    newMessage: ReplyMessage,
+    newMessage: ReplyPhotoMessage,
     requestId?: string,
   ) {
     try {
@@ -276,6 +276,35 @@ export class TelegramService {
       }
     } catch (error) {
       this.logger.error('Error updating message', error);
+    }
+  }
+
+  async sendDocumentToAllUsers(
+    source: Buffer<ArrayBufferLike>,
+    fileName: string,
+    caption?: string,
+  ) {
+    try {
+      const users = await this.userService.getAllUsers();
+      if (!users || users.length === 0) {
+        this.logger.warn('No active admins found');
+        return;
+      }
+      for (const user of users) {
+        if (user.telegramId) {
+          const chatId = Number(user.telegramId);
+          await this.bot.telegram.sendDocument(
+            chatId,
+            {
+              source: source,
+              filename: fileName,
+            },
+            { caption: caption || '' },
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error sending document to users', error);
     }
   }
 }

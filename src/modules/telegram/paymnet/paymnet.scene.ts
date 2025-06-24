@@ -83,6 +83,13 @@ export default class PaymentWizard {
           },
           requestId,
         );
+        await this.telegramService.updateAllAdminsMessagesWithRequestsId(
+          {
+            source: mergedImageBuffer,
+            text: 'Пользователь отправил фото подтверждения оплаты',
+          },
+          requestId,
+        );
       }
       await ctx.scene.leave();
       this.paymentPhotos = [];

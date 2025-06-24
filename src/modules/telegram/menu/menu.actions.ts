@@ -1,15 +1,23 @@
 import { Command, Ctx, Hears, Start, Update } from 'nestjs-telegraf';
+import ReportService from 'src/modules/report/report.service';
+import { RequestService } from 'src/modules/request/request.service';
 import { UserService } from 'src/modules/user/user.service';
 import { UtilsService } from 'src/modules/utils/utils.service';
 import { VendorService } from 'src/modules/vendor/vendor.service';
+import { FullRequestType } from 'src/types/types';
 import { Context, Markup } from 'telegraf';
+import { TelegramService } from '../telegram.service';
+import { report } from 'process';
 
 @Update()
 export class MenuActions {
   constructor(
     private readonly userService: UserService,
     private readonly vendorService: VendorService,
-    private readonly utilsService: UtilsService, // Assuming UtilsService is similar to UserService
+    private readonly utilsService: UtilsService,
+    private readonly reportService: ReportService,
+    private readonly requestService: RequestService,
+    private readonly telegramService: TelegramService,
   ) {}
   @Start()
   async start(@Ctx() ctx: Context) {
@@ -32,7 +40,69 @@ export class MenuActions {
       );
     }
   }
-
+  @Command('report_all')
+  async reportAll(@Ctx() ctx: Context) {
+    const vendors = await this.vendorService.getAllVendors();
+    let sentCount = 0;
+    const allReports: {
+      report: Buffer<ArrayBufferLike>;
+      filename: string;
+      caption: string;
+    }[] = [];
+    for (const vendor of vendors) {
+      const chatId = vendor.chatId?.toString();
+      if (!chatId) continue;
+      const lastReportedAt = vendor.lastReportedAt || new Date(0);
+      const requests =
+        await this.requestService.getRequestsForVendorSinceLastReport(
+          vendor.id,
+          lastReportedAt,
+        );
+      if (!requests.length) continue;
+      if (requests.length === 0) continue;
+      const report = await this.reportService.generateReportResult(
+        requests as any as FullRequestType[],
+        true,
+      );
+      const fileName = `${vendor.title}-report_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.xlsx`;
+      try {
+        await ctx.telegram.sendDocument(
+          chatId,
+          {
+            source: report.buffer,
+            filename: fileName,
+          },
+          { caption: report.caption },
+        );
+        allReports.push({
+          report: report.buffer,
+          filename: fileName,
+          caption: report.caption,
+        });
+        console.log(`Report sent to vendor ${vendor.title}`);
+        await this.vendorService.updateVendor({
+          ...vendor,
+          lastReportedAt: new Date(),
+        });
+        sentCount++;
+      } catch (e) {
+        await ctx.reply(
+          `Ошибка отправки отчета для вендора ${vendor.title}: ${e}`,
+        );
+      }
+    }
+    const reportToUser =
+      allReports.length > 0 &&
+      allReports.forEach((report) =>
+        this.telegramService.sendDocumentToAllUsers(
+          report.report,
+          report.filename,
+          report.caption,
+        ),
+      );
+    await Promise.all([reportToUser]);
+    await ctx.reply(`Отчеты отправлены ${sentCount} вендорам.`);
+  }
   @Command('registration')
   async registration(@Ctx() ctx: Context) {
     console.log('Registration,', ctx.chat);

@@ -2,6 +2,7 @@ import {
   AdminRequestPhotoMessage,
   BlackList,
   CardPaymentRequestsMethod,
+  Currency,
   Message,
   PaymentRequests,
   Rates,
@@ -71,7 +72,7 @@ export enum UserRole {
   GEEST = '2',
 }
 
-export enum Currency {
+export enum CurrencyEnum {
   UAH = '0',
 }
 

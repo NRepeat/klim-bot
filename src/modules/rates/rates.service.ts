@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import {
-  Currency,
+  CurrencyEnum,
   ParsedMessageRates,
   PaymentMethod,
   SerializedRate,
@@ -82,7 +82,8 @@ export class RatesService {
       const paymentMethodId =
         PaymentMethod[method as keyof typeof PaymentMethod];
       const currencyName = parsedRate.header.split(':')[0].trim();
-      const currencyId = Currency[currencyName as keyof typeof Currency];
+      const currencyId =
+        CurrencyEnum[currencyName as keyof typeof CurrencyEnum];
       for (const line of parsedRate.lines) {
         let minAmount = 0;
         let maxAmount: number | null = null;

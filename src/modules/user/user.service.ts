@@ -10,6 +10,10 @@ export class UserService {
   // private readonly logger = new Logger(TelegramService.name);
 
   constructor(private readonly userRepository: UserRepository) {}
+  async getAllUsers() {
+    const users = await this.userRepository.findAll();
+    return users;
+  }
   async findByTelegramId(id: number) {
     const user = await this.userRepository.findByTelegramId(id);
     return user;

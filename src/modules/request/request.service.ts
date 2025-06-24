@@ -2,17 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { RequestRepository } from './request.repo';
 import { CardRequestType, SerializedMessage } from 'src/types/types';
 import { UserService } from '../user/user.service';
+import { VendorService } from '../vendor/vendor.service';
 
 @Injectable()
 export class RequestService {
   constructor(
     private readonly requestRepo: RequestRepository,
     private readonly userService: UserService,
+    private readonly vendorService: VendorService, // Assuming vendorService is used somewhere in the future
   ) {}
 
-  // async createRequest(data: SerializedRequest) {
-  //   return this.requestRepo.create(data);
-  // }
   async acceptRequest(
     requestId: string,
     userId: number,
@@ -56,5 +55,19 @@ export class RequestService {
 
   async findAllNotProcessedRequests() {
     return this.requestRepo.findAllNotProcessedRequests();
+  }
+  async getAllRequests() {
+    return this.requestRepo.getAllRequests();
+  }
+  async getRequestsForVendorSinceLastReport(
+    vendorId: string,
+    lastReportedAt: Date,
+  ) {
+    const now = new Date();
+    return this.requestRepo.getRequestsForVendorBetween(
+      vendorId,
+      lastReportedAt,
+      now,
+    );
   }
 }

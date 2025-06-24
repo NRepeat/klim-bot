@@ -12,23 +12,13 @@ import {
   IbanRequestType,
   SerializedMessage,
 } from 'src/types/types';
-import { Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
+import { MenuFactory } from '../telegram-keyboards';
 
 @Injectable()
 @Wizard('create-request')
 export class CreateRequestWizard {
-  private requestMenuKeyboard = Markup.inlineKeyboard([
-    [
-      Markup.button.callback('CARD', 'card_request'),
-      Markup.button.callback('IBAN', 'iban_request'),
-      Markup.button.callback('Cancel', 'cancel_request'),
-    ],
-  ]);
-  private cardFormKeyboard = Markup.inlineKeyboard([
-    [Markup.button.callback('Назад', 'return_to_request_menu')],
-  ]);
   constructor(
     private readonly requestService: RequestService,
     private readonly ratesService: RatesService,
@@ -41,24 +31,22 @@ export class CreateRequestWizard {
   async selectMethod(@Ctx() ctx: CustomSceneContext) {
     console.log('@WizardStep selectMethod');
     const username = ctx.from?.username || 'Unknown User';
-    const inline_keyboard = this.requestMenuKeyboard;
+    const selectPaymentMenu =
+      MenuFactory.createSelectPaymentMethodMenu(username);
     ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
     ctx.session.requestMenuMessageId = ctx.session.requestMenuMessageId || [];
     if (ctx.session.customState !== 'select_method') {
-      const msg = await ctx.reply(
-        '@' + username + ' ' + 'Выберите метод перевода\n\n',
-        inline_keyboard,
-      );
+      const msg = await ctx.reply(selectPaymentMenu.caption, {
+        reply_markup: selectPaymentMenu.markup,
+      });
       ctx.session.customState = 'select_method';
       ctx.session.requestMenuMessageId?.push(msg.message_id);
     } else {
-      const msg = await ctx.reply(
-        '@' + username + ' ' + 'Выберите метод перевода\n\n',
-        inline_keyboard,
-      );
-      console.log('Updating request menu message');
       await this.deleteSceneMessages(ctx);
       await this.deleteSceneMenuMessages(ctx);
+      const msg = await ctx.reply(selectPaymentMenu.caption, {
+        reply_markup: selectPaymentMenu.markup,
+      });
       ctx.session.requestMenuMessageId?.push(msg.message_id);
     }
   }
@@ -71,13 +59,16 @@ export class CreateRequestWizard {
       await ctx.answerCbQuery('Unknown action');
       return;
     }
+
     const username = ctx.from?.username || 'Unknown User';
+    const selectPaymentMenu =
+      MenuFactory.createSelectPaymentMethodMenu(username);
     switch (callbackQuery.data) {
       case 'return_to_request_menu': {
         await this.updateSceneMenuMessage(
           ctx,
-          '@' + username + ' ' + 'Выберите метод перевода\n\n',
-          this.requestMenuKeyboard.reply_markup,
+          selectPaymentMenu.caption,
+          selectPaymentMenu.markup,
         );
         ctx.session.customState = 'select_method';
         await this.deleteSceneMessages(ctx);
@@ -93,15 +84,11 @@ export class CreateRequestWizard {
       }
       case 'card_request': {
         ctx.session.requestType = 'card';
-        const cardRequestMenuMessage =
-          '@' +
-          username +
-          ' ' +
-          'отправьте, пожалуйста, заявку в форме:\n\n Карта сумма (5168745632147896 1000)';
+        const cardRequestMenu = MenuFactory.createCardPaymentMenu(username);
         await this.updateSceneMenuMessage(
           ctx,
-          cardRequestMenuMessage,
-          this.cardFormKeyboard.reply_markup,
+          cardRequestMenu.caption,
+          cardRequestMenu.markup,
         );
         ctx.session.customState = 'card_request';
         ctx.wizard.selectStep(1);
@@ -109,15 +96,11 @@ export class CreateRequestWizard {
       }
       case 'iban_request': {
         ctx.session.requestType = 'iban';
-        const ibanRequestMenuMessage =
-          '@' +
-          username +
-          ' ' +
-          'отправьте, пожалуйста, заявку в форме:\n\nИмя\nIBAN\nИНН\nСумма\nКомментарий (если нужно)';
+        const ibanRequestMenu = MenuFactory.createIbanPaymentMenu(username);
         await this.updateSceneMenuMessage(
           ctx,
-          ibanRequestMenuMessage,
-          this.cardFormKeyboard.reply_markup,
+          ibanRequestMenu.caption,
+          ibanRequestMenu.markup,
         );
         ctx.session.customState = 'iban_request';
         ctx.wizard.selectStep(2);
@@ -349,30 +332,27 @@ export class CreateRequestWizard {
         },
       };
       const request = await this.requestService.createIbanRequest(ibanRequest);
-      const publicCaption = this.utilsService.buildRequestMessage(
+
+      const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+      const publicMenu = MenuFactory.createPublicMenu(
         request as unknown as FullRequestType,
-        'iban',
-        'public',
+        photoUrl,
       );
-      const vendorRequestPhotoMessage = {
-        photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-        caption: publicCaption,
-      };
       const requestMessage = await ctx.replyWithPhoto(
         {
-          source: createReadStream(vendorRequestPhotoMessage.photoUrl),
+          source: publicMenu.inWork().source,
         },
         {
-          caption: publicCaption.text,
-          reply_markup: publicCaption.inline_keyboard,
+          caption: publicMenu.inWork().caption,
+          reply_markup: publicMenu.inWork().markup,
         },
       );
       if (!requestMessage || !request) {
         return;
       }
       const messageToSave: SerializedMessage = {
-        photoUrl: vendorRequestPhotoMessage.photoUrl,
-        text: publicCaption.text,
+        photoUrl: photoUrl,
+        text: publicMenu.inWork().caption,
         chatId: BigInt(ctx.chat?.id || 0),
         messageId: BigInt(requestMessage.message_id),
         requestId: request.id,

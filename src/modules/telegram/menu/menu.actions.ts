@@ -40,6 +40,56 @@ export class MenuActions {
       );
     }
   }
+  @Command('report')
+  async reportVendor(@Ctx() ctx: Context) {
+    const chatId = ctx.chat?.id;
+    if (!chatId) {
+      return;
+    }
+    const vendor = await this.vendorService.getVendorByChatId(chatId);
+    if (!vendor) {
+      return;
+    }
+
+    const lastReportedAt = vendor.lastReportedAt || new Date(0);
+    const requests =
+      await this.requestService.getRequestsForVendorSinceLastReport(
+        vendor.id,
+        lastReportedAt,
+      );
+    if (!requests.length) return;
+    if (requests.length === 0) return ctx.reply('No requests to report');
+    const report = await this.reportService.generateReportResult(
+      requests as any as FullRequestType[],
+      true,
+    );
+    const fileName = `${vendor.title}-report_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.xlsx`;
+    try {
+      await ctx.telegram.sendDocument(
+        chatId,
+        {
+          source: report.buffer,
+          filename: fileName,
+        },
+        { caption: report.caption },
+      );
+
+      console.log(`Report sent to vendor ${vendor.title}`);
+      await this.vendorService.updateVendor({
+        ...vendor,
+        lastReportedAt: new Date(),
+      });
+    } catch (e) {
+      await ctx.reply(
+        `Ошибка отправки отчета для вендора ${vendor.title}: ${e}`,
+      );
+    }
+    const reportToUser = await this.telegramService.sendDocumentToAllUsers(
+      report.buffer,
+      fileName,
+      report.caption,
+    );
+  }
   @Command('report_all')
   async reportAll(@Ctx() ctx: Context) {
     const vendors = await this.vendorService.getAllVendors();

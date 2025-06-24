@@ -14,32 +14,50 @@ import {
 } from 'src/types/types';
 import { Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
+import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
 @Injectable()
 @Wizard('create-request')
 export class CreateRequestWizard {
+  private requestMenuKeyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('CARD', 'card_request'),
+      Markup.button.callback('IBAN', 'iban_request'),
+      Markup.button.callback('Cancel', 'cancel_request'),
+    ],
+  ]);
+  private cardFormKeyboard = Markup.inlineKeyboard([
+    [Markup.button.callback('Назад', 'return_to_request_menu')],
+  ]);
   constructor(
     private readonly requestService: RequestService,
     private readonly ratesService: RatesService,
     private readonly vendorService: VendorService,
     private readonly utilsService: UtilsService,
-    private readonly userService: UserService,
     private readonly telegramService: TelegramService,
   ) {}
 
   @WizardStep(0)
   async selectMethod(@Ctx() ctx: CustomSceneContext) {
-    const inline_keyboard = Markup.inlineKeyboard([
-      [
-        Markup.button.callback('Cancel', 'cancel_request'),
-        Markup.button.callback('Card', 'card_request'),
-        Markup.button.callback('Iban', 'iban_request'),
-      ],
-    ]);
+    console.log('@WizardStep selectMethod');
+    const username = ctx.from?.username || 'Unknown User';
+    const inline_keyboard = this.requestMenuKeyboard;
     ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
+    console.log(ctx.session.customState);
     if (ctx.session.customState !== 'select_method') {
-      const msg = await ctx.reply('Оберіть метод заявки\n\n', inline_keyboard);
+      const msg = await ctx.reply(
+        '@' + username + ' ' + 'Выберите метод перевода\n\n',
+        inline_keyboard,
+      );
       ctx.session.customState = 'select_method';
+      ctx.session.messagesToDelete.push(msg.message_id);
+      ctx.session.requestMenuMessageId = msg.message_id;
+    } else {
+      const msg = await ctx.reply(
+        '@' + username + ' ' + 'Выберите метод перевода\n\n',
+        inline_keyboard,
+      );
+      await this.deleteSceneMessages(ctx);
       ctx.session.messagesToDelete.push(msg.message_id);
     }
   }
@@ -52,18 +70,58 @@ export class CreateRequestWizard {
       await ctx.answerCbQuery('Unknown action');
       return;
     }
-    if (callbackQuery.data === 'cancel_request') {
-      await this.cancel(ctx);
-    } else if (callbackQuery.data === 'card_request') {
-      ctx.session.requestType = 'card';
-      await ctx.reply('You selected Card request. Please provide the details.');
-      ctx.session.customState = 'card_request';
-      ctx.wizard.next();
-    } else if (callbackQuery.data === 'iban_request') {
-      ctx.session.requestType = 'iban';
-      await ctx.reply('You selected IBAN request. Please provide the details.');
-      ctx.session.customState = 'iban_request';
-      ctx.wizard.selectStep(2);
+    const username = ctx.from?.username || 'Unknown User';
+    console.log('Callback data:', callbackQuery.data);
+    switch (callbackQuery.data) {
+      case 'return_to_request_menu': {
+        this.updateSceneMenuMessage(
+          ctx,
+          '@' + username + ' ' + 'Выберите метод перевода\n\n',
+          this.requestMenuKeyboard.reply_markup,
+        );
+        ctx.session.customState = 'select_method';
+        ctx.wizard.selectStep(0);
+        break;
+      }
+      case 'cancel_request': {
+        await ctx.answerCbQuery('Request creation cancelled');
+        await this.deleteSceneMessages(ctx);
+        ctx.session.customState = '';
+        await this.cancel(ctx);
+        break;
+      }
+      case 'card_request': {
+        ctx.session.requestType = 'card';
+        const cardRequestMenuMessage =
+          '@' +
+          username +
+          ' ' +
+          'отправьте, пожалуйста, заявку в форме:\n\n Карта сумма (5168745632147896 1000)';
+        await this.updateSceneMenuMessage(
+          ctx,
+          cardRequestMenuMessage,
+          this.cardFormKeyboard.reply_markup,
+        );
+        ctx.session.customState = 'card_request';
+        ctx.wizard.selectStep(1);
+        break;
+      }
+      case 'iban_request': {
+        ctx.session.requestType = 'iban';
+        const ibanRequestMenuMessage =
+          '@' +
+          username +
+          ' ' +
+          'отправьте, пожалуйста, заявку в форме:\n\nИмя\nIBAN\nИНН\nСумма\nКомментарий (если нужно)';
+        await this.updateSceneMenuMessage(
+          ctx,
+          ibanRequestMenuMessage,
+          this.cardFormKeyboard.reply_markup,
+        );
+        ctx.session.customState = 'iban_request';
+        ctx.wizard.next();
+        break;
+      }
     }
   }
 
@@ -224,19 +282,9 @@ export class CreateRequestWizard {
   }
 
   async cancel(ctx: CustomSceneContext) {
-    ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
-    const messagesToDelete = ctx.session.messagesToDelete;
-    // if (messagesToDelete.length > 0) {
-    //   for (const messageId of messagesToDelete) {
-    //     try {
-    //       await ctx.deleteMessage(messageId);
-    //     } catch (error) {
-    //       console.error('Failed to delete message:', error);
-    //     }
-    //   }
-    // }
+    this.deleteSceneMessages(ctx);
     ctx.session.messagesToDelete = [];
-    ctx.session.customState = 'cancelled';
+    ctx.session.customState = '';
     await ctx.scene.leave();
   }
 
@@ -252,5 +300,30 @@ export class CreateRequestWizard {
     //     }
     //   }
     // }
+  }
+  async deleteSceneMessages(ctx: CustomSceneContext) {
+    try {
+      await this.telegramService.deleteAllTelegramMessages(
+        ctx.session.messagesToDelete,
+        ctx.chat?.id,
+      );
+      ctx.session.messagesToDelete = [];
+    } catch (error) {
+      console.error('Failed to delete scene messages:', error);
+    }
+  }
+  async updateSceneMessage(ctx: CustomSceneContext, text: string) {}
+  async updateSceneMenuMessage(
+    ctx: CustomSceneContext,
+    text: string,
+    markup?: InlineKeyboardMarkup,
+  ) {
+    try {
+      await ctx.editMessageText(text, {
+        reply_markup: markup ?? undefined,
+      });
+    } catch (error) {
+      console.error('Failed to update scene menu message:', error);
+    }
   }
 }

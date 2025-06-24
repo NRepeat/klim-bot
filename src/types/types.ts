@@ -28,6 +28,7 @@ export type SerializedModel<T> = Omit<T, 'createdAt' | 'updatedAt' | 'id'>;
 // Extend session for wizard scenes
 export interface CustomSession extends Scenes.WizardSessionData {
   messagesToDelete?: number[];
+  requestMenuMessageId?: number;
   customState?: string; // renamed from 'state' to avoid conflict
   requestType?: string; // card, iban, etc
 }

@@ -307,4 +307,23 @@ export class TelegramService {
       this.logger.error('Error sending document to users', error);
     }
   }
+  async deleteAllTelegramMessages(
+    messageIds: number[] | undefined,
+    chatId: number | undefined,
+  ) {
+    try {
+      if (!messageIds || messageIds.length === 0) {
+        this.logger.warn('No message IDs provided for deletion');
+        return;
+      }
+      if (!chatId) {
+        return this.logger.warn('No chat ID provided for deletion');
+      }
+      for (const messageId of messageIds) {
+        await this.bot.telegram.deleteMessage(chatId, messageId);
+      }
+    } catch (error) {
+      this.logger.error('Error deleting messages', error);
+    }
+  }
 }

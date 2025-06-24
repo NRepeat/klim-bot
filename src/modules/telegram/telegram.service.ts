@@ -136,7 +136,6 @@ export class TelegramService {
                 reply_markup: message.inline_keyboard,
               },
             );
-            console.log(photoMsg ? photoMsg.message_id : 'No message ID');
             const messageToSave: SerializedMessage = {
               chatId: BigInt(chatId),
               photoUrl: message.photoUrl ? message.photoUrl : '',
@@ -203,6 +202,7 @@ export class TelegramService {
             );
           }
         }
+        await new Promise((res) => setTimeout(res, 300));
       }
     } catch (error) {
       this.logger.error('Error updating admin messages', error);

@@ -28,7 +28,6 @@ export class RatesService {
     const grouped: Record<string, string[]> = {};
 
     for (const rate of allRates) {
-      console.log(`Processing rate: ${JSON.stringify(rate)}`);
       const header = `${rate.currency.nameEn}:${rate.paymentMethod.nameEn}`;
       const line = `${rate.minAmount}${rate.maxAmount !== null && rate.maxAmount > 0 ? '-' + rate.maxAmount : '+'} ${rate.rate}`;
       if (!grouped[header]) {
@@ -42,7 +41,6 @@ export class RatesService {
       message.push(header);
       message.push(...grouped[header]);
     }
-    console.log('Generated Rates Message:', message);
     return message.join('\n');
   }
   parseAllRatesMarkupMessage(message: string) {
@@ -106,7 +104,6 @@ export class RatesService {
           paymentMethodId,
         );
         newRates.push(newRate);
-        console.log(`Creating rate: ${JSON.stringify(newRate)}`);
       }
     }
     if (newRates.length === 0) {
@@ -132,9 +129,8 @@ export class RatesService {
         }),
       );
       try {
-        const createdRates = await Promise.all(createRatePromises);
+        await Promise.all(createRatePromises);
 
-        console.log('Created Rates:', createdRates);
         return true;
       } catch (error) {
         throw new Error(
@@ -152,9 +148,8 @@ export class RatesService {
         }),
       );
       try {
-        const createdRates = await Promise.all(createRatePromises);
+        await Promise.all(createRatePromises);
 
-        console.log('Created Rates:', createdRates);
         return true;
       } catch (error) {
         throw new Error(

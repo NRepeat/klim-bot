@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Context, Ctx, On, Wizard, WizardStep } from 'nestjs-telegraf';
+import { Ctx, SceneLeave, Wizard, WizardStep } from 'nestjs-telegraf';
 import { CustomSceneContext } from 'src/types/types';
 import { Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
 import { UtilsService } from 'src/modules/utils/utils.service';
 import { ConfigService } from '@nestjs/config';
+import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
+import { RequestService } from 'src/modules/request/request.service';
 
 export type PaymentPhoto = {
   file_id: string;
@@ -21,6 +23,7 @@ export default class PaymentWizard {
     private readonly telegramService: TelegramService,
     private readonly utilsService: UtilsService,
     private readonly configService: ConfigService,
+    private readonly requestService: RequestService,
   ) {}
   paymentPhotos: PaymentPhoto[] = [];
 
@@ -40,42 +43,39 @@ export default class PaymentWizard {
   //       await ctx.answerCbQuery('Unknown action');
   //     }
   //   }
-  @WizardStep(1)
+  @WizardStep(0)
   async proceedFirstStep(@Ctx() ctx: CustomSceneContext) {
     const inline_keyboard = Markup.inlineKeyboard([
       [Markup.button.callback('Отмена', 'cancel_payment_photo_proceed')],
     ]);
-    await ctx.reply('Send photo message', {
+    const msg = await ctx.reply('Send photo message', {
       reply_markup: inline_keyboard.reply_markup,
     });
+    ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
+    ctx.session.requestMenuMessageId = ctx.session.requestMenuMessageId || [];
+    // ctx.session.messagesToDelete.push(msg.message_id);
+    ctx.session.requestMenuMessageId.push(msg.message_id);
     ctx.wizard.next();
   }
 
-  @WizardStep(2)
+  @WizardStep(1)
   async proceedFinalStep(@Ctx() ctx: CustomSceneContext) {
     const message = ctx.message as { photo?: PaymentPhoto[] };
-    // try {
     if (message && Array.isArray(message.photo)) {
       this.paymentPhotos.push(message.photo[message.photo.length - 1]);
-      console.log('Payment photos:', this.paymentPhotos);
-
       if (Array.isArray(this.paymentPhotos)) {
         const state = ctx.wizard.state as { requestId: string };
-        console.log('State:', ctx.wizard.state);
         const requestId = state.requestId;
         const buffers = await Promise.all(
           this.paymentPhotos.map((photo) => {
-            console.log('Downloading photo:', photo);
             return this.utilsService.downloadTelegramPhoto(
               this.configService.get<string>('TELEGRAM_BOT_TOKEN')!,
               photo.file_id,
             );
           }),
         );
-        console.log('Buffers:', buffers);
         const mergedImageBuffer =
           await this.utilsService.mergeImagesHorizontal(buffers);
-
         await this.telegramService.updateAllWorkersMessagesWithRequestsId(
           {
             source: mergedImageBuffer,
@@ -90,19 +90,67 @@ export default class PaymentWizard {
           },
           requestId,
         );
+        const userId = ctx.from?.id;
+        if (!userId) {
+          throw new Error('User ID not found in context');
+        }
+        await this.requestService.updateRequestStatus(
+          requestId,
+          'COMPLETED',
+          userId,
+        );
       }
+
       await ctx.scene.leave();
+
       this.paymentPhotos = [];
     } else {
       await ctx.scene.leave();
     }
-
-    // await ctx.scene.leave();
-    // } catch (error) {
-    //   // await ctx.scene.leave();
-    //   console.error('Error in proceedFinalStep:', error);
-    //   throw new Error('Error enter scene');
-    // }
+  }
+  @SceneLeave()
+  async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
+    await this.deleteSceneMessages(ctx);
+    await this.deleteSceneMenuMessages(ctx);
+    ctx.session.messagesToDelete = [];
+    ctx.session.customState = '';
+    ctx.session.requestMenuMessageId = undefined;
+  }
+  async deleteSceneMessages(ctx: CustomSceneContext, msgIdToPass?: number[]) {
+    try {
+      await this.telegramService.deleteAllTelegramMessages(
+        ctx.session.messagesToDelete,
+        ctx.chat?.id,
+        msgIdToPass,
+      );
+      ctx.session.messagesToDelete = [];
+    } catch (error) {
+      console.error('Failed to delete scene messages:', error);
+    }
+  }
+  async deleteSceneMenuMessages(ctx: CustomSceneContext) {
+    try {
+      await this.telegramService.deleteAllTelegramMessages(
+        ctx.session.requestMenuMessageId,
+        ctx.chat?.id,
+      );
+      ctx.session.requestMenuMessageId = [];
+    } catch (error) {
+      console.error('Failed to delete scene messages:', error);
+    }
+  }
+  async updateSceneMenuMessage(
+    ctx: CustomSceneContext,
+    text: string,
+    markup?: InlineKeyboardMarkup,
+  ) {
+    try {
+      await ctx.editMessageText(text, {
+        reply_markup: markup ?? undefined,
+      });
+    } catch (error) {
+      console.error('Failed to update scene menu message:', error);
+    }
   }
   // @WizardStep(2)
   // async proceedPaymentStep(@Ctx() ctx: CustomSceneContext) {

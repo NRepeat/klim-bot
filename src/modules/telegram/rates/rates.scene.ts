@@ -25,7 +25,6 @@ export class CreateRatesScene {
       return;
     } else if ('data' in callbackQuery) {
       if (callbackQuery.data === 'cancel_update_all_rates') {
-        console.log(callbackQuery.data);
         await this.cancel(ctx);
       }
     } else {
@@ -53,8 +52,6 @@ export class CreateRatesScene {
 
   @WizardStep(0)
   async onSceneEnter(@Ctx() ctx: CustomSceneContext) {
-    console.log('Session', ctx.session);
-
     const markup = await this.ratesService.getAllRatesMarkupMessage();
     const inline_keyboard = Markup.inlineKeyboard([
       [
@@ -104,7 +101,6 @@ export class CreateRatesScene {
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
     const messagesToDelete = ctx.session.messagesToDelete || [];
-    console.log('Leaving scene, messages to delete:', ctx.session.customState);
     if (ctx.session.customState === 'updated') {
       await this.ratesService.sendAllRatesToAllVendors(ctx);
     }

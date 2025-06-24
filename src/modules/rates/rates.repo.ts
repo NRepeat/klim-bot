@@ -14,8 +14,6 @@ export default class RatesRepository implements Repository<SerializedRate> {
   }
 
   async create(data: SerializedRate & { currency?: Currency }) {
-    console.log('Creating rate with data:', data);
-
     return this.prisma.rates.create({
       data: {
         maxAmount: data.maxAmount,

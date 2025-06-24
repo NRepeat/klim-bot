@@ -140,21 +140,19 @@ export class MenuActions {
         );
       }
     }
-    const reportToUser =
-      allReports.length > 0 &&
-      allReports.forEach((report) =>
-        this.telegramService.sendDocumentToAllUsers(
+    if (allReports.length > 0) {
+      for (const report of allReports) {
+        await this.telegramService.sendDocumentToAllUsers(
           report.report,
           report.filename,
           report.caption,
-        ),
-      );
-    await Promise.all([reportToUser]);
+        );
+      }
+    }
     await ctx.reply(`Отчеты отправлены ${sentCount} вендорам.`);
   }
   @Command('registration')
   async registration(@Ctx() ctx: Context) {
-    console.log('Registration,', ctx.chat);
     if (await this.utilsService.isChatRegistrated(ctx)) {
       await ctx.reply('You are already registered');
       return;

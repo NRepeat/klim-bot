@@ -35,7 +35,6 @@ export class UserService {
   }
   async getAllActiveAdmins(): Promise<User[]> {
     const admins = await this.userRepository.getAllActiveAdmins();
-    console.log('Active admins:', admins);
     return admins;
   }
 
@@ -93,12 +92,6 @@ export class UserService {
     requestId: string,
     userId: string,
   ) {
-    console.log(
-      'Saving request photo message with userId:',
-      userId,
-      'and requestId:',
-      requestId,
-    );
     return this.userRepository.saveRequestPhotoMessage(
       message,
       requestId,

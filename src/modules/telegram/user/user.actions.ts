@@ -31,7 +31,6 @@ export class UserActions {
       console.error('No callback query found');
       return;
     } else if ('data' in callbackQuery) {
-      console.log(callbackQuery);
       if (callbackQuery.data.includes('accept_request_')) {
         const requestId = callbackQuery.data.split('_')[2];
         const userId = callbackQuery.from.id;
@@ -43,11 +42,10 @@ export class UserActions {
           return;
         }
         const request = await this.requestService.findById(requestId);
-        console.log(request, 'request');
         const message = this.utilsService.buildRequestMessage(
           request as any as FullRequestType,
           request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
-          'admin',
+          'worker',
         );
         console.log(message, 'message');
         const newPaymentButton = Markup.button.callback(
@@ -68,17 +66,20 @@ export class UserActions {
           },
           requestId,
         );
+        const adminMessage = this.utilsService.buildRequestMessage(
+          request as any as FullRequestType,
+          request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
+          'admin',
+        );
         await this.telegramService.updateAllAdminsMessagesWithRequestsId(
-          message,
+          adminMessage,
           requestId,
         );
         await ctx.answerCbQuery('Request accepted');
       }
 
       if (callbackQuery.data.includes('proceeded_payment_')) {
-        console.log(callbackQuery.data);
         const requestId = callbackQuery.data.split('_')[2];
-        console.log(requestId, 'requestId');
         const request = await this.requestService.findById(requestId);
         if (!request) {
           throw new Error('Request not found');

@@ -7,6 +7,7 @@ import {
 } from 'src/types/types';
 import { UserService } from '../user/user.service';
 import { VendorService } from '../vendor/vendor.service';
+import { Status } from 'generated/prisma';
 
 @Injectable()
 export class RequestService {
@@ -15,7 +16,20 @@ export class RequestService {
     private readonly userService: UserService,
     private readonly vendorService: VendorService, // Assuming vendorService is used somewhere in the future
   ) {}
-
+  async updateRequestStatus(
+    requestId: string,
+    status: Status,
+    userId: number,
+  ): Promise<void> {
+    console.log(
+      `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
+    );
+    const dbUser = await this.userService.findByTelegramId(userId);
+    if (!dbUser) {
+      throw new Error('User not found');
+    }
+    await this.requestRepo.updateRequestStatus(requestId, status, dbUser.id);
+  }
   async acceptRequest(
     requestId: string,
     userId: number,

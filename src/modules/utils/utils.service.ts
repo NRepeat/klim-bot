@@ -42,6 +42,8 @@ export class UtilsService {
     request: FullRequestType,
     accessType: MessageAccessType,
   ) {
+    console.log('Building IBAN request message for request:', request);
+    console.log('Access type:', accessType);
     if (request && request.ibanMethods) {
       if (request.ibanMethods.length === 0) {
         console.error('No IBAN methods found in request:', request);
@@ -52,9 +54,8 @@ export class UtilsService {
       }
     }
     const iban = request.ibanMethods![0];
-    console.log('IBAN request:', iban);
     // Формируем текст сообщения
-    const text =
+    let text =
       `Заявка на перевод по IBAN\n` +
       `Имя: ${iban.name || '-'}\n` +
       `IBAN: ${iban.iban || '-'}\n` +
@@ -68,6 +69,7 @@ export class UtilsService {
         [Markup.button.callback('Отказаться', 'cancel_request')],
         [Markup.button.callback('Не в работе', 'dummy')],
       ]).reply_markup;
+      text += `\n\n` + 'Заявка принята: ' + request.user?.username;
     } else if (accessType === 'worker') {
       inline_keyboard = Markup.inlineKeyboard([
         [Markup.button.callback('Отказаться', 'cancel_request')],

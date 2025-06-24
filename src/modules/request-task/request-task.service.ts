@@ -71,7 +71,6 @@ export class RequestTaskService {
         text: workerCaption.text,
         inline_keyboard: inline_keyboard.reply_markup,
       };
-
       const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
       if (!hasA) {
         console.log(`Request ${request.id} has admin messages: ${hasA}`);
@@ -82,6 +81,7 @@ export class RequestTaskService {
       }
       for (const worker of workerNotifications) {
         if (hasA && worker.proceeded) {
+          console.log(worker, 'worker');
           await this.updateAdminMessages(request, worker.username);
         }
       }

@@ -5,10 +5,31 @@ import {
   SerializedMessage,
 } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
+import { Status } from 'generated/prisma';
 
 @Injectable()
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async updateRequestStatus(
+    requestId: string,
+    status: Status,
+    userId: string,
+  ): Promise<void> {
+    console.log(
+      `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
+    );
+    await this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: {
+        status,
+        payedByUser: {
+          connect: { id: userId },
+        },
+      },
+    });
+  }
+
   async createIbanRequest(data: IbanRequestType) {
     return this.prisma.paymentRequests.create({
       data: {

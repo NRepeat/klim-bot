@@ -44,7 +44,6 @@ export class CreateRequestWizard {
     const inline_keyboard = this.requestMenuKeyboard;
     ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
     ctx.session.requestMenuMessageId = ctx.session.requestMenuMessageId || [];
-    console.log(ctx.session.customState);
     if (ctx.session.customState !== 'select_method') {
       const msg = await ctx.reply(
         '@' + username + ' ' + 'Выберите метод перевода\n\n',
@@ -52,7 +51,6 @@ export class CreateRequestWizard {
       );
       ctx.session.customState = 'select_method';
       ctx.session.requestMenuMessageId?.push(msg.message_id);
-      console.log(ctx.session, 'requestMenuMessageId');
     } else {
       const msg = await ctx.reply(
         '@' + username + ' ' + 'Выберите метод перевода\n\n',
@@ -74,7 +72,6 @@ export class CreateRequestWizard {
       return;
     }
     const username = ctx.from?.username || 'Unknown User';
-    console.log('Callback data:', callbackQuery.data);
     switch (callbackQuery.data) {
       case 'return_to_request_menu': {
         await this.updateSceneMenuMessage(
@@ -290,14 +287,11 @@ export class CreateRequestWizard {
 
   @WizardStep(2)
   async ibanStep(@Ctx() ctx: CustomSceneContext) {
-    // Here you can handle IBAN details input
-    // For demo, just go to finish
     const input = ctx.text;
     if (!input) {
       await ctx.reply(
         'Пожалуйста, введите данные в формате: Имя\\nIBAN\\nИНН\\nСумма\\nКомментарий (если нужно)',
       );
-
       ctx.wizard.selectStep(2);
       return;
     }
@@ -355,7 +349,6 @@ export class CreateRequestWizard {
         },
       };
       const request = await this.requestService.createIbanRequest(ibanRequest);
-      console.log(request, 'ibanRawData');
       const publicCaption = this.utilsService.buildRequestMessage(
         request as unknown as FullRequestType,
         'iban',
@@ -424,7 +417,6 @@ export class CreateRequestWizard {
   }
   async deleteSceneMenuMessages(ctx: CustomSceneContext) {
     try {
-      console.log(ctx.session.requestMenuMessageId, 'requestMenuMessageId');
       await this.telegramService.deleteAllTelegramMessages(
         ctx.session.requestMenuMessageId,
         ctx.chat?.id,

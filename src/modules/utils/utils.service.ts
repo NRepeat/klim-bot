@@ -43,6 +43,15 @@ export class UtilsService {
     accessType: MessageAccessType,
   ) {
     console.log('Building IBAN request message for request:', request);
+    if (request && request.ibanMethods) {
+      if (request.ibanMethods.length === 0) {
+        console.error('No IBAN methods found in request:', request);
+        return {
+          text: 'Нет доступных IBAN методов для этой заявки.',
+          inline_keyboard: [],
+        };
+      }
+    }
     const iban = request.ibanMethods![0];
     console.log('IBAN request:', iban);
     // Формируем текст сообщения

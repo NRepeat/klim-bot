@@ -29,6 +29,19 @@ export class RequestRepository {
           },
         },
       },
+      include: {
+        cardMethods: {
+          include: {
+            blackList: true,
+          },
+        },
+        message: true,
+        vendor: true,
+        rates: true,
+        currency: true,
+        ibanMethods: true,
+        user: true,
+      },
     });
   }
   async getAllRequests() {

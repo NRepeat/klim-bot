@@ -306,90 +306,102 @@ export class CreateRequestWizard {
     if (!chatId) {
       return;
     }
-    const ibanRawData = this.parseIbanRequest(input);
-    const rates = await this.ratesService.getAllRates();
-    if (!rates || rates.length === 0) {
-      const msg = await ctx.reply('Нед доступного курса для данной суммы.');
-      ctx.session.messagesToDelete?.push(msg.message_id);
-      ctx.wizard.selectStep(1);
-      return;
-    }
-    const foundRate = rates.find((rate) => {
-      if (
-        rate.paymentMethod.nameEn === 'IBAN' &&
-        rate.currency.nameEn === 'UAH'
-      ) {
-        return (
-          ibanRawData.amount >= rate.minAmount &&
-          (rate.maxAmount === 0 || ibanRawData.amount <= rate.maxAmount)
-        );
+    try {
+      const ibanRawData = this.parseIbanRequest(input);
+      const rates = await this.ratesService.getAllRates();
+      if (!rates || rates.length === 0) {
+        const msg = await ctx.reply('Нед доступного курса для данной суммы.');
+        ctx.session.messagesToDelete?.push(msg.message_id);
+        ctx.wizard.selectStep(1);
+        return;
       }
-    });
-    const vendor = await this.vendorService.getVendorByChatId(chatId);
-    if (!vendor) {
-      const msg = await ctx.reply(
-        'Пользователь не найден в базе данных. Пожалуйста, свяжитесь с администратором.',
+      const foundRate = rates.find((rate) => {
+        if (
+          rate.paymentMethod.nameEn === 'IBAN' &&
+          rate.currency.nameEn === 'UAH'
+        ) {
+          return (
+            ibanRawData.amount >= rate.minAmount &&
+            (rate.maxAmount === 0 || ibanRawData.amount <= rate.maxAmount)
+          );
+        }
+      });
+      const vendor = await this.vendorService.getVendorByChatId(chatId);
+      if (!vendor) {
+        const msg = await ctx.reply(
+          'Пользователь не найден в базе данных. Пожалуйста, свяжитесь с администратором.',
+        );
+        ctx.session.messagesToDelete?.push(msg.message_id);
+        ctx.wizard.selectStep(2);
+        return;
+      }
+      if (!foundRate) {
+        const msg = await ctx.reply('Нед доступного курса для данной суммы.');
+        ctx.session.messagesToDelete?.push(msg.message_id);
+        ctx.wizard.selectStep(2);
+        return;
+      }
+      const ibanRequest: IbanRequestType = {
+        amount: ibanRawData.amount,
+        currencyId: foundRate.currencyId,
+        notificationSent: false,
+        status: 'PENDING',
+        vendorId: vendor?.id,
+        rateId: foundRate.id,
+        iban: {
+          iban: ibanRawData.iban,
+          inn: ibanRawData.inn,
+          name: ibanRawData.name,
+          comment: 'Card request created via bot',
+        },
+      };
+      const request = await this.requestService.createIbanRequest(ibanRequest);
+      console.log(request, 'ibanRawData');
+      const publicCaption = this.utilsService.buildRequestMessage(
+        request as unknown as FullRequestType,
+        'iban',
+        'public',
       );
-      ctx.session.messagesToDelete?.push(msg.message_id);
-      ctx.wizard.selectStep(2);
+      const vendorRequestPhotoMessage = {
+        photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
+        caption: publicCaption,
+      };
+      const requestMessage = await ctx.replyWithPhoto(
+        {
+          source: createReadStream(vendorRequestPhotoMessage.photoUrl),
+        },
+        {
+          caption: publicCaption.text,
+          reply_markup: publicCaption.inline_keyboard,
+        },
+      );
+      if (!requestMessage || !request) {
+        return;
+      }
+      const messageToSave: SerializedMessage = {
+        photoUrl: vendorRequestPhotoMessage.photoUrl,
+        text: publicCaption.text,
+        chatId: BigInt(ctx.chat?.id || 0),
+        messageId: BigInt(requestMessage.message_id),
+        requestId: request.id,
+        accessType: 'PUBLIC',
+      };
+      await this.requestService.insertCardRequestMessage(
+        request.id,
+        messageToSave,
+      );
+      await this.cancel(ctx);
+    } catch (error) {
+      console.error('Error parsing IBAN request:', error);
+
+      await this.cancel(ctx);
+      // const msg = await ctx.reply(
+      //   'Ошибка при обработке запроса. Пожалуйста, проверьте формат ввода.',
+      // );
+      // ctx.session.messagesToDelete?.push(msg.message_id);
+      // ctx.wizard.selectStep(2);
       return;
     }
-    if (!foundRate) {
-      const msg = await ctx.reply('Нед доступного курса для данной суммы.');
-      ctx.session.messagesToDelete?.push(msg.message_id);
-      ctx.wizard.selectStep(2);
-      return;
-    }
-    const ibanRequest: IbanRequestType = {
-      amount: ibanRawData.amount,
-      currencyId: foundRate.currencyId,
-      notificationSent: false,
-      status: 'PENDING',
-      vendorId: vendor?.id,
-      rateId: foundRate.id,
-      iban: {
-        iban: ibanRawData.iban,
-        inn: ibanRawData.inn,
-        name: ibanRawData.name,
-        comment: 'Card request created via bot',
-      },
-    };
-    const request = await this.requestService.createIbanRequest(ibanRequest);
-    console.log(request, 'ibanRawData');
-    const publicCaption = this.utilsService.buildRequestMessage(
-      request as unknown as FullRequestType,
-      'iban',
-      'public',
-    );
-    const vendorRequestPhotoMessage = {
-      photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-      caption: publicCaption,
-    };
-    const requestMessage = await ctx.replyWithPhoto(
-      {
-        source: createReadStream(vendorRequestPhotoMessage.photoUrl),
-      },
-      {
-        caption: publicCaption.text,
-        reply_markup: publicCaption.inline_keyboard,
-      },
-    );
-    if (!requestMessage || !request) {
-      return;
-    }
-    const messageToSave: SerializedMessage = {
-      photoUrl: vendorRequestPhotoMessage.photoUrl,
-      text: publicCaption.text,
-      chatId: BigInt(ctx.chat?.id || 0),
-      messageId: BigInt(requestMessage.message_id),
-      requestId: request.id,
-      accessType: 'PUBLIC',
-    };
-    await this.requestService.insertCardRequestMessage(
-      request.id,
-      messageToSave,
-    );
-    await this.cancel(ctx);
   }
 
   async cancel(ctx: CustomSceneContext) {

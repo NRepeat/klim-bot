@@ -12,17 +12,10 @@
     {
       "id": "-1002510029234:8045572818",
       "data": {
-        "__scenes": {
-          "current": "create-request",
-          "state": {},
-          "cursor": 2
-        },
+        "__scenes": {},
         "messagesToDelete": [],
-        "customState": "iban_request",
-        "requestType": "iban",
-        "requestMenuMessageId": [
-          1689
-        ]
+        "customState": "",
+        "requestType": "iban"
       }
     },
     {

@@ -7,6 +7,7 @@ import { UtilsService } from 'src/modules/utils/utils.service';
 import { ConfigService } from '@nestjs/config';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { RequestService } from 'src/modules/request/request.service';
+import { MenuFactory } from '../telegram-keyboards';
 
 export type PaymentPhoto = {
   file_id: string;
@@ -60,100 +61,76 @@ export default class PaymentWizard {
 
   @WizardStep(1)
   async proceedFinalStep(@Ctx() ctx: CustomSceneContext) {
-    try {
-      const message = ctx.message as { photo?: PaymentPhoto[] };
-      ctx.session.messagesToDelete?.push(ctx.message?.message_id || 0);
-
-      if (message && Array.isArray(message.photo)) {
-        for (const photo of message.photo) {
-          if (!this.paymentPhotos.some((p) => p.file_id === photo.file_id)) {
-            this.paymentPhotos.push(photo);
-          }
+    const message = ctx.message as { photo?: PaymentPhoto[] };
+    ctx.session.messagesToDelete?.push(ctx.message?.message_id || 0);
+    if (message && Array.isArray(message.photo)) {
+      this.paymentPhotos.push(message.photo[message.photo.length - 1]);
+      if (Array.isArray(this.paymentPhotos)) {
+        const state = ctx.wizard.state as { requestId: string };
+        const requestId = state.requestId;
+        const buffers = await Promise.all(
+          this.paymentPhotos.map((photo) => {
+            return this.utilsService.downloadTelegramPhoto(
+              this.configService.get<string>('TELEGRAM_BOT_TOKEN')!,
+              photo.file_id,
+            );
+          }),
+        );
+        const mergedImageBuffer =
+          await this.utilsService.mergeImagesHorizontal(buffers);
+        await this.telegramService.updateAllWorkersMessagesWithRequestsId(
+          {
+            source: mergedImageBuffer,
+            text: 'Пользователь отправил фото подтверждения оплаты',
+          },
+          requestId,
+        );
+        await this.telegramService.updateAllAdminsMessagesWithRequestsId(
+          {
+            source: mergedImageBuffer,
+            text: 'Пользователь отправил фото подтверждения оплаты для запроса',
+          },
+          requestId,
+        );
+        const userId = ctx.from?.id;
+        if (!userId) {
+          throw new Error('User ID not found in context');
+        }
+        await this.requestService.updateRequestStatus(
+          requestId,
+          'COMPLETED',
+          userId,
+        );
+        const request = await this.requestService.findById(requestId);
+        if (!request) {
+          await ctx.scene.leave();
+          throw new Error('Request not found');
         }
 
-        if (this.paymentPhotos.length > 0) {
-          await ctx.reply('Фото получены, идёт обработка...');
+        const publicMenu = MenuFactory.createPublicMenu(
+          request as unknown as FullRequestType,
+          '',
+          mergedImageBuffer,
+        );
 
-          const state = ctx.wizard.state as { requestId: string };
-          const requestId = state.requestId;
-          const botToken =
-            this.configService.get<string>('TELEGRAM_BOT_TOKEN')!;
-
-          const buffers = await Promise.all(
-            this.paymentPhotos.map(async (photo) => {
-              const buffer = await this.utilsService.downloadTelegramPhoto(
-                botToken,
-                photo.file_id,
-              );
-              // Можно добавить resize для ускорения обработки:
-              // return await sharp(buffer).resize({ width: 800 }).toBuffer();
-              return buffer;
-            }),
-          );
-
-          const mergedImageBuffer =
-            await this.utilsService.mergeImagesHorizontal(buffers);
-
-          await Promise.all([
-            this.telegramService.updateAllWorkersMessagesWithRequestsId(
-              {
-                source: mergedImageBuffer,
-                text: 'Пользователь отправил фото подтверждения оплаты',
-              },
-              requestId,
-            ),
-            this.telegramService.updateAllAdminsMessagesWithRequestsId(
-              {
-                source: mergedImageBuffer,
-                text: 'Пользователь отправил фото подтверждения оплаты для запроса',
-              },
-              requestId,
-            ),
-          ]);
-
-          const userId = ctx.from?.id;
-          if (!userId) throw new Error('User ID not found in context');
-
-          await this.requestService.updateRequestStatus(
-            requestId,
-            'COMPLETED',
-            userId,
-          );
-
-          const request = await this.requestService.findById(requestId);
-          if (!request) throw new Error('Request not found');
-
-          const publicMessage = this.utilsService.buildRequestMessage(
-            request as any as FullRequestType,
-            request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
-            'public',
-          );
-          const newPaymentButton = Markup.button.callback(
-            'Оплатил',
-            'dummy_payment',
-          );
-
-          await this.telegramService.updateAllPublicMessagesWithRequestsId(
-            {
-              text: publicMessage.text,
-              inline_keyboard: Markup.inlineKeyboard([[newPaymentButton]])
-                .reply_markup,
-              source: mergedImageBuffer,
-            },
-            requestId,
-          );
-        }
-
-        this.paymentPhotos = [];
-        await ctx.scene.leave();
-      } else {
-        await ctx.scene.leave();
+        await this.telegramService.updateAllPublicMessagesWithRequestsId(
+          {
+            text: publicMenu.done().caption,
+            inline_keyboard: publicMenu.done().markup,
+            source: publicMenu.done().source,
+          },
+          requestId,
+        );
       }
-    } catch (error) {
-      console.error('Error in proceedFinalStep:', error);
+
+      await ctx.scene.leave();
+
+      this.paymentPhotos = [];
+    } else {
       await ctx.scene.leave();
     }
   }
+
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
     await this.deleteSceneMessages(ctx);

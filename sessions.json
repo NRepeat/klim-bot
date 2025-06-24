@@ -15,7 +15,7 @@
         "__scenes": {},
         "messagesToDelete": [],
         "customState": "",
-        "requestType": "card"
+        "requestType": "iban"
       }
     },
     {
@@ -30,7 +30,9 @@
     {
       "id": "375905624:375905624",
       "data": {
-        "__scenes": {}
+        "__scenes": {},
+        "messagesToDelete": [],
+        "customState": ""
       }
     }
   ]

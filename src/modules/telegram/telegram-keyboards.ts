@@ -13,7 +13,7 @@ interface IMenu {
 
 interface IMenuWithMedia extends IMenu {
   url: string;
-  source?: ReadStream;
+  source?: Buffer<ArrayBufferLike> | ReadStream;
 }
 
 class Menu implements IMenu {
@@ -33,16 +33,19 @@ class Menu implements IMenu {
 }
 class MenuWithMedia extends Menu implements IMenuWithMedia {
   url: string;
-  source: ReadStream;
+  source: Buffer<ArrayBufferLike>;
   constructor(
     caption: string,
     markup: InlineKeyboardMarkup,
     url: string,
     request?: FullRequestType,
+    source?: Buffer<ArrayBufferLike>,
   ) {
     super(caption, markup, request);
     this.url = url;
-    this.source = createReadStream(url);
+    this.source = source
+      ? source
+      : (createReadStream(url) as any as Buffer<ArrayBufferLike>);
   }
 }
 
@@ -85,8 +88,15 @@ class IbanPaymentMenu extends PaymentMenu {
 class PublicMenu {
   request: FullRequestType;
   url: string;
-  constructor(url: string, request: FullRequestType) {
+  source: Buffer<ArrayBufferLike>;
+  constructor(
+    url: string,
+    request: FullRequestType,
+    source?: Buffer<ArrayBufferLike>,
+  ) {
     this.request = request;
+    this.url = url;
+    this.source = source || Buffer.from([]);
   }
   messageFromRequest(accessType: AccessType): string {
     if (!this.request) {
@@ -145,6 +155,8 @@ class PublicMenu {
       this.messageFromRequest('PUBLIC'),
       markup,
       url || this.url,
+      undefined,
+      this.source,
     );
   }
 
@@ -165,8 +177,12 @@ export class MenuFactory {
     return new Menu(caption, markup);
   }
 
-  static createPublicMenu(request: FullRequestType, url: string): PublicMenu {
-    return new PublicMenu(url, request);
+  static createPublicMenu(
+    request: FullRequestType,
+    url: string,
+    source?: Buffer<ArrayBufferLike>,
+  ): PublicMenu {
+    return new PublicMenu(url, request, source);
   }
   static createSelectPaymentMethodMenu(
     username: string,

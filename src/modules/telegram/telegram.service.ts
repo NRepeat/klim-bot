@@ -3,7 +3,7 @@ import { Context, Markup } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
-import { createReadStream } from 'fs';
+import { createReadStream, ReadStream } from 'fs';
 
 import { ReplyPhotoMessage, SerializedMessage } from 'src/types/types';
 import { RequestService } from '../request/request.service';

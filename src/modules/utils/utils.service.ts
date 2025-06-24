@@ -32,12 +32,45 @@ export class UtilsService {
   ): ReplyMessage {
     const message = {
       card: this.buildCardRequestMessage(request, accessType),
-      iban: this.buildCardRequestMessage(request, accessType),
+      iban: this.buildIbanRequestMessage(request, accessType),
     };
 
     return message[method];
   }
 
+  buildIbanRequestMessage(
+    request: FullRequestType,
+    accessType: MessageAccessType,
+  ) {
+    console.log('Building IBAN request message for request:', request);
+    const iban = request.ibanMethods![0];
+    console.log('IBAN request:', iban);
+    // Формируем текст сообщения
+    const text =
+      `Заявка на перевод по IBAN\n` +
+      `Имя: ${iban.name || '-'}\n` +
+      `IBAN: ${iban.iban || '-'}\n` +
+      `ИНН: ${iban.inn || '-'}\n` +
+      `Сумма: ${request.amount} ${request.currency?.nameEn}\n` +
+      (iban.comment ? `Комментарий: ${iban.comment}\n` : '');
+
+    let inline_keyboard;
+    if (accessType === 'admin') {
+      inline_keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('Принять', `accept_iban_${request.id}`)],
+        [Markup.button.callback('Отклонить', `decline_iban_${request.id}`)],
+      ]);
+    } else {
+      inline_keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('Отменить', `cancel_iban_${request.id}`)],
+      ]);
+    }
+
+    return {
+      text,
+      inline_keyboard: inline_keyboard.reply_markup,
+    };
+  }
   buildCardRequestMessage(
     request: FullRequestType,
     accessType: MessageAccessType,

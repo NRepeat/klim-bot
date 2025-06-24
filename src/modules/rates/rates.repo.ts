@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Repository, SerializedRate } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
+import { Currency } from 'generated/prisma';
 
 @Injectable()
 export default class RatesRepository implements Repository<SerializedRate> {
@@ -12,9 +13,17 @@ export default class RatesRepository implements Repository<SerializedRate> {
     });
   }
 
-  async create(data: SerializedRate) {
+  async create(data: SerializedRate & { currency?: Currency }) {
+    console.log('Creating rate with data:', data);
+
     return this.prisma.rates.create({
-      data,
+      data: {
+        maxAmount: data.maxAmount,
+        minAmount: data.minAmount,
+        rate: data.rate,
+        currencyId: data.currencyId,
+        paymentMethodId: data.paymentMethodId,
+      },
     });
   }
   async deleteAll() {

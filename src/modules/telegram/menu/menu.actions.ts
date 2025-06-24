@@ -7,7 +7,6 @@ import { VendorService } from 'src/modules/vendor/vendor.service';
 import { FullRequestType } from 'src/types/types';
 import { Context, Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
-import { report } from 'process';
 
 @Update()
 export class MenuActions {
@@ -84,7 +83,7 @@ export class MenuActions {
         `Ошибка отправки отчета для вендора ${vendor.title}: ${e}`,
       );
     }
-    const reportToUser = await this.telegramService.sendDocumentToAllUsers(
+    await this.telegramService.sendDocumentToAllUsers(
       report.buffer,
       fileName,
       report.caption,

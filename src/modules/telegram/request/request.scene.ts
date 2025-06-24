@@ -10,6 +10,7 @@ import {
   CardRequestType,
   CustomSceneContext,
   FullRequestType,
+  IbanRequestType,
   SerializedMessage,
 } from 'src/types/types';
 import { Markup } from 'telegraf';
@@ -43,6 +44,7 @@ export class CreateRequestWizard {
     const username = ctx.from?.username || 'Unknown User';
     const inline_keyboard = this.requestMenuKeyboard;
     ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
+    ctx.session.requestMenuMessageId = ctx.session.requestMenuMessageId || [];
     console.log(ctx.session.customState);
     if (ctx.session.customState !== 'select_method') {
       const msg = await ctx.reply(
@@ -50,15 +52,17 @@ export class CreateRequestWizard {
         inline_keyboard,
       );
       ctx.session.customState = 'select_method';
-      ctx.session.messagesToDelete.push(msg.message_id);
-      ctx.session.requestMenuMessageId = msg.message_id;
+      ctx.session.requestMenuMessageId?.push(msg.message_id);
+      console.log(ctx.session, 'requestMenuMessageId');
     } else {
       const msg = await ctx.reply(
         '@' + username + ' ' + 'Выберите метод перевода\n\n',
         inline_keyboard,
       );
+      console.log('Updating request menu message');
       await this.deleteSceneMessages(ctx);
-      ctx.session.messagesToDelete.push(msg.message_id);
+      await this.deleteSceneMenuMessages(ctx);
+      ctx.session.requestMenuMessageId?.push(msg.message_id);
     }
   }
 
@@ -74,12 +78,13 @@ export class CreateRequestWizard {
     console.log('Callback data:', callbackQuery.data);
     switch (callbackQuery.data) {
       case 'return_to_request_menu': {
-        this.updateSceneMenuMessage(
+        await this.updateSceneMenuMessage(
           ctx,
           '@' + username + ' ' + 'Выберите метод перевода\n\n',
           this.requestMenuKeyboard.reply_markup,
         );
         ctx.session.customState = 'select_method';
+        await this.deleteSceneMessages(ctx);
         ctx.wizard.selectStep(0);
         break;
       }
@@ -119,7 +124,7 @@ export class CreateRequestWizard {
           this.cardFormKeyboard.reply_markup,
         );
         ctx.session.customState = 'iban_request';
-        ctx.wizard.next();
+        ctx.wizard.selectStep(2);
         break;
       }
     }
@@ -128,6 +133,11 @@ export class CreateRequestWizard {
   @WizardStep(1)
   async cardStep(@Ctx() ctx: CustomSceneContext) {
     const message = ctx.text;
+    const chatId = ctx.chat?.id;
+    if (!chatId) {
+      await ctx.reply('Chat ID not found. Please try again.');
+      return;
+    }
     if (!message || message.trim().length === 0) {
       await ctx.reply('Please provide card details.');
       return;
@@ -142,15 +152,24 @@ export class CreateRequestWizard {
     const cardDetails: { cardNumber: string; amount: number }[] = [];
 
     for (const line of lines) {
+      if (line.split(' ').length < 2) {
+        const msg = await ctx.reply(
+          '❌ Неверный формат ввода! Используйте фомат "карта сумма"',
+        );
+        ctx.session.messagesToDelete?.push(msg.message_id);
+        ctx.wizard.selectStep(1);
+        continue;
+      }
       if (
         !cardRegex.test(line.split(' ')[0]) ||
         !amountRegex.test(line.split(' ')[1] || '0')
       ) {
-        await ctx.reply(
-          'Invalid card details format. Please use "CardNumber Amount" format.',
+        const msg = await ctx.reply(
+          '❌ Неверный номер карты!\nИспользуйте фомат "карта сумма"',
         );
-
-        return;
+        ctx.session.messagesToDelete?.push(msg.message_id);
+        ctx.wizard.selectStep(1);
+        continue;
       }
       cardDetails.push({
         cardNumber: line.split(' ')[0],
@@ -158,49 +177,56 @@ export class CreateRequestWizard {
       });
     }
     if (cardDetails.length !== 0) {
-      for (const cardDetail of cardDetails) {
+      for (const [index, cardDetail] of cardDetails.entries()) {
         const rates = await this.ratesService.getAllRates();
         if (!rates || rates.length === 0) {
-          await ctx.reply('No rates available. Please create a rate first.');
+          const msg = await ctx.reply('Нед доступного курса для данной суммы.');
+          ctx.session.messagesToDelete?.push(msg.message_id);
+          ctx.wizard.selectStep(1);
           return;
         }
         const foundRate = rates.find((rate) => {
-          return (
-            console.log('Checking rate:', rate),
-            console.log('Card amount:', cardDetail.amount),
-            cardDetail.amount >= rate.minAmount &&
+          if (
+            rate.paymentMethod.nameEn === 'CARD' &&
+            rate.currency.nameEn === 'UAH'
+          ) {
+            return (
+              cardDetail.amount >= rate.minAmount &&
               (rate.maxAmount === 0 || cardDetail.amount <= rate.maxAmount)
-          );
+            );
+          }
         });
-        const vendor = await this.vendorService.getVendorByChatId(
-          ctx.chat?.id || 0,
-        );
+        const vendor = await this.vendorService.getVendorByChatId(chatId);
         if (!vendor) {
-          await ctx.reply(
-            'No vendor found for this chat. Please contact support.',
+          const msg = await ctx.reply(
+            'Пользователь не найден в базе данных. Пожалуйста, свяжитесь с администратором.',
           );
+          ctx.session.messagesToDelete?.push(msg.message_id);
+          ctx.wizard.selectStep(1);
           return;
         }
         if (!foundRate) {
-          await ctx.reply(
-            `No rate found for amount ${cardDetail.amount}. Please check the available rates.`,
-          );
-          continue;
+          const msg = await ctx.reply('Нед доступного курса для данной суммы.');
+          ctx.session.messagesToDelete?.push(msg.message_id);
+          ctx.wizard.selectStep(1);
+          return;
         }
-        const allCardRequests =
-          await this.requestService.findAllCardRequestsByCard();
-        const requestExists = allCardRequests.find(
-          (request) =>
-            request.amount === cardDetail.amount &&
-            Array.isArray(request.cardMethods) &&
-            request.cardMethods.length > 0 &&
-            request.cardMethods[0].card === cardDetail.cardNumber,
-        );
+        console.log(cardDetail, 'cardDetail');
+        const requestExists =
+          cardDetails.findIndex(
+            (detail, idx) =>
+              detail.cardNumber === cardDetail.cardNumber &&
+              detail.amount === cardDetail.amount &&
+              idx !== index,
+          ) !== -1;
+
         if (requestExists) {
-          await ctx.reply(
-            `Request for card ${cardDetail.cardNumber} with amount ${cardDetail.amount} already exists.`,
+          const msg = await ctx.reply(
+            `Заявка для карты ${cardDetail.cardNumber} с  ${cardDetail.amount} уже существует.`,
           );
-          continue;
+          ctx.session.messagesToDelete?.push(msg.message_id);
+          ctx.wizard.selectStep(1);
+          return;
         }
 
         const cardRequest: CardRequestType = {
@@ -218,7 +244,6 @@ export class CreateRequestWizard {
         try {
           const request =
             await this.requestService.createCardRequest(cardRequest);
-          console.log('Created request:', request);
 
           const publicCaption = this.utilsService.buildRequestMessage(
             request as unknown as FullRequestType,
@@ -239,7 +264,6 @@ export class CreateRequestWizard {
             },
           );
           if (!requestMessage || !request) {
-            await ctx.reply('Failed to create card request. Please try again.');
             return;
           }
           const messageToSave: SerializedMessage = {
@@ -256,63 +280,155 @@ export class CreateRequestWizard {
           );
         } catch (error) {
           console.error('Error creating card request:', error);
-          await ctx.scene.leave();
+          await this.cancel(ctx);
           return;
         }
       }
-      await ctx.scene.leave();
-      return;
+      await this.cancel(ctx);
     }
-    await ctx.scene.leave();
+    // await ctx.scene.leave();
   }
 
   @WizardStep(2)
   async ibanStep(@Ctx() ctx: CustomSceneContext) {
     // Here you can handle IBAN details input
     // For demo, just go to finish
-    await ctx.reply('IBAN details step. (Demo: send any text to finish)');
-    ctx.wizard.next();
-  }
+    const input = ctx.text;
+    if (!input) {
+      await ctx.reply(
+        'Пожалуйста, введите данные в формате: Имя\\nIBAN\\nИНН\\nСумма\\nКомментарий (если нужно)',
+      );
 
-  @WizardStep(3)
-  async finishStep(@Ctx() ctx: CustomSceneContext) {
-    await ctx.reply('Request creation finished.');
-    ctx.session.customState = 'finished';
-    await ctx.scene.leave();
+      ctx.wizard.selectStep(2);
+      return;
+    }
+    const chatId = ctx.chat?.id;
+    if (!chatId) {
+      return;
+    }
+    const ibanRawData = this.parseIbanRequest(input);
+    const rates = await this.ratesService.getAllRates();
+    if (!rates || rates.length === 0) {
+      const msg = await ctx.reply('Нед доступного курса для данной суммы.');
+      ctx.session.messagesToDelete?.push(msg.message_id);
+      ctx.wizard.selectStep(1);
+      return;
+    }
+    const foundRate = rates.find((rate) => {
+      if (
+        rate.paymentMethod.nameEn === 'IBAN' &&
+        rate.currency.nameEn === 'UAH'
+      ) {
+        return (
+          ibanRawData.amount >= rate.minAmount &&
+          (rate.maxAmount === 0 || ibanRawData.amount <= rate.maxAmount)
+        );
+      }
+    });
+    const vendor = await this.vendorService.getVendorByChatId(chatId);
+    if (!vendor) {
+      const msg = await ctx.reply(
+        'Пользователь не найден в базе данных. Пожалуйста, свяжитесь с администратором.',
+      );
+      ctx.session.messagesToDelete?.push(msg.message_id);
+      ctx.wizard.selectStep(2);
+      return;
+    }
+    if (!foundRate) {
+      const msg = await ctx.reply('Нед доступного курса для данной суммы.');
+      ctx.session.messagesToDelete?.push(msg.message_id);
+      ctx.wizard.selectStep(2);
+      return;
+    }
+    const ibanRequest: IbanRequestType = {
+      amount: ibanRawData.amount,
+      currencyId: foundRate.currencyId,
+      notificationSent: false,
+      status: 'PENDING',
+      vendorId: vendor?.id,
+      rateId: foundRate.id,
+      iban: {
+        iban: ibanRawData.iban,
+        inn: ibanRawData.inn,
+        name: ibanRawData.name,
+        comment: 'Card request created via bot',
+      },
+    };
+    const request = await this.requestService.createIbanRequest(ibanRequest);
+    console.log(request, 'ibanRawData');
+    const publicCaption = this.utilsService.buildRequestMessage(
+      request as unknown as FullRequestType,
+      'iban',
+      'public',
+    );
+    const vendorRequestPhotoMessage = {
+      photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
+      caption: publicCaption,
+    };
+    const requestMessage = await ctx.replyWithPhoto(
+      {
+        source: createReadStream(vendorRequestPhotoMessage.photoUrl),
+      },
+      {
+        caption: publicCaption.text,
+        reply_markup: publicCaption.inline_keyboard,
+      },
+    );
+    if (!requestMessage || !request) {
+      return;
+    }
+    const messageToSave: SerializedMessage = {
+      photoUrl: vendorRequestPhotoMessage.photoUrl,
+      text: publicCaption.text,
+      chatId: BigInt(ctx.chat?.id || 0),
+      messageId: BigInt(requestMessage.message_id),
+      requestId: request.id,
+      accessType: 'PUBLIC',
+    };
+    await this.requestService.insertCardRequestMessage(
+      request.id,
+      messageToSave,
+    );
+    await this.cancel(ctx);
   }
 
   async cancel(ctx: CustomSceneContext) {
-    this.deleteSceneMessages(ctx);
-    ctx.session.messagesToDelete = [];
-    ctx.session.customState = '';
     await ctx.scene.leave();
   }
 
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
-    const messagesToDelete = ctx.session.messagesToDelete || [];
-    // if (messagesToDelete.length > 0) {
-    //   for (const messageId of messagesToDelete) {
-    //     try {
-    //       await ctx.deleteMessage(messageId);
-    //     } catch (error) {
-    //       console.error('Failed to delete message:', error);
-    //     }
-    //   }
-    // }
+    console.log('Leaving scene, messages to delete:', ctx.session);
+    await this.deleteSceneMessages(ctx);
+    await this.deleteSceneMenuMessages(ctx);
+    ctx.session.messagesToDelete = [];
+    ctx.session.customState = '';
+    ctx.session.requestMenuMessageId = undefined;
   }
-  async deleteSceneMessages(ctx: CustomSceneContext) {
+  async deleteSceneMessages(ctx: CustomSceneContext, msgIdToPass?: number[]) {
     try {
       await this.telegramService.deleteAllTelegramMessages(
         ctx.session.messagesToDelete,
         ctx.chat?.id,
+        msgIdToPass,
       );
       ctx.session.messagesToDelete = [];
     } catch (error) {
       console.error('Failed to delete scene messages:', error);
     }
   }
-  async updateSceneMessage(ctx: CustomSceneContext, text: string) {}
+  async deleteSceneMenuMessages(ctx: CustomSceneContext) {
+    try {
+      console.log(ctx.session.requestMenuMessageId, 'requestMenuMessageId');
+      await this.telegramService.deleteAllTelegramMessages(
+        ctx.session.requestMenuMessageId,
+        ctx.chat?.id,
+      );
+      ctx.session.requestMenuMessageId = [];
+    } catch (error) {
+      console.error('Failed to delete scene messages:', error);
+    }
+  }
   async updateSceneMenuMessage(
     ctx: CustomSceneContext,
     text: string,
@@ -325,5 +441,41 @@ export class CreateRequestWizard {
     } catch (error) {
       console.error('Failed to update scene menu message:', error);
     }
+  }
+  parseIbanRequest(input: string) {
+    const lines = input
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const name = lines[0] || '';
+    const iban = (lines[1] || '').replace(/\s+/g, '').toUpperCase();
+    const inn = (lines[2] || '').replace(/\D/g, '');
+    const amountStr = (lines[3] || '').replace(',', '.').replace(/[^\d.]/g, '');
+    const comment = lines.length > 4 ? lines.slice(4).join('\n').trim() : '';
+
+    const ibanPattern = /^UA\d{27}$/;
+    const innPattern = /^\d{8}$|^\d{10}$/;
+    const amountPattern = /^\d+([.,]\d{1,2})?$/;
+
+    if (!ibanPattern.test(iban)) {
+      throw new Error(
+        'Некорректный IBAN. Пример: UAxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+      );
+    }
+    if (!innPattern.test(inn)) {
+      throw new Error('ИНН должен содержать 8 или 10 цифр.');
+    }
+    if (!amountPattern.test(amountStr)) {
+      throw new Error('Сумма должна быть числом, например: 1000.00');
+    }
+
+    return {
+      name,
+      iban,
+      inn,
+      amount: parseFloat(amountStr),
+      comment,
+    };
   }
 }

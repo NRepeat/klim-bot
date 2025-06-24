@@ -3,6 +3,7 @@ import {
   BlackList,
   CardPaymentRequestsMethod,
   Currency,
+  IbanPaymentRequestsMethod,
   Message,
   PaymentRequests,
   Rates,
@@ -24,11 +25,28 @@ export type SerializedMessage = Omit<
   | 'vendorRequestPhotoMessageId'
 >;
 export type SerializedModel<T> = Omit<T, 'createdAt' | 'updatedAt' | 'id'>;
-
+export type IbanRequestType = Omit<
+  SerializedRequest,
+  | 'payedByUserId'
+  | 'completedAt'
+  | 'error'
+  | 'user'
+  | 'userId'
+  | 'ratesId'
+  | 'activeUserId'
+  | 'paymentMethodId'
+> & {
+  rateId: string;
+  blackList?: BlackList;
+  iban: Omit<
+    IbanPaymentRequestsMethod,
+    'id' | 'createdAt' | 'updatedAt' | 'requestId'
+  >;
+};
 // Extend session for wizard scenes
 export interface CustomSession extends Scenes.WizardSessionData {
   messagesToDelete?: number[];
-  requestMenuMessageId?: number;
+  requestMenuMessageId?: number[];
   customState?: string; // renamed from 'state' to avoid conflict
   requestType?: string; // card, iban, etc
 }
@@ -52,6 +70,7 @@ export type CardRequestType = Omit<
 };
 export type FullRequestType = PaymentRequests & {
   cardMethods?: (CardPaymentRequestsMethod & { blackList?: BlackList[] })[];
+  ibanMethods?: IbanPaymentRequestsMethod[];
   message?: Message[];
   vendor?: Vendors;
   user?: SerializedUser;

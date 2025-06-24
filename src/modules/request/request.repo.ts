@@ -1,11 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { CardRequestType, SerializedMessage } from 'src/types/types';
+import {
+  CardRequestType,
+  IbanRequestType,
+  SerializedMessage,
+} from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
-
+  async createIbanRequest(data: IbanRequestType) {
+    return this.prisma.paymentRequests.create({
+      data: {
+        amount: data.amount || 0,
+        vendor: { connect: { id: data.vendorId } },
+        currency: { connect: { id: data.currencyId } },
+        rates: {
+          connect: { id: data.rateId },
+        },
+        paymentMethod: {
+          connect: {
+            nameEn: 'IBAN',
+          },
+        },
+        ibanMethods: {
+          create: {
+            ...data.iban,
+          },
+        },
+      },
+    });
+  }
   async getAllRequests() {
     return this.prisma.paymentRequests.findMany({
       include: {

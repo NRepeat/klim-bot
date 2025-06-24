@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { RequestRepository } from './request.repo';
-import { CardRequestType, SerializedMessage } from 'src/types/types';
+import {
+  CardRequestType,
+  IbanRequestType,
+  SerializedMessage,
+} from 'src/types/types';
 import { UserService } from '../user/user.service';
 import { VendorService } from '../vendor/vendor.service';
 
@@ -69,5 +73,17 @@ export class RequestService {
       lastReportedAt,
       now,
     );
+  }
+
+  async createIbanRequest(data: IbanRequestType) {
+    try {
+      return this.requestRepo.createIbanRequest(data);
+    } catch (error) {
+      throw new Error(
+        `Failed to create IBAN request: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+    }
   }
 }

@@ -1,11 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { Scene, SceneEnter, Ctx, On, SceneLeave } from 'nestjs-telegraf';
+import {
+  SceneEnter,
+  Ctx,
+  On,
+  SceneLeave,
+  Wizard,
+  WizardStep,
+} from 'nestjs-telegraf';
 import { RatesService } from 'src/modules/rates/rates.service';
 import { CustomSceneContext } from 'src/types/types';
 import { Markup } from 'telegraf';
 
 @Injectable()
-@Scene('create-rates')
+@Wizard('create-rates')
 export class CreateRatesScene {
   constructor(private readonly ratesService: RatesService) {}
 
@@ -44,7 +51,7 @@ export class CreateRatesScene {
     await ctx.scene.leave();
   }
 
-  @SceneEnter()
+  @WizardStep(0)
   async onSceneEnter(@Ctx() ctx: CustomSceneContext) {
     console.log('Session', ctx.session);
 
@@ -59,10 +66,11 @@ export class CreateRatesScene {
       'Send new rates in the same format:\n\n' + markup,
       inline_keyboard,
     );
+    ctx.wizard.selectStep(1);
     ctx.session.messagesToDelete?.push(msg.message_id);
   }
 
-  @On('text')
+  @WizardStep(1)
   async onText(@Ctx() ctx: CustomSceneContext) {
     const message = ctx.text;
     if (!message) {
@@ -88,6 +96,7 @@ export class CreateRatesScene {
         console.error('Error creating rates:', error.message);
         const msg = await ctx.reply(`Error: ${error.message}`);
         ctx.session.messagesToDelete?.push(msg.message_id);
+        await ctx.scene.leave();
       }
     }
   }

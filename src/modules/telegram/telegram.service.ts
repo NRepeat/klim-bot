@@ -310,6 +310,7 @@ export class TelegramService {
   async deleteAllTelegramMessages(
     messageIds: number[] | undefined,
     chatId: number | undefined,
+    msgIdToPass?: number[],
   ) {
     try {
       if (!messageIds || messageIds.length === 0) {
@@ -320,6 +321,9 @@ export class TelegramService {
         return this.logger.warn('No chat ID provided for deletion');
       }
       for (const messageId of messageIds) {
+        if (msgIdToPass?.includes(messageId)) {
+          continue;
+        }
         await this.bot.telegram.deleteMessage(chatId, messageId);
       }
     } catch (error) {

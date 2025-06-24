@@ -40,7 +40,7 @@ export class RequestTaskService {
     try {
       const workerCaption = this.utilsService.buildRequestMessage(
         request as unknown as FullRequestType,
-        'card',
+        request.paymentMethod?.nameEn === 'IBAN' ? 'iban' : 'card',
         'worker',
       );
       const workerRequestPhotoMessage: ReplyPhotoMessage = {
@@ -52,7 +52,6 @@ export class RequestTaskService {
           workerRequestPhotoMessage,
           request.id,
         );
-
       let username = '';
       if (workerNotifications.length === 0) {
         username = 'No workers available';
@@ -141,6 +140,7 @@ export class RequestTaskService {
         );
       } catch (error) {
         this.logger.error(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           `Error updating admin message for request ${req.id}: ${error.message}`,
         );
       }

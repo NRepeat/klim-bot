@@ -42,7 +42,6 @@ export class UtilsService {
     request: FullRequestType,
     accessType: MessageAccessType,
   ) {
-    console.log('Building IBAN request message for request:', request);
     if (request && request.ibanMethods) {
       if (request.ibanMethods.length === 0) {
         console.error('No IBAN methods found in request:', request);
@@ -66,18 +65,24 @@ export class UtilsService {
     let inline_keyboard;
     if (accessType === 'admin') {
       inline_keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('Принять', `accept_iban_${request.id}`)],
-        [Markup.button.callback('Отклонить', `decline_iban_${request.id}`)],
-      ]);
+        [Markup.button.callback('Отказаться', 'cancel_request')],
+        [Markup.button.callback('Не в работе', 'dummy')],
+      ]).reply_markup;
+    } else if (accessType === 'worker') {
+      inline_keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('Отказаться', 'cancel_request')],
+        [Markup.button.callback('Взять', 'accept_request_' + request.id)],
+      ]).reply_markup;
     } else {
       inline_keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('Отменить', `cancel_iban_${request.id}`)],
-      ]);
+        [Markup.button.callback('В работе', 'dummy')],
+      ]).reply_markup;
     }
 
     return {
       text,
-      inline_keyboard: inline_keyboard.reply_markup,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      inline_keyboard,
     };
   }
   buildCardRequestMessage(
@@ -168,7 +173,9 @@ export class UtilsService {
     const fileInfo = await fetch(
       `https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`,
     );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { result } = await fileInfo.json();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const url = `https://api.telegram.org/file/bot${botToken}/${result.file_path}`;
     const response = await fetch(url);
     const arrayBuffer = await response.arrayBuffer();

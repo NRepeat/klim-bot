@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import {
   CurrencyEnum,
   ParsedMessageRates,
-  PaymentMethod,
+  PaymentMethodEnum,
   SerializedRate,
 } from 'src/types/types';
 import RateRepository from './rates.repo';
@@ -80,7 +80,7 @@ export class RatesService {
     for (const parsedRate of parsedRates) {
       const method = parsedRate.header.split(':')[1].trim();
       const paymentMethodId =
-        PaymentMethod[method as keyof typeof PaymentMethod];
+        PaymentMethodEnum[method as keyof typeof PaymentMethodEnum];
       const currencyName = parsedRate.header.split(':')[0].trim();
       const currencyId =
         CurrencyEnum[currencyName as keyof typeof CurrencyEnum];

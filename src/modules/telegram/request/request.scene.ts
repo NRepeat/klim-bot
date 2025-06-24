@@ -3,7 +3,6 @@ import { createReadStream } from 'fs';
 import { Wizard, WizardStep, Ctx, SceneLeave, On } from 'nestjs-telegraf';
 import { RatesService } from 'src/modules/rates/rates.service';
 import { RequestService } from 'src/modules/request/request.service';
-import { UserService } from 'src/modules/user/user.service';
 import { UtilsService } from 'src/modules/utils/utils.service';
 import { VendorService } from 'src/modules/vendor/vendor.service';
 import {
@@ -352,7 +351,7 @@ export class CreateRequestWizard {
           iban: ibanRawData.iban,
           inn: ibanRawData.inn,
           name: ibanRawData.name,
-          comment: 'Card request created via bot',
+          comment: ibanRawData.comment || '',
         },
       };
       const request = await this.requestService.createIbanRequest(ibanRequest);
@@ -394,13 +393,7 @@ export class CreateRequestWizard {
     } catch (error) {
       console.error('Error parsing IBAN request:', error);
 
-      await this.cancel(ctx);
-      // const msg = await ctx.reply(
-      //   'Ошибка при обработке запроса. Пожалуйста, проверьте формат ввода.',
-      // );
-      // ctx.session.messagesToDelete?.push(msg.message_id);
-      // ctx.wizard.selectStep(2);
-      return;
+      return await this.cancel(ctx);
     }
   }
 

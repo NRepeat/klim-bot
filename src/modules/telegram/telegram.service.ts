@@ -5,11 +5,7 @@ import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
 import { createReadStream } from 'fs';
 
-import {
-  ReplyMessage,
-  ReplyPhotoMessage,
-  SerializedMessage,
-} from 'src/types/types';
+import { ReplyPhotoMessage, SerializedMessage } from 'src/types/types';
 import { RequestService } from '../request/request.service';
 import { UtilsService } from '../utils/utils.service';
 @Injectable()

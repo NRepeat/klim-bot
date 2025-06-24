@@ -96,6 +96,7 @@ export class RequestRepository {
             blackList: true,
           },
         },
+        paymentMethod: true,
         message: true,
         vendor: true,
         rates: true,
@@ -156,7 +157,17 @@ export class RequestRepository {
   async findOne(id: string) {
     return this.prisma.paymentRequests.findUnique({
       where: { id },
-      include: { user: true, paymentMethod: true },
+      include: {
+        user: true,
+        paymentMethod: true,
+        cardMethods: true,
+        ibanMethods: true,
+        rates: true,
+        vendor: true,
+        message: true,
+        currency: true,
+        adminRequestPhotoMessage: true,
+      },
     });
   }
 

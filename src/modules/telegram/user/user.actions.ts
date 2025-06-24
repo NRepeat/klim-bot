@@ -33,21 +33,23 @@ export class UserActions {
     } else if ('data' in callbackQuery) {
       console.log(callbackQuery);
       if (callbackQuery.data.includes('accept_request_')) {
-        console.log(callbackQuery.data);
         const requestId = callbackQuery.data.split('_')[2];
         const userId = callbackQuery.from.id;
         const chatId = callbackQuery.message?.chat.id;
-        // await this.cancel(ctx);
         try {
           await this.requestService.acceptRequest(requestId, userId, chatId);
-        } catch (error) {}
+        } catch (error) {
+          console.error('Error accepting request:', error);
+          return;
+        }
         const request = await this.requestService.findById(requestId);
+        console.log(request, 'request');
         const message = this.utilsService.buildRequestMessage(
           request as any as FullRequestType,
           request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
           'admin',
         );
-
+        console.log(message, 'message');
         const newPaymentButton = Markup.button.callback(
           'Перевел',
           'proceeded_payment_' + requestId,
@@ -99,13 +101,7 @@ export class UserActions {
           },
           requestId,
         );
-        console.log('ctx.scene.current.id ', ctx);
-        // if (
-        //   !ctx.scene?.current ||
-        //   ctx.scene.current.id !== 'payment_photo_proceed'
-        // ) {
         await ctx.scene.enter('payment_photo_proceed', { requestId });
-        // }
       }
     } else {
       console.error('Unknown callback query data:', callbackQuery);

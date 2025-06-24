@@ -5,6 +5,7 @@ import {
   Currency,
   IbanPaymentRequestsMethod,
   Message,
+  PaymentMethod,
   PaymentRequests,
   Rates,
   User,
@@ -96,7 +97,7 @@ export enum CurrencyEnum {
   UAH = '0',
 }
 
-export enum PaymentMethod {
+export enum PaymentMethodEnum {
   CARD = '0',
   IBAN = '1',
 }

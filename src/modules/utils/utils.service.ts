@@ -44,7 +44,6 @@ export class UtilsService {
   ) {
     if (request && request.ibanMethods) {
       if (request.ibanMethods.length === 0) {
-        console.error('No IBAN methods found in request:', request);
         return {
           text: 'Нет доступных IBAN методов для этой заявки.',
           inline_keyboard: [],

@@ -132,16 +132,15 @@ export class RequestTaskService {
           ? `${inWorkMenu.caption}\nПринята: @${newWorker}`
           : inWorkMenu.caption;
 
-        await this.bot.telegram.editMessageMedia(
+        await this.bot.telegram.editMessageCaption(
           chatId,
           messageId,
           undefined,
+          caption,
           {
-            type: 'photo',
-            media: photoUrl,
-            caption: caption,
+            parse_mode: 'HTML',
+            reply_markup: inWorkMenu.markup,
           },
-          { reply_markup: inWorkMenu.markup },
         );
         this.logger.log(
           `Admin message for request ${req.id} updated successfully`,

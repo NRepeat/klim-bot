@@ -138,6 +138,8 @@ export class RequestRepository {
         user: true,
         adminRequestPhotoMessage: true,
         ibanMethods: true,
+        activeUser: true,
+        payedByUser: true,
       },
     });
   }

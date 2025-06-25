@@ -118,8 +118,6 @@ abstract class BaseRequestMenu {
     if (!this.request) {
       return MESSAGES.NO_DATA;
     }
-    console.log(this.getAccessType(), 'getAccessType');
-    console.log(this.request, 'request');
     const currentAccessType = accessType || this.getAccessType();
     const isCard = this.request.paymentMethod?.nameEn === 'CARD';
     if (isCard) {
@@ -147,8 +145,8 @@ abstract class BaseRequestMenu {
       const payedBy = this.request.payedByUser?.username
         ? 'Оплачено: @' + this.request.payedByUser.username + '\n'
         : '';
-      console.log('currentAccessType', currentAccessType);
-      console.log('request', this.request);
+      console.log(this.request, 'vendor');
+      const vendor = this.request.vendor?.title || '-';
       return (
         `✉️Заявка номер: ${this.request.id ?? '-'}\n` +
         `🏦Банк: ${bank}\n` +
@@ -158,6 +156,7 @@ abstract class BaseRequestMenu {
         card +
         (currentAccessType === 'ADMIN' ? acceptedBy : '') +
         (currentAccessType === 'ADMIN' ? payedBy : '') +
+        (currentAccessType === 'ADMIN' ? `Партнер: ${vendor}` : '') +
         (currentAccessType !== 'PUBLIC' ? blacklist : '')
       );
     } else if (this.request.paymentMethod?.nameEn === 'IBAN') {

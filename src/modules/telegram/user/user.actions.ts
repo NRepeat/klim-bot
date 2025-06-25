@@ -128,6 +128,8 @@ export class UserActions {
             reply_markup: markup.reply_markup,
           },
         );
+
+        await this.telegramService.updateAllWorkersMessagesWithRequestsId();
       } else if (callbackQuery.data.includes('valut_card_')) {
         const requestId = callbackQuery.data.split('_')[2];
         const request = await this.requestService.findById(requestId);
@@ -157,6 +159,15 @@ export class UserActions {
             inline_keyboard: markup.reply_markup,
           },
           request.id,
+        );
+        const userId = ctx.from?.id;
+        if (!userId) {
+          return;
+        }
+        await this.requestService.updateRequestStatus(
+          request.id,
+          'FAILED',
+          Number(userId),
         );
       } else if (callbackQuery.data.includes('back_to_take_request_')) {
         const requestId = callbackQuery.data.split('_')[4];

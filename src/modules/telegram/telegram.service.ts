@@ -5,10 +5,15 @@ import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
 import { createReadStream, ReadStream } from 'fs';
 
-import { ReplyPhotoMessage, SerializedMessage } from 'src/types/types';
+import {
+  FullRequestType,
+  ReplyPhotoMessage,
+  SerializedMessage,
+} from 'src/types/types';
 import { RequestService } from '../request/request.service';
 import { UtilsService } from '../utils/utils.service';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
+import { MenuFactory } from './telegram-keyboards';
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -115,7 +120,7 @@ export class TelegramService {
         );
 
         // Проверяем лимит (например, не более 1 активной заявки)
-        if (notDoneActiveRequests.length <= 1) {
+        if (notDoneActiveRequests.length <= 5) {
           foundWorker = currentWorker;
         }
 
@@ -192,19 +197,22 @@ export class TelegramService {
           );
           if (requestId) {
             const request = await this.requestService.findById(requestId);
-
-            const user = request?.user ? request?.user : '';
+            if (!request) {
+              this.logger.warn(`Request with ID ${requestId} not found`);
+              continue;
+            }
+            const messageE = MenuFactory.createAdminMenu(
+              request as unknown as FullRequestType,
+              message.photoUrl ? message.photoUrl : './src/assets/0056.jpg',
+            );
             const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
-                source: message.photoUrl
-                  ? createReadStream(message.photoUrl)
-                  : createReadStream('./src/assets/0056.jpg'),
+                source: messageE.inWork().source,
               },
               {
-                caption:
-                  message.text + (user ? `\nUser: ${user.username}` : ''),
-                reply_markup: message.inline_keyboard,
+                caption: messageE.inWork().caption,
+                reply_markup: messageE.inWork(undefined, request.id).markup,
               },
             );
             const messageToSave: SerializedMessage = {
@@ -294,10 +302,6 @@ export class TelegramService {
         return;
       }
       for (const message of messages) {
-        console.log(
-          `Updating admin message for chatId: ${message.chatId}, messageId: ${message.messageId}`,
-          messages,
-        );
         await this.updateAdminMessage(
           Number(message.chatId),
           Number(message.messageId),

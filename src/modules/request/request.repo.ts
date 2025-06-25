@@ -22,7 +22,14 @@ export class RequestRepository {
       orderBy: { createdAt: 'asc' },
     });
   }
-
+  async findAndDeleteRequestMessageByRequestId(
+    requestId: string,
+    messageId: number,
+  ) {
+    return this.prisma.message.delete({
+      where: { messageId, requestId },
+    });
+  }
   async updateRequestStatus(
     requestId: string,
     status: Status,

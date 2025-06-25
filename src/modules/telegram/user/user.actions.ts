@@ -34,8 +34,26 @@ export class UserActions {
       return;
     } else if ('data' in callbackQuery) {
       console.log('Callback query data:', callbackQuery.data);
+      if (callbackQuery.data.includes('cancel_payment_')) {
+        const requestId = callbackQuery.data.split('_')[2];
+        const request = await this.requestService.findById(requestId);
+        if (!request) {
+          throw new Error('Request not found');
+        }
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
+        await ctx.editMessageCaption(
+          workerMenu.canceled().caption + '\n' + 'Заявка отменена',
+          {
+            reply_markup: workerMenu.canceled(undefined, requestId).markup,
+          },
+        );
+      }
       if (callbackQuery.data.includes('accept_request_')) {
         const requestId = callbackQuery.data.split('_')[2];
+        console.log('Accepting request with ID:', requestId);
         const userId = callbackQuery.from.id;
         const chatId = callbackQuery.message?.chat.id;
         try {
@@ -45,12 +63,6 @@ export class UserActions {
           return;
         }
         const request = await this.requestService.findById(requestId);
-        const message = this.utilsService.buildRequestMessage(
-          request as any as FullRequestType,
-          request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
-          'worker',
-        );
-        console.log(message, 'message');
 
         const workerMenu = MenuFactory.createWorkerMenu(
           request as unknown as FullRequestType,
@@ -69,16 +81,12 @@ export class UserActions {
         ]);
         await this.telegramService.updateAllWorkersMessagesWithRequestsId(
           {
-            text: workerMenu.inProcess().caption,
+            text: workerMenu.inWork().caption,
             inline_keyboard: inline_keyboard.reply_markup,
           },
           requestId,
         );
-        const adminMessage = this.utilsService.buildRequestMessage(
-          request as any as FullRequestType,
-          request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
-          'admin',
-        );
+
         const adminMenu = MenuFactory.createAdminMenu(
           request as unknown as FullRequestType,
           './src/assets/0056.jpg',
@@ -149,7 +157,11 @@ export class UserActions {
         // await ctx.editMessageCaption(workerMenu.inWork().caption, {
         //   reply_markup: markup.reply_markup,
         // });
-        // await ctx.deleteMessage(callbackQuery.message?.message_id);
+        await this.requestService.findAndDeleteRequestMessageByRequestId(
+          requestId,
+          callbackQuery.message!.message_id,
+        );
+        await ctx.deleteMessage(callbackQuery.message?.message_id);
         await this.telegramService.sendMessageToUser(
           {
             text: workerMenu.inWork().caption,

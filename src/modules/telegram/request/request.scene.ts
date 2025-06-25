@@ -252,6 +252,7 @@ export class CreateRequestWizard {
             messageId: BigInt(requestMessage.message_id),
             requestId: request.id,
             accessType: 'PUBLIC',
+            paymentRequestId: request.id,
           };
           await this.requestService.insertCardRequestMessage(
             request.id,
@@ -357,6 +358,7 @@ export class CreateRequestWizard {
         messageId: BigInt(requestMessage.message_id),
         requestId: request.id,
         accessType: 'PUBLIC',
+        paymentRequestId: request.id,
       };
       await this.requestService.insertCardRequestMessage(
         request.id,

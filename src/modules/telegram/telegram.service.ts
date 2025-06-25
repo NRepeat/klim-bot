@@ -55,6 +55,7 @@ export class TelegramService {
         text: message.text || '',
         requestId: requestId,
         accessType: 'WORKER',
+        paymentRequestId: requestId,
       };
 
       if (photoMsg) {
@@ -192,6 +193,7 @@ export class TelegramService {
             text: message.text || '',
             requestId: requestId,
             accessType: 'WORKER',
+            paymentRequestId: requestId,
           };
           processedRequestsId.push({
             requestId: requestId,
@@ -264,6 +266,7 @@ export class TelegramService {
               text: message.text || '',
               requestId: requestId,
               accessType: 'ADMIN',
+              paymentRequestId: requestId,
             };
             if (photoMsg.message_id) {
               await this.userService.saveRequestPhotoMessage(

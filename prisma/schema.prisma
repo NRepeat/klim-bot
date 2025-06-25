@@ -105,7 +105,8 @@ enum AccessType {
 model Message {
   id                          String                     @id @default(cuid())
   chatId                      BigInt
-  messageId                   BigInt
+  messageId                   BigInt                     @unique
+  paymentRequestId            String?
   text                        String?
   photoUrl                    String?
   createdAt                   DateTime                   @default(now())

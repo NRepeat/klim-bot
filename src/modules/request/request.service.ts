@@ -28,7 +28,15 @@ export class RequestService {
       await this.requestRepo.getAllPublicMessagesWithRequestsId(requestId);
     return messages;
   }
-
+  async findAndDeleteRequestMessageByRequestId(
+    requestId: string,
+    messageId: number,
+  ) {
+    await this.requestRepo.findAndDeleteRequestMessageByRequestId(
+      requestId,
+      messageId,
+    );
+  }
   async updateRequestStatus(
     requestId: string,
     status: Status,

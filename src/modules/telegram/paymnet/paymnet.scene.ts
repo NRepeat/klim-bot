@@ -78,20 +78,6 @@ export default class PaymentWizard {
         );
         const mergedImageBuffer =
           await this.utilsService.mergeImagesHorizontal(buffers);
-        await this.telegramService.updateAllWorkersMessagesWithRequestsId(
-          {
-            source: mergedImageBuffer,
-            text: 'Пользователь отправил фото подтверждения оплаты',
-          },
-          requestId,
-        );
-        await this.telegramService.updateAllAdminsMessagesWithRequestsId(
-          {
-            source: mergedImageBuffer,
-            text: 'Пользователь отправил фото подтверждения оплаты для запроса',
-          },
-          requestId,
-        );
         const userId = ctx.from?.id;
         if (!userId) {
           throw new Error('User ID not found in context');
@@ -106,11 +92,36 @@ export default class PaymentWizard {
           await ctx.scene.leave();
           throw new Error('Request not found');
         }
-
         const publicMenu = MenuFactory.createPublicMenu(
           request as unknown as FullRequestType,
           '',
           mergedImageBuffer,
+        );
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          '',
+          mergedImageBuffer,
+        );
+        const adminMenu = MenuFactory.createAdminMenu(
+          request as unknown as FullRequestType,
+          '',
+          mergedImageBuffer,
+        );
+        await this.telegramService.updateAllWorkersMessagesWithRequestsId(
+          {
+            source: workerMenu.done().source,
+            text: workerMenu.done().caption,
+            inline_keyboard: workerMenu.done().markup,
+          },
+          requestId,
+        );
+        await this.telegramService.updateAllAdminsMessagesWithRequestsId(
+          {
+            source: adminMenu.done().source,
+            text: adminMenu.done().caption,
+            inline_keyboard: adminMenu.done().markup,
+          },
+          requestId,
         );
 
         await this.telegramService.updateAllPublicMessagesWithRequestsId(

@@ -6,6 +6,7 @@ import { TelegramService } from '../telegram.service';
 import { UtilsService } from 'src/modules/utils/utils.service';
 import { FullRequestType } from 'src/types/types';
 import { SceneContext } from 'telegraf/typings/scenes';
+import { MenuFactory } from '../telegram-keyboards';
 
 @Update()
 export class UserActions {
@@ -31,6 +32,7 @@ export class UserActions {
       console.error('No callback query found');
       return;
     } else if ('data' in callbackQuery) {
+      console.log('Callback query data:', callbackQuery.data);
       if (callbackQuery.data.includes('accept_request_')) {
         const requestId = callbackQuery.data.split('_')[2];
         const userId = callbackQuery.from.id;
@@ -48,6 +50,11 @@ export class UserActions {
           'worker',
         );
         console.log(message, 'message');
+
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
         const newPaymentButton = Markup.button.callback(
           'Перевел',
           'proceeded_payment_' + requestId,
@@ -61,7 +68,7 @@ export class UserActions {
         ]);
         await this.telegramService.updateAllWorkersMessagesWithRequestsId(
           {
-            text: message.text,
+            text: workerMenu.inProcess().caption,
             inline_keyboard: inline_keyboard.reply_markup,
           },
           requestId,
@@ -71,11 +78,60 @@ export class UserActions {
           request?.paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
           'admin',
         );
+        const adminMenu = MenuFactory.createAdminMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
         await this.telegramService.updateAllAdminsMessagesWithRequestsId(
-          adminMessage,
+          {
+            text: adminMenu.inWork().caption,
+            inline_keyboard: adminMenu.inWork(undefined, requestId).markup,
+          },
           requestId,
         );
         await ctx.answerCbQuery('Request accepted');
+      }
+      if (callbackQuery.data.includes('cancel_worker_request_')) {
+        const requestId = callbackQuery.data.split('_')[3];
+        const request = await this.requestService.findById(requestId);
+        if (!request) {
+          throw new Error('Request not found');
+        }
+        const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          photoUrl,
+        );
+
+        await this.telegramService.updateAllWorkersMessagesWithRequestsId(
+          {
+            text: workerMenu.canceled().caption,
+            inline_keyboard: workerMenu.canceled(undefined, requestId).markup,
+          },
+          requestId,
+        );
+      } else if (callbackQuery.data.includes('give_next_')) {
+        const requestId = callbackQuery.data.split('_')[3];
+        const request = await this.requestService.findById(requestId);
+      } else if (callbackQuery.data.includes('valut_card_')) {
+        const requestId = callbackQuery.data.split('_')[3];
+        const request = await this.requestService.findById(requestId);
+      } else if (callbackQuery.data.includes('back_to_take_request_')) {
+        const requestId = callbackQuery.data.split('_')[4];
+        const request = await this.requestService.findById(requestId);
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          '',
+        );
+        console.log(workerMenu.inWork().caption, 'workerMenu');
+        console.log(workerMenu.inWork().markup, 'workerMenu');
+        // await ctx.editMessageText(workerMenu.inWork().caption, {
+        //   reply_markup: workerMenu.inWork(undefined, requestId).markup,
+        // });
+        await ctx.editMessageCaption(workerMenu.inWork().caption, {
+          reply_markup: workerMenu.inWork(undefined, requestId).markup,
+        });
       }
 
       if (callbackQuery.data.includes('proceeded_payment_')) {

@@ -80,6 +80,7 @@ export type FullRequestType = PaymentRequests & {
   adminRequestPhotoMessage?: AdminRequestPhotoMessage[];
   currency?: Currency;
   rates?: Rates;
+  payedByUser?: User;
 };
 export type MessageAccessType = 'public' | 'admin' | 'worker';
 // Extend context for wizard scenes

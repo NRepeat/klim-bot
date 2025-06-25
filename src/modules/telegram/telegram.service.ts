@@ -8,6 +8,7 @@ import { createReadStream, ReadStream } from 'fs';
 import { ReplyPhotoMessage, SerializedMessage } from 'src/types/types';
 import { RequestService } from '../request/request.service';
 import { UtilsService } from '../utils/utils.service';
+import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -74,34 +75,57 @@ export class TelegramService {
   ) {
     try {
       const workers = await this.userService.getAllActiveWorkers();
-      const inline_keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('Отказаться', 'cancel_request'),
-          Markup.button.callback('Взять', 'accept_request_' + requestId),
-        ],
-      ]);
+      const inline_keyboard = message.inline_keyboard;
+
       if (!workers || workers.length === 0) {
         this.logger.warn('No active workers found');
         return [];
       }
-      this.lastWorkerIndex = (this.lastWorkerIndex + 1) % workers.length;
-      const worker = workers[this.lastWorkerIndex];
+
       const processedRequestsId: {
         requestId: string;
         username: string;
         proceeded: boolean;
       }[] = [];
-      const notDoneActiveRequests = worker.paymentRequests.filter(
-        (request) =>
-          request.status !== 'COMPLETED' && request.status !== 'FAILED',
-      );
-      console.log(
-        `Worker ${worker.username} has ${notDoneActiveRequests.length} active requests`,
-      );
-      if (notDoneActiveRequests.length <= 1 && requestId) {
-        await this.userService.appendRequestToUser(worker.id, requestId);
-        if (worker.telegramId) {
-          const chatId = Number(worker.telegramId);
+
+      if (!requestId) {
+        processedRequestsId.push({
+          requestId: 'No Request ID',
+          username: 'No Request ID provided',
+          proceeded: false,
+        });
+        return processedRequestsId;
+      }
+
+      // Ищем следующего свободного работника в порядке очереди
+      let foundWorker: (typeof workers)[0] | null = null;
+      let attempts = 0;
+
+      while (!foundWorker && attempts < workers.length) {
+        this.lastWorkerIndex = (this.lastWorkerIndex + 1) % workers.length;
+        const currentWorker = workers[this.lastWorkerIndex];
+
+        const notDoneActiveRequests = currentWorker.paymentRequests.filter(
+          (request) =>
+            request.status !== 'COMPLETED' && request.status !== 'FAILED',
+        );
+
+        console.log(
+          `Worker ${currentWorker.username} has ${notDoneActiveRequests.length} active requests`,
+        );
+
+        // Проверяем лимит (например, не более 1 активной заявки)
+        if (notDoneActiveRequests.length <= 1) {
+          foundWorker = currentWorker;
+        }
+
+        attempts++;
+      }
+
+      if (foundWorker) {
+        await this.userService.appendRequestToUser(foundWorker.id, requestId);
+        if (foundWorker.telegramId) {
+          const chatId = Number(foundWorker.telegramId);
           const photoMsg = await this.bot.telegram.sendPhoto(
             chatId,
             {
@@ -110,7 +134,7 @@ export class TelegramService {
               ),
             },
             {
-              reply_markup: inline_keyboard.reply_markup,
+              reply_markup: inline_keyboard,
               caption: message.text || '',
             },
           );
@@ -124,20 +148,20 @@ export class TelegramService {
           };
           processedRequestsId.push({
             requestId: requestId,
-            username: worker.username ? worker.username : 'Unknown',
+            username: foundWorker.username ? foundWorker.username : 'Unknown',
             proceeded: true,
           });
           if (photoMsg) {
             await this.userService.saveWorkerRequestPhotoMessage(
               messageToSave,
               requestId,
-              worker.id,
+              foundWorker.id,
             );
           }
         }
       } else {
         processedRequestsId.push({
-          requestId: requestId ? requestId : 'No Request ID',
+          requestId: requestId,
           username: 'All Workers busy',
           proceeded: false,
         });
@@ -280,6 +304,7 @@ export class TelegramService {
           newMessage.text,
           newMessage.photoUrl ? newMessage.photoUrl : undefined,
           newMessage.source,
+          newMessage.inline_keyboard,
         );
       }
     } catch (error) {
@@ -292,6 +317,7 @@ export class TelegramService {
     text: string,
     imageUrl?: string,
     source?: Buffer<ArrayBufferLike>,
+    markup?: InlineKeyboardMarkup,
   ) {
     try {
       if (imageUrl) {
@@ -301,6 +327,7 @@ export class TelegramService {
           text,
           imageUrl,
           source,
+          markup,
         );
       } else if (source) {
         await this.updateTelegramMessage(
@@ -309,6 +336,7 @@ export class TelegramService {
           text,
           undefined,
           source,
+          markup,
         );
       } else {
         await this.bot.telegram.editMessageText(
@@ -316,6 +344,7 @@ export class TelegramService {
           messageId,
           undefined,
           text ? text : '',
+          { reply_markup: markup ?? undefined },
         );
       }
     } catch (error) {
@@ -329,26 +358,40 @@ export class TelegramService {
     text?: string,
     imageUrl?: string,
     source?: Buffer<ArrayBufferLike>,
+    markup?: InlineKeyboardMarkup,
   ) {
     try {
       if (imageUrl) {
-        await this.bot.telegram.editMessageMedia(chatId, messageId, undefined, {
-          type: 'photo',
-          media: imageUrl,
-          caption: text,
-        });
+        await this.bot.telegram.editMessageMedia(
+          chatId,
+          messageId,
+          undefined,
+          {
+            type: 'photo',
+            media: imageUrl,
+            caption: text,
+          },
+          { reply_markup: markup ?? undefined },
+        );
       } else if (source) {
-        await this.bot.telegram.editMessageMedia(chatId, messageId, undefined, {
-          type: 'photo',
-          media: { source: source },
-          caption: text,
-        });
+        await this.bot.telegram.editMessageMedia(
+          chatId,
+          messageId,
+          undefined,
+          {
+            type: 'photo',
+            media: { source: source },
+            caption: text,
+          },
+          { reply_markup: markup ?? undefined },
+        );
       } else {
         await this.bot.telegram.editMessageText(
           chatId,
           messageId,
           undefined,
           text ? text : 'asdasdasd',
+          { reply_markup: markup ?? undefined },
         );
       }
     } catch (error) {

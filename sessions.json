@@ -5,8 +5,8 @@
       "data": {
         "__scenes": {},
         "messagesToDelete": [],
-        "customState": "card_request",
-        "requestType": "card"
+        "customState": "",
+        "requestType": "iban"
       }
     },
     {
@@ -24,7 +24,7 @@
         "__scenes": {},
         "messagesToDelete": [],
         "customState": "",
-        "requestType": "card"
+        "requestType": "iban"
       }
     },
     {

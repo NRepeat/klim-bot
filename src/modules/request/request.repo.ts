@@ -74,6 +74,7 @@ export class RequestRepository {
         currency: true,
         ibanMethods: true,
         user: true,
+        paymentMethod: true,
       },
     });
   }
@@ -178,6 +179,7 @@ export class RequestRepository {
         rates: true,
         currency: true,
         ibanMethods: true,
+        paymentMethod: true,
         user: true,
       },
     });
@@ -200,6 +202,8 @@ export class RequestRepository {
         message: true,
         currency: true,
         adminRequestPhotoMessage: true,
+        activeUser: true,
+        payedByUser: true,
       },
     });
   }

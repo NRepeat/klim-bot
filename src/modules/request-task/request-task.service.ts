@@ -6,7 +6,8 @@ import { UtilsService } from '../utils/utils.service';
 import { FullRequestType, ReplyPhotoMessage } from 'src/types/types';
 import { UserService } from '../user/user.service';
 import { InjectBot } from 'nestjs-telegraf';
-import { Context, Markup, Telegraf } from 'telegraf';
+import { Context, Telegraf } from 'telegraf';
+import { MenuFactory } from '../telegram/telegram-keyboards';
 
 @Injectable()
 export class RequestTaskService {
@@ -38,18 +39,20 @@ export class RequestTaskService {
 
   private async processRequest(request: FullRequestType) {
     try {
-      const workerCaption = this.utilsService.buildRequestMessage(
+      const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+
+      const workerMenu = MenuFactory.createWorkerMenu(
         request as unknown as FullRequestType,
-        request.paymentMethod?.nameEn === 'IBAN' ? 'iban' : 'card',
-        'worker',
+        photoUrl,
       );
-      const workerRequestPhotoMessage: ReplyPhotoMessage = {
-        photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-        text: workerCaption.text,
-      };
+
       const workerNotifications =
         await this.telegramService.sendPhotoMessageToAllWorkers(
-          workerRequestPhotoMessage,
+          {
+            text: workerMenu.inWork().caption,
+            photoUrl: workerMenu.inWork().url,
+            inline_keyboard: workerMenu.inWork(undefined, request.id).markup,
+          },
           request.id,
         );
       let username = '';
@@ -62,15 +65,17 @@ export class RequestTaskService {
           `Request ${request.id} sent to worker ${username} (${worker.requestId})`,
         );
       }
-      const inline_keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('Отменить', 'dummy')],
-        [Markup.button.callback('Не в работе', 'dummy')],
-      ]);
+
+      const adminMenu = MenuFactory.createAdminMenu(
+        request as unknown as FullRequestType,
+        photoUrl,
+      );
       const adminRequestPhotoMessage: ReplyPhotoMessage = {
-        photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-        text: workerCaption.text,
-        inline_keyboard: inline_keyboard.reply_markup,
+        photoUrl: adminMenu.inWork().url,
+        text: adminMenu.inWork().caption,
+        inline_keyboard: adminMenu.inWork().markup,
       };
+
       const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
       if (!hasA) {
         console.log(`Request ${request.id} has admin messages: ${hasA}`);
@@ -91,10 +96,10 @@ export class RequestTaskService {
   }
 
   private async updateAdminMessages(req: FullRequestType, newWorker?: string) {
-    const adminCaption = this.utilsService.buildRequestMessage(
+    const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+    const adminMenu = MenuFactory.createAdminMenu(
       req as unknown as FullRequestType,
-      'card',
-      'admin',
+      photoUrl,
     );
 
     const adminMessages =
@@ -106,6 +111,7 @@ export class RequestTaskService {
       );
       return;
     }
+
     for (const adminMessage of adminMessages) {
       try {
         console.log(
@@ -119,21 +125,22 @@ export class RequestTaskService {
           );
           continue;
         }
-        const inline_keyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('Отменить', 'dummy')],
-          [Markup.button.callback('В работе', 'dummy')],
-        ]);
+
+        const inWorkMenu = adminMenu.inWork();
+        const caption = newWorker
+          ? `${inWorkMenu.caption}\nПринята: @${newWorker}`
+          : inWorkMenu.caption;
+
         await this.bot.telegram.editMessageMedia(
           chatId,
           messageId,
           undefined,
           {
             type: 'photo',
-            media:
-              'https://lh3.googleusercontent.com/oeqS763H5PDQ7RL3gUnJlvDgZx6MYr5VE7bV7MBanuv7hgB-98wF1JYy-KI-Zxurxc5trLpksuPNUcY=w544-h544-l90-rj',
-            caption: adminCaption.text + ' @' + (newWorker || ''),
+            media: inWorkMenu.url,
+            caption: caption,
           },
-          { reply_markup: inline_keyboard.reply_markup },
+          { reply_markup: inWorkMenu.markup },
         );
         this.logger.log(
           `Admin message for request ${req.id} updated successfully`,

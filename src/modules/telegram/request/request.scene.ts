@@ -106,6 +106,12 @@ export class CreateRequestWizard {
         ctx.wizard.selectStep(2);
         break;
       }
+      default: {
+        console.log('Unknown callback query data:', callbackQuery.data);
+
+        await ctx.scene.leave();
+        break;
+      }
     }
   }
 
@@ -207,7 +213,6 @@ export class CreateRequestWizard {
           ctx.wizard.selectStep(1);
           return;
         }
-
         const cardRequest: CardRequestType = {
           amount: cardDetail.amount,
           currencyId: foundRate.currencyId,
@@ -223,31 +228,26 @@ export class CreateRequestWizard {
         try {
           const request =
             await this.requestService.createCardRequest(cardRequest);
-
-          const publicCaption = this.utilsService.buildRequestMessage(
+          const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+          const publicMenu = MenuFactory.createPublicMenu(
             request as unknown as FullRequestType,
-            'card',
-            'public',
+            photoUrl,
           );
-          const vendorRequestPhotoMessage = {
-            photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
-            caption: publicCaption,
-          };
           const requestMessage = await ctx.replyWithPhoto(
             {
-              source: createReadStream(vendorRequestPhotoMessage.photoUrl),
+              source: publicMenu.inWork().source,
             },
             {
-              caption: publicCaption.text,
-              reply_markup: publicCaption.inline_keyboard,
+              caption: publicMenu.inWork().caption,
+              reply_markup: publicMenu.inWork().markup,
             },
           );
           if (!requestMessage || !request) {
             return;
           }
           const messageToSave: SerializedMessage = {
-            photoUrl: vendorRequestPhotoMessage.photoUrl,
-            text: publicCaption.text,
+            photoUrl: photoUrl,
+            text: publicMenu.inWork().caption,
             chatId: BigInt(ctx.chat?.id || 0),
             messageId: BigInt(requestMessage.message_id),
             requestId: request.id,

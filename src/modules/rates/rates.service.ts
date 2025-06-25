@@ -25,21 +25,77 @@ export class RatesService {
 
   async getAllRatesMarkupMessage() {
     const allRates = await this.getAllRates();
-    const grouped: Record<string, string[]> = {};
-
+    // Группируем по header
+    const grouped: Record<
+      string,
+      { minAmount: number; maxAmount: number | null; rate: number }[]
+    > = {};
     for (const rate of allRates) {
       const header = `${rate.currency.nameEn}:${rate.paymentMethod.nameEn}`;
-      const line = `${rate.minAmount}${rate.maxAmount !== null && rate.maxAmount > 0 ? '-' + rate.maxAmount : '+'} ${rate.rate}`;
-      if (!grouped[header]) {
-        grouped[header] = [];
+      if (!grouped[header]) grouped[header] = [];
+      grouped[header].push({
+        minAmount: rate.minAmount,
+        maxAmount: rate.maxAmount,
+        rate: rate.rate,
+      });
+    }
+    // Сортируем header: Card всегда первым, остальные по алфавиту
+    const headers = Object.keys(grouped).sort((a, b) => {
+      if (a.toLowerCase().includes('card') && !b.toLowerCase().includes('card'))
+        return -1;
+      if (!a.toLowerCase().includes('card') && b.toLowerCase().includes('card'))
+        return 1;
+      return a.localeCompare(b);
+    });
+    const message: string[] = [];
+    for (const header of headers) {
+      // Сортируем внутри header по minAmount по возрастанию, а maxAmount === null (то есть +) всегда в конце
+      grouped[header].sort((a, b) => {
+        if (a.maxAmount === null && b.maxAmount !== null) return 1;
+        if (a.maxAmount !== null && b.maxAmount === null) return -1;
+        return a.minAmount - b.minAmount;
+      });
+      // Переворачиваем порядок (теперь сначала min, потом max+)
+      grouped[header].reverse();
+      message.push(header);
+      for (const r of grouped[header]) {
+        const amount =
+          r.maxAmount !== null && r.maxAmount > 0
+            ? `${r.minAmount}-${r.maxAmount}`
+            : `${r.minAmount}+`;
+        message.push(`${amount} ${r.rate}`);
       }
+    }
+    return message.join('\n');
+  }
+  async getAllPublicRatesMarkupMessage() {
+    const allRates = await this.getAllRates();
+    if (!allRates.length) return 'Нет доступных курсов.';
+    // Сортируем: сначала Card, затем остальные, внутри Card — по maxAmount по убыванию
+    const cardRates = allRates
+      .filter((r) => r.paymentMethod.nameEn.toLowerCase() === 'card')
+      .sort((a, b) => (b.maxAmount ?? 0) - (a.maxAmount ?? 0));
+    const otherRates = allRates.filter(
+      (r) => r.paymentMethod.nameEn.toLowerCase() !== 'card',
+    );
+    const sortedRates = [...cardRates, ...otherRates];
+    // Группируем по валюте и методу оплаты
+    const grouped: Record<string, string[]> = {};
+    for (const rate of sortedRates) {
+      const header = `💱 <b>${rate.currency.name}</b> — <i>${rate.paymentMethod.nameEn}</i>`;
+      const line = `▫️ <b>${rate.minAmount}${
+        rate.maxAmount !== null && rate.maxAmount > 0
+          ? ' - ' + rate.maxAmount
+          : '+'
+      }</b> — <b>${rate.rate}</b>`;
+      if (!grouped[header]) grouped[header] = [];
       grouped[header].push(line);
     }
-
-    const message: string[] = [];
+    const message: string[] = ['<b>Актуальные курсы:</b>\n'];
     for (const header in grouped) {
       message.push(header);
       message.push(...grouped[header]);
+      message.push('');
     }
     return message.join('\n');
   }
@@ -148,9 +204,9 @@ export class RatesService {
         }),
       );
       try {
-        await Promise.all(createRatePromises);
+        const newRates = await Promise.all(createRatePromises);
 
-        return true;
+        return newRates;
       } catch (error) {
         throw new Error(
           `Failed to create rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -159,7 +215,7 @@ export class RatesService {
     }
   }
   async sendAllRatesToAllVendors(ctx: Context) {
-    const allRates = await this.getAllRatesMarkupMessage();
+    const allRates = await this.getAllPublicRatesMarkupMessage();
     const allVendors = await this.vendorService.getAllActiveVendors();
     if (allVendors.length === 0) {
       return;
@@ -170,6 +226,7 @@ export class RatesService {
           const msg = await ctx.telegram.sendMessage(
             Number(vendor.chatId),
             allRates,
+            { parse_mode: 'HTML' },
           );
           await this.vendorService.updateAllRatesLastMessageId(
             vendor.id,
@@ -184,6 +241,7 @@ export class RatesService {
             const msg = await ctx.telegram.sendMessage(
               Number(vendor.chatId),
               allRates,
+              { parse_mode: 'HTML' },
             );
             await this.vendorService.updateAllRatesLastMessageId(
               vendor.id,
@@ -197,6 +255,7 @@ export class RatesService {
             const msg = await ctx.telegram.sendMessage(
               Number(vendor.chatId),
               allRates,
+              { parse_mode: 'HTML' },
             );
             await this.vendorService.updateAllRatesLastMessageId(
               vendor.id,

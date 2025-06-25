@@ -33,20 +33,6 @@ export class CreateRatesScene {
     }
   }
   async cancel(ctx: CustomSceneContext) {
-    ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];
-    const messagesToDelete = ctx.session.messagesToDelete;
-    // if (messagesToDelete.length > 0) {
-    //   for (const messageId of messagesToDelete) {
-    //     try {
-    //       await ctx.deleteMessage(messageId);
-    //     } catch (error) {
-    //       console.error('Failed to delete message:', error);
-    //     }
-    //   }
-    // }
-    ctx.session.messagesToDelete = [];
-    await ctx.reply('Exited rate creation.');
-    ctx.session.customState = 'cancelled';
     await ctx.scene.leave();
   }
 
@@ -54,22 +40,20 @@ export class CreateRatesScene {
   async onSceneEnter(@Ctx() ctx: CustomSceneContext) {
     const markup = await this.ratesService.getAllRatesMarkupMessage();
     const inline_keyboard = Markup.inlineKeyboard([
-      [
-        Markup.button.callback('Cancel', 'cancel_update_all_rates'),
-        // Markup.button.callback('Done', 'done'),
-      ],
+      [Markup.button.callback('Cancel', 'cancel_update_all_rates')],
     ]);
     const msg = await ctx.reply(
       'Send new rates in the same format:\n\n' + markup,
       inline_keyboard,
     );
-    ctx.wizard.selectStep(1);
+    ctx.wizard.next();
     ctx.session.messagesToDelete?.push(msg.message_id);
   }
 
   @WizardStep(1)
   async onText(@Ctx() ctx: CustomSceneContext) {
     const message = ctx.text;
+    ctx.session.messagesToDelete?.push(ctx.message?.message_id || 0);
     if (!message) {
       const msg = await ctx.reply('Please send text with rates.');
       ctx.session.messagesToDelete?.push(msg.message_id);
@@ -82,17 +66,15 @@ export class CreateRatesScene {
           'Failed to create rates. Please check the format and try again.',
         );
         ctx.session.messagesToDelete?.push(msg.message_id);
-        return;
+        ctx.wizard.selectStep(1);
       }
-      const msg = await ctx.reply('Rates received! (processing logic here)');
-      ctx.session.messagesToDelete?.push(msg.message_id);
+      const allRates = await this.ratesService.getAllRatesMarkupMessage();
+      await ctx.reply('Rates updated successfully:\n\n' + allRates);
       ctx.session.customState = 'updated';
       await ctx.scene.leave();
     } catch (error) {
       if (error instanceof Error) {
         console.error('Error creating rates:', error.message);
-        const msg = await ctx.reply(`Error: ${error.message}`);
-        ctx.session.messagesToDelete?.push(msg.message_id);
         await ctx.scene.leave();
       }
     }
@@ -104,15 +86,17 @@ export class CreateRatesScene {
     if (ctx.session.customState === 'updated') {
       await this.ratesService.sendAllRatesToAllVendors(ctx);
     }
-    // if (messagesToDelete.length > 0) {
-    //   for (const messageId of messagesToDelete) {
-    //     try {
-    //       await ctx.deleteMessage(messageId);
-    //     } catch (error) {
-    //       console.error('Failed to delete message:', error);
-    //     }
-    //   }
-    // }
+    if (messagesToDelete.length > 0) {
+      for (const messageId of messagesToDelete) {
+        try {
+          await ctx.deleteMessage(messageId);
+        } catch (error) {
+          console.error('Failed to delete message:', error);
+        }
+      }
+    }
+    ctx.session.customState = '';
+    ctx.session.messagesToDelete = [];
     // await ctx.reply('Exited rate creation.');
   }
 }

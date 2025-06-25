@@ -22,15 +22,8 @@
       "id": "8045572818:8045572818",
       "data": {
         "__scenes": {},
-        "messagesToDelete": [
-          1648,
-          1650,
-          1652,
-          1654,
-          1656,
-          1658
-        ],
-        "customState": "updated",
+        "messagesToDelete": [],
+        "customState": "",
         "requestType": "iban"
       }
     },

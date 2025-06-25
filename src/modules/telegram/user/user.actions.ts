@@ -34,6 +34,48 @@ export class UserActions {
       return;
     } else if ('data' in callbackQuery) {
       console.log('Callback query data:', callbackQuery.data);
+      if (callbackQuery.data.includes('admin_cancel_request')) {
+        const requestId = callbackQuery.data.split('_')[3];
+        const request = await this.requestService.findById(requestId);
+        if (!request) {
+          throw new Error('Request not found');
+        }
+        await this.requestService.updateRequestStatus(
+          requestId,
+          'FAILED',
+          callbackQuery.from.id,
+        );
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
+
+        const adminMenu = MenuFactory.createAdminMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
+        await this.telegramService.updateAllWorkersMessagesWithRequestsId(
+          {
+            text: workerMenu.canceled().caption + '\n' + 'Заявка отменена',
+            inline_keyboard: adminMenu.canceled(undefined, requestId).markup,
+          },
+          requestId,
+        );
+        await this.telegramService.updateAllAdminsMessagesWithRequestsId(
+          {
+            text: adminMenu.canceled().caption + '\n' + 'Заявка отменена',
+            inline_keyboard: adminMenu.canceled(undefined, requestId).markup,
+          },
+          requestId,
+        );
+        await this.telegramService.updateAllPublicMessagesWithRequestsId(
+          {
+            text: workerMenu.canceled().caption + '\n' + 'Заявка отменена',
+            inline_keyboard: adminMenu.canceled(undefined, requestId).markup,
+          },
+          requestId,
+        );
+      }
       if (callbackQuery.data.includes('cancel_payment_')) {
         const requestId = callbackQuery.data.split('_')[2];
         const request = await this.requestService.findById(requestId);

@@ -46,6 +46,7 @@ export class RequestService {
       `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
     );
     const dbUser = await this.userService.findByTelegramId(userId);
+    console.log(`Found user: ${dbUser?.username} with ID: ${dbUser?.id}`);
     if (!dbUser) {
       throw new Error('User not found');
     }

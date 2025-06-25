@@ -217,7 +217,7 @@ abstract class BaseRequestMenu {
             createButton(BUTTON_TEXTS.ADMIN_IN_WORK, BUTTON_CALLBACKS.DUMMY),
             createButton(
               BUTTON_TEXTS.ADMIN_CANCEL_REQUEST,
-              BUTTON_CALLBACKS.ADMIN_CANCEL_REQUEST,
+              BUTTON_CALLBACKS.ADMIN_CANCEL_REQUEST + requestId,
             ),
           ],
         ]).reply_markup;
@@ -304,6 +304,20 @@ abstract class BaseRequestMenu {
           createButton(
             BUTTON_TEXTS.BACK_TO_TAKE_REQUEST,
             BUTTON_CALLBACKS.BACK_TO_TAKE_REQUEST + requestId,
+          ),
+        ],
+      ]).reply_markup;
+      return new MenuWithMedia(
+        this.messageFromRequest(),
+        markup,
+        url || this.url,
+      );
+    } else if (accessType === 'ADMIN' && requestId) {
+      const markup = Markup.inlineKeyboard([
+        [
+          createButton(
+            BUTTON_TEXTS.REJECTED_BY_ADMIN,
+            BUTTON_CALLBACKS.REJECTED_BY_ADMIN,
           ),
         ],
       ]).reply_markup;
@@ -416,9 +430,11 @@ const BUTTON_TEXTS = {
   GIVE_NEXT: 'Передать другому',
   VALUT_CARD: 'Валютная карта',
   BACK_TO_TAKE_REQUEST: 'Вернуться назад',
+  REJECTED_BY_ADMIN: 'Отклонено админом',
 } as const;
 
 const BUTTON_CALLBACKS = {
+  REJECTED_BY_ADMIN: 'rejected_by_admin_',
   GIVE_NEXT: 'give_next_',
   VALUT_CARD: 'valut_card_',
   BACK_TO_TAKE_REQUEST: 'back_to_take_request_',
@@ -434,7 +450,7 @@ const BUTTON_CALLBACKS = {
   TAKE_REQUEST: 'accept_request_',
   CANCEL_WORKER_REQUEST: 'cancel_worker_request_',
   DUMMY: 'dummy',
-  ADMIN_CANCEL_REQUEST: 'admin_cancel_request',
+  ADMIN_CANCEL_REQUEST: 'admin_cancel_request_',
 } as const;
 
 const MESSAGES = {

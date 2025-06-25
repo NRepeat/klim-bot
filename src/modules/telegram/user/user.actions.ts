@@ -193,12 +193,6 @@ export class UserActions {
           return;
         }
 
-        const markup = Markup.inlineKeyboard([
-          Markup.button.callback('Переслана', 'Переслана'),
-        ]);
-        // await ctx.editMessageCaption(workerMenu.inWork().caption, {
-        //   reply_markup: markup.reply_markup,
-        // });
         await this.requestService.findAndDeleteRequestMessageByRequestId(
           requestId,
           callbackQuery.message!.message_id,

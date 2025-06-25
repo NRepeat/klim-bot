@@ -22,8 +22,8 @@ export class MenuActions {
   async start(@Ctx() ctx: Context) {
     if (await this.userService.isAdminChat(ctx)) {
       const inline_keyboard = Markup.keyboard([
-        [{ text: 'Menu' }],
-        [{ text: 'Обновить курсы' }],
+        [{ text: 'Показать пользователей' }, { text: 'Показать поставщиков' }],
+        [{ text: 'Черный список' }, { text: 'Обновить курсы' }],
       ]).resize();
       await ctx.reply('Welcome', {
         reply_markup: inline_keyboard.reply_markup,

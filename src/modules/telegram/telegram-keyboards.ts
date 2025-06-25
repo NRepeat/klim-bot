@@ -272,7 +272,7 @@ abstract class BaseRequestMenu {
     return new Menu(this.messageFromRequest(), inline_keyboard);
   }
 
-  done(url?: string, requestId?: string): MenuWithMedia {
+  done(url?: string): MenuWithMedia {
     const markup = createSingleButtonMarkup(
       BUTTON_TEXTS.DONE,
       BUTTON_CALLBACKS.DONE,
@@ -337,7 +337,7 @@ abstract class BaseRequestMenu {
       );
     }
   }
-  rejected(url?: string, requestId?: string): MenuWithMedia {
+  rejected(url?: string): MenuWithMedia {
     const markup = createSingleButtonMarkup(
       BUTTON_TEXTS.REJECTED,
       BUTTON_CALLBACKS.REJECTED,

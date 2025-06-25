@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Context, Markup } from 'telegraf';
+import { Context } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { UserService } from '../user/user.service';
-import { createReadStream, ReadStream } from 'fs';
+import { createReadStream } from 'fs';
 
 import {
   FullRequestType,
@@ -163,7 +163,7 @@ export class TelegramService {
           `Worker ${currentWorker.username} has ${notDoneActiveRequests.length} active requests`,
         );
 
-        if (notDoneActiveRequests.length <= 5) {
+        if (notDoneActiveRequests.length <= 1) {
           foundWorker = currentWorker;
         }
 
@@ -171,8 +171,9 @@ export class TelegramService {
       }
 
       if (foundWorker) {
-        await this.userService.appendRequestToUser(foundWorker.id, requestId);
         if (foundWorker.telegramId) {
+          await this.userService.appendRequestToUser(foundWorker.id, requestId);
+
           const chatId = Number(foundWorker.telegramId);
           const photoMsg = await this.bot.telegram.sendPhoto(
             chatId,
@@ -503,6 +504,50 @@ export class TelegramService {
       }
     } catch (error) {
       this.logger.error('Error deleting messages', error);
+    }
+  }
+
+  // Новый метод для отправки сообщения только одному работнику
+  async sendPhotoMessageToWorker(
+    message: ReplyPhotoMessage,
+    requestId: string,
+    worker: { id: string; telegramId: string; username?: string },
+  ) {
+    try {
+      if (!worker || !worker.telegramId) return;
+      await this.userService.appendRequestToUser(worker.id, requestId);
+      const chatId = Number(worker.telegramId);
+      const photoMsg = await this.bot.telegram.sendPhoto(
+        chatId,
+        {
+          source: createReadStream(
+            message.photoUrl ? message.photoUrl : './src/assets/0056.jpg',
+          ),
+        },
+        {
+          reply_markup: message.inline_keyboard,
+          caption: message.text || '',
+        },
+      );
+      const messageToSave: SerializedMessage = {
+        chatId: BigInt(chatId),
+        photoUrl: message.photoUrl ? message.photoUrl : '',
+        messageId: BigInt(photoMsg.message_id),
+        text: message.text || '',
+        requestId: requestId,
+        accessType: 'WORKER',
+        paymentRequestId: requestId,
+      };
+      if (photoMsg) {
+        await this.userService.saveWorkerRequestPhotoMessage(
+          messageToSave,
+          requestId,
+          worker.id,
+        );
+      }
+    } catch (e) {
+      this.logger.error('Error in sendPhotoMessageToWorker', e);
+      throw e;
     }
   }
 }

@@ -8,7 +8,6 @@ import { UserService } from '../user/user.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Context, Telegraf } from 'telegraf';
 import { MenuFactory } from '../telegram/telegram-keyboards';
-import { createReadStream } from 'fs';
 
 @Injectable()
 export class RequestTaskService {
@@ -24,14 +23,17 @@ export class RequestTaskService {
   async handleRequests() {
     try {
       const requests =
-        (await this.requestService.findAllNotProcessedRequests()) as any as FullRequestType[];
+        (await this.requestService.findAllNotProcessedRequests()) as FullRequestType[];
+      const workers = await this.userService.getAllActiveWorkers();
       this.logger.log(
-        `Found ${requests.length} not processed requests at ${new Date().toISOString()}`,
+        `Found ${requests.length} not processed requests and ${workers.length} workers at ${new Date().toISOString()}`,
       );
-      if (requests.length === 0) return;
+      if (requests.length === 0 || workers.length === 0) return;
 
-      for (const request of requests) {
-        await this.processRequest(request);
+      // Round-robin: каждому работнику по одному запросу
+      for (let i = 0; i < requests.length; i++) {
+        const worker = workers[i % workers.length];
+        await this.processRequestForWorker(requests[i], worker);
       }
     } catch (error) {
       this.logger.error('Error while processing requests', error);
@@ -89,6 +91,70 @@ export class RequestTaskService {
         if (hasA && worker.proceeded) {
           await this.updateAdminMessages(request, worker.username);
         }
+      }
+    } catch (error) {
+      this.logger.error('Error creating card request:', error);
+    }
+  }
+
+  private async processRequestForWorker(
+    request: FullRequestType,
+    worker: {
+      id: string;
+      telegramId: string | bigint;
+      username?: string | null;
+      paymentRequests?: { status?: string }[];
+    },
+  ) {
+    try {
+      const activeRequests =
+        worker.paymentRequests?.filter(
+          (r) => r && r.status !== 'COMPLETED' && r.status !== 'FAILED',
+        ) || [];
+      if (activeRequests.length >= 5) {
+        this.logger.log(
+          `Worker ${worker.username ?? ''} has max active requests (${activeRequests.length}), skipping request ${request.id}`,
+        );
+        return;
+      }
+      const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+      const workerMenu = MenuFactory.createWorkerMenu(request, photoUrl);
+
+      await this.telegramService.sendPhotoMessageToWorker(
+        {
+          text: workerMenu.inWork().caption,
+          photoUrl: workerMenu.inWork().url,
+          inline_keyboard: workerMenu.inWork(undefined, request.id).markup,
+        },
+        request.id,
+        {
+          ...worker,
+          telegramId: String(worker.telegramId),
+          username: worker.username ?? undefined,
+        },
+      );
+
+      const adminMenu = MenuFactory.createAdminMenu(
+        request as unknown as FullRequestType,
+        photoUrl,
+      );
+      const adminRequestPhotoMessage: ReplyPhotoMessage = {
+        photoUrl: adminMenu.inWork().url,
+        text: adminMenu.inWork().caption,
+        inline_keyboard: adminMenu.inWork().markup,
+      };
+
+      const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
+      if (!hasA) {
+        console.log(`Request ${request.id} has admin messages: ${hasA}`);
+        await this.telegramService.sendPhotoMessageToAllAdmins(
+          adminRequestPhotoMessage,
+          request.id,
+        );
+      }
+      // Обновление сообщений админов, если нужно
+      if (hasA) {
+        await this.updateAdminMessages(request, worker.username ?? undefined);
       }
     } catch (error) {
       this.logger.error('Error creating card request:', error);

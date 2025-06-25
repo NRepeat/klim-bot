@@ -320,6 +320,9 @@ export class TelegramService {
     markup?: InlineKeyboardMarkup,
   ) {
     try {
+      console.log(
+        `Updating admin message for chatId: ${chatId}, messageId: ${messageId}, text: ${text}, imageUrl: ${imageUrl}, source: `,
+      );
       if (imageUrl) {
         await this.updateTelegramMessage(
           chatId,
@@ -339,7 +342,10 @@ export class TelegramService {
           markup,
         );
       } else {
-        await this.bot.telegram.editMessageText(
+        console.log(
+          `Updating admin message for chatId: ${chatId}, messageId: ${messageId}, text: ${text}`,
+        );
+        await this.bot.telegram.editMessageCaption(
           chatId,
           messageId,
           undefined,

@@ -8,6 +8,7 @@ import { UserService } from '../user/user.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Context, Telegraf } from 'telegraf';
 import { MenuFactory } from '../telegram/telegram-keyboards';
+import { createReadStream } from 'fs';
 
 @Injectable()
 export class RequestTaskService {
@@ -137,7 +138,7 @@ export class RequestTaskService {
           undefined,
           {
             type: 'photo',
-            media: inWorkMenu.url,
+            media: photoUrl,
             caption: caption,
           },
           { reply_markup: inWorkMenu.markup },

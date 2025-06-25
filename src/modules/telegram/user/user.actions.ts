@@ -114,9 +114,50 @@ export class UserActions {
       } else if (callbackQuery.data.includes('give_next_')) {
         const requestId = callbackQuery.data.split('_')[3];
         const request = await this.requestService.findById(requestId);
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          '',
+        );
+
+        const markup = Markup.inlineKeyboard([
+          Markup.button.callback('Переслана', 'Переслана'),
+        ]);
+        await ctx.editMessageCaption(
+          workerMenu.inWork().caption + 'Заявка отменина',
+          {
+            reply_markup: markup.reply_markup,
+          },
+        );
       } else if (callbackQuery.data.includes('valut_card_')) {
-        const requestId = callbackQuery.data.split('_')[3];
+        const requestId = callbackQuery.data.split('_')[2];
         const request = await this.requestService.findById(requestId);
+        if (!request) {
+          throw new Error('Request not found');
+        }
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          '',
+        );
+        const adminMenu = MenuFactory.createAdminMenu(
+          request as unknown as FullRequestType,
+          '',
+        );
+        const markup = Markup.inlineKeyboard([
+          Markup.button.callback('Влютная карта', 'афлют'),
+        ]);
+        await ctx.editMessageCaption(
+          workerMenu.inWork().caption + '\n' + 'Заявка отменина',
+          {
+            reply_markup: markup.reply_markup,
+          },
+        );
+        await this.telegramService.updateAllAdminsMessagesWithRequestsId(
+          {
+            text: adminMenu.inWork().caption + '\n' + 'Заявка отменина',
+            inline_keyboard: markup.reply_markup,
+          },
+          request.id,
+        );
       } else if (callbackQuery.data.includes('back_to_take_request_')) {
         const requestId = callbackQuery.data.split('_')[4];
         const request = await this.requestService.findById(requestId);
@@ -124,11 +165,6 @@ export class UserActions {
           request as unknown as FullRequestType,
           '',
         );
-        console.log(workerMenu.inWork().caption, 'workerMenu');
-        console.log(workerMenu.inWork().markup, 'workerMenu');
-        // await ctx.editMessageText(workerMenu.inWork().caption, {
-        //   reply_markup: workerMenu.inWork(undefined, requestId).markup,
-        // });
         await ctx.editMessageCaption(workerMenu.inWork().caption, {
           reply_markup: workerMenu.inWork(undefined, requestId).markup,
         });

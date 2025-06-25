@@ -14,6 +14,10 @@ export class UserService {
     const users = await this.userRepository.findAll();
     return users;
   }
+  async findAllWorkers() {
+    const workers = await this.userRepository.findAllWorkers();
+    return workers;
+  }
   async findByTelegramId(id: number) {
     const user = await this.userRepository.findByTelegramId(id);
     return user;

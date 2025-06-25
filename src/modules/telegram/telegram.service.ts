@@ -26,6 +26,50 @@ export class TelegramService {
   ) {}
 
   private lastWorkerIndex = -1;
+
+  async sendMessageToUser(
+    message: ReplyPhotoMessage,
+    chatId: number,
+    requestId: string,
+    userId?: string,
+  ) {
+    try {
+      const inline_keyboard = message.inline_keyboard;
+
+      const photoMsg = await this.bot.telegram.sendPhoto(
+        chatId,
+        {
+          source: createReadStream(
+            message.photoUrl ? message.photoUrl : './src/assets/0056.jpg',
+          ),
+        },
+        {
+          reply_markup: inline_keyboard,
+          caption: message.text || '',
+        },
+      );
+      const messageToSave: SerializedMessage = {
+        chatId: BigInt(chatId),
+        photoUrl: message.photoUrl ? message.photoUrl : '',
+        messageId: BigInt(photoMsg.message_id),
+        text: message.text || '',
+        requestId: requestId,
+        accessType: 'WORKER',
+      };
+
+      if (photoMsg) {
+        await this.userService.saveWorkerRequestPhotoMessage(
+          messageToSave,
+          requestId,
+          userId ? userId : '',
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error sending message to user', error);
+      throw error;
+    }
+  }
+
   async updateAllPublicMessagesWithRequestsId(
     newMessage: ReplyPhotoMessage,
     requestId?: string,
@@ -102,7 +146,6 @@ export class TelegramService {
         return processedRequestsId;
       }
 
-      // Ищем следующего свободного работника в порядке очереди
       let foundWorker: (typeof workers)[0] | null = null;
       let attempts = 0;
 
@@ -119,7 +162,6 @@ export class TelegramService {
           `Worker ${currentWorker.username} has ${notDoneActiveRequests.length} active requests`,
         );
 
-        // Проверяем лимит (например, не более 1 активной заявки)
         if (notDoneActiveRequests.length <= 5) {
           foundWorker = currentWorker;
         }

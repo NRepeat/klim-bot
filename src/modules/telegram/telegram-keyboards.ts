@@ -145,7 +145,6 @@ abstract class BaseRequestMenu {
       const payedBy = this.request.payedByUser?.username
         ? 'Оплачено: @' + this.request.payedByUser.username + '\n'
         : '';
-      console.log(this.request, 'vendor');
       const vendor = this.request.vendor?.title || '-';
       return (
         `✉️Заявка номер: ${this.request.id ?? '-'}\n` +

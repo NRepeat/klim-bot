@@ -10,6 +10,22 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export default class UserRepository implements Repository<SerializedUser> {
   constructor(private readonly prisma: PrismaService) {}
+  async findAllWorkers() {
+    return this.prisma.user.findMany({
+      where: {
+        onPause: false,
+        Role: {
+          some: {
+            id: UserRole.WORKER,
+          },
+        },
+      },
+      include: {
+        Role: true,
+        paymentRequests: true,
+      },
+    });
+  }
   async findByTelegramId(id: number) {
     return this.prisma.user.findUnique({
       where: {

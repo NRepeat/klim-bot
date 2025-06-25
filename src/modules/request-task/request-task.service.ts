@@ -87,7 +87,6 @@ export class RequestTaskService {
       }
       for (const worker of workerNotifications) {
         if (hasA && worker.proceeded) {
-          console.log(worker, 'worker');
           await this.updateAdminMessages(request, worker.username);
         }
       }

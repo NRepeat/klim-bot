@@ -7,6 +7,7 @@ import { UtilsService } from 'src/modules/utils/utils.service';
 import { FullRequestType } from 'src/types/types';
 import { SceneContext } from 'telegraf/typings/scenes';
 import { MenuFactory } from '../telegram-keyboards';
+import { User } from 'generated/prisma';
 
 @Update()
 export class UserActions {
@@ -112,24 +113,64 @@ export class UserActions {
           requestId,
         );
       } else if (callbackQuery.data.includes('give_next_')) {
-        const requestId = callbackQuery.data.split('_')[3];
+        const requestId = callbackQuery.data.split('_')[2];
         const request = await this.requestService.findById(requestId);
+        const users = await this.userService.findAllWorkers();
         const workerMenu = MenuFactory.createWorkerMenu(
           request as unknown as FullRequestType,
           '',
         );
+        let newWorker: User | undefined;
+        for (const user of users) {
+          if (request?.user?.id !== user.id) {
+            await this.requestService.acceptRequest(
+              requestId,
+              Number(user.telegramId),
+              Number(user.telegramId),
+            );
+            newWorker = user;
+            console.log('New worker found:', newWorker);
+            break;
+          } else {
+            newWorker = undefined;
+          }
+        }
+        if (!newWorker) {
+          await ctx.answerCbQuery('No available workers found');
+          await ctx.editMessageCaption(
+            workerMenu.inWork().caption + '\n' + 'Нут доступных пользователей',
+          );
+          return;
+        }
 
         const markup = Markup.inlineKeyboard([
           Markup.button.callback('Переслана', 'Переслана'),
         ]);
-        await ctx.editMessageCaption(
-          workerMenu.inWork().caption + 'Заявка отменина',
+        // await ctx.editMessageCaption(workerMenu.inWork().caption, {
+        //   reply_markup: markup.reply_markup,
+        // });
+        // await ctx.deleteMessage(callbackQuery.message?.message_id);
+        await this.telegramService.sendMessageToUser(
           {
-            reply_markup: markup.reply_markup,
+            text: workerMenu.inWork().caption,
+            photoUrl: workerMenu.inWork().url,
+            inline_keyboard: workerMenu.inWork(undefined, requestId).markup,
           },
+          Number(newWorker?.telegramId),
+          requestId,
+          newWorker?.id,
         );
-
-        await this.telegramService.updateAllWorkersMessagesWithRequestsId();
+        const adminMenu = MenuFactory.createAdminMenu(
+          request as unknown as FullRequestType,
+          '',
+        );
+        await this.telegramService.updateAllAdminsMessagesWithRequestsId(
+          {
+            text: adminMenu.inWork().caption,
+            inline_keyboard: adminMenu.inWork(undefined, requestId).markup,
+          },
+          requestId,
+        );
       } else if (callbackQuery.data.includes('valut_card_')) {
         const requestId = callbackQuery.data.split('_')[2];
         const request = await this.requestService.findById(requestId);

@@ -89,7 +89,7 @@ export class RequestTaskService {
       }
       for (const worker of workerNotifications) {
         if (hasA && worker.proceeded) {
-          await this.updateAdminMessages(request, worker.username);
+          await this.updateAdminMessages(request.id, worker.username);
         }
       }
     } catch (error) {
@@ -154,26 +154,34 @@ export class RequestTaskService {
       }
       // Обновление сообщений админов, если нужно
       if (hasA) {
-        await this.updateAdminMessages(request, worker.username ?? undefined);
+        await this.updateAdminMessages(
+          request.id,
+          worker.username ?? undefined,
+        );
       }
     } catch (error) {
       this.logger.error('Error creating card request:', error);
     }
   }
 
-  private async updateAdminMessages(req: FullRequestType, newWorker?: string) {
+  private async updateAdminMessages(req: string, newWorker?: string) {
     const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+    const request = await this.requestService.findById(req);
+    if (!request) {
+      this.logger.warn(`Request with ID ${req} not found, skipping update`);
+      return;
+    }
     const adminMenu = MenuFactory.createAdminMenu(
       req as unknown as FullRequestType,
       photoUrl,
     );
 
     const adminMessages =
-      req.message?.filter((r) => r.accessType === 'ADMIN') || [];
+      request.message?.filter((r) => r.accessType === 'ADMIN') || [];
     console.log(`------- ${adminMessages.length}`);
     if (adminMessages.length === 0) {
       this.logger.warn(
-        `No admin messages found for request ${req.id}, skipping update`,
+        `No admin messages found for request ${request.id}, skipping update`,
       );
       return;
     }
@@ -181,13 +189,13 @@ export class RequestTaskService {
     for (const adminMessage of adminMessages) {
       try {
         console.log(
-          `Updating admin message for request ${req.id} with caption: ${adminMessage.text}`,
+          `Updating admin message for request ${request.id} with caption: ${adminMessage.text}`,
         );
         const chatId = Number(adminMessage.chatId);
         const messageId = Number(adminMessage.messageId);
         if (!chatId || !messageId) {
           this.logger.warn(
-            `Invalid chatId or messageId for request ${req.id}, skipping update`,
+            `Invalid chatId or messageId for request ${request.id}, skipping update`,
           );
           continue;
         }
@@ -208,12 +216,12 @@ export class RequestTaskService {
           },
         );
         this.logger.log(
-          `Admin message for request ${req.id} updated successfully`,
+          `Admin message for request ${request.id} updated successfully`,
         );
       } catch (error) {
         this.logger.error(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          `Error updating admin message for request ${req.id}: ${error.message}`,
+          `Error updating admin message for request ${request.id}: ${error.message}`,
         );
       }
     }

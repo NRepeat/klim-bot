@@ -204,7 +204,11 @@ export class RequestRepository {
       include: {
         user: true,
         paymentMethod: true,
-        cardMethods: true,
+        cardMethods: {
+          include: {
+            blackList: true,
+          },
+        },
         ibanMethods: true,
         rates: true,
         vendor: true,

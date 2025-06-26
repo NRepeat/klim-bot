@@ -6,6 +6,8 @@ import { TelegrafModule } from 'nestjs-telegraf';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import * as LocalSession from 'telegraf-session-local';
 import { RequestTaskModule } from './modules/request-task/request-task.module';
+import { UserService } from './modules/user/user.service';
+import { UserModule } from './modules/user/user.module';
 
 const session = new LocalSession({});
 
@@ -13,6 +15,7 @@ const session = new LocalSession({});
   imports: [
     RequestTaskModule,
     TelegramModule,
+    UserModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -44,7 +47,10 @@ const session = new LocalSession({});
   providers: [AppService],
 })
 export class AppModule implements OnModuleInit {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly userService: UserService,
+  ) {}
 
   async onModuleInit() {
     // Регистрация команд Telegram
@@ -52,11 +58,71 @@ export class AppModule implements OnModuleInit {
     const botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN') || '';
     if (!botToken) return;
     const bot = new Telegraf(botToken);
-    await bot.telegram.setMyCommands([
-      { command: 'start', description: 'Начать работу с ботом' },
-      { command: 'help', description: 'Помощь' },
-      // Добавьте свои команды ниже
-      // { command: 'profile', description: 'Профиль' },
-    ]);
+    // Команды по умолчанию для всех
+    await bot.telegram.setMyCommands(
+      [
+        { command: 'start', description: 'Начать работу с ботом' },
+        { command: 'report', description: 'Отправить отчет' },
+        { command: 'pay', description: 'Создать заказ' },
+        { command: 'pause', description: 'Остановить бота' },
+        { command: 'resume', description: 'Запустить бота' },
+        { command: 'all_rates', description: 'Показать все курсы' },
+      ],
+      { scope: { type: 'default' } },
+    );
+
+    // Команды только для приватных чатов
+    await bot.telegram.setMyCommands(
+      [
+        { command: 'start', description: 'Начать работу с ботом' },
+        { command: 'report', description: 'Отправить отчет' },
+        { command: 'pay', description: 'Создать заказ' },
+        { command: 'pause', description: 'Остановить бота' },
+        { command: 'resume', description: 'Запустить бота' },
+        { command: 'all_rates', description: 'Показать все курсы' },
+      ],
+      { scope: { type: 'all_private_chats' } },
+    );
+
+    // Команды только для групп
+    await bot.telegram.setMyCommands(
+      [
+        { command: 'report', description: 'Отправить отчет' },
+        { command: 'pay', description: 'Создать заказ' },
+        { command: 'pause', description: 'Остановить бота' },
+        { command: 'resume', description: 'Запустить бота' },
+        { command: 'all_rates', description: 'Показать все курсы' },
+      ],
+      { scope: { type: 'all_group_chats' } },
+    );
+
+    // Команды только для админов (пример для чатов-админов)
+    const admin = await this.userService.getAdmins();
+    if (!admin || !admin.users || admin.users.length === 0) {
+      console.warn('No admins found, skipping admin command registration');
+      return;
+    }
+    for (const user of admin.users) {
+      if (user.telegramId) {
+        try {
+          await bot.telegram.setMyCommands(
+            [
+              {
+                command: 'report_all',
+                description: 'Отправить отчет всем',
+              },
+              { command: 'all_rates', description: 'Показать все курсы' },
+            ],
+            { scope: { type: 'chat', chat_id: Number(user.telegramId) } },
+          );
+        } catch (error) {
+          console.error(
+            `Error setting commands for user ${user.telegramId}:`,
+            error,
+          );
+          continue;
+        }
+      }
+    }
   }
 }

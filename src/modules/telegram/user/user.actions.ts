@@ -90,6 +90,7 @@ export class UserActions {
           workerMenu.canceled().caption + '\n' + 'Заявка отменена',
           {
             reply_markup: workerMenu.canceled(undefined, requestId).markup,
+            parse_mode: 'HTML',
           },
         );
       }
@@ -189,6 +190,10 @@ export class UserActions {
           await ctx.answerCbQuery('No available workers found');
           await ctx.editMessageCaption(
             workerMenu.inWork().caption + '\n' + 'Нут доступных пользователей',
+            {
+              parse_mode: 'HTML',
+              reply_markup: workerMenu.inWork(undefined, requestId).markup,
+            },
           );
           return;
         }
@@ -240,6 +245,7 @@ export class UserActions {
           workerMenu.inWork().caption + '\n' + 'Заявка отменина',
           {
             reply_markup: markup.reply_markup,
+            parse_mode: 'HTML',
           },
         );
         await this.telegramService.updateAllAdminsMessagesWithRequestsId(
@@ -267,6 +273,7 @@ export class UserActions {
         );
         await ctx.editMessageCaption(workerMenu.inWork().caption, {
           reply_markup: workerMenu.inWork(undefined, requestId).markup,
+          parse_mode: 'HTML',
         });
       }
 

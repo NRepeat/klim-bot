@@ -38,6 +38,7 @@ export class CreateRequestWizard {
     if (ctx.session.customState !== 'select_method') {
       const msg = await ctx.reply(selectPaymentMenu.caption, {
         reply_markup: selectPaymentMenu.markup,
+        parse_mode: 'HTML',
       });
       ctx.session.customState = 'select_method';
       ctx.session.requestMenuMessageId?.push(msg.message_id);
@@ -46,6 +47,7 @@ export class CreateRequestWizard {
       await this.deleteSceneMenuMessages(ctx);
       const msg = await ctx.reply(selectPaymentMenu.caption, {
         reply_markup: selectPaymentMenu.markup,
+        parse_mode: 'HTML',
       });
       ctx.session.requestMenuMessageId?.push(msg.message_id);
     }
@@ -196,7 +198,7 @@ export class CreateRequestWizard {
           ctx.wizard.selectStep(1);
           return;
         }
-        console.log(cardDetail, 'cardDetail');
+
         const requestExists =
           cardDetails.findIndex(
             (detail, idx) =>
@@ -240,6 +242,7 @@ export class CreateRequestWizard {
             {
               caption: publicMenu.inWork().caption,
               reply_markup: publicMenu.inWork().markup,
+              parse_mode: 'HTML',
             },
           );
           if (!requestMessage || !request) {
@@ -344,6 +347,7 @@ export class CreateRequestWizard {
           source: publicMenu.inWork().source,
         },
         {
+          parse_mode: 'HTML',
           caption: publicMenu.inWork().caption,
           reply_markup: publicMenu.inWork().markup,
         },

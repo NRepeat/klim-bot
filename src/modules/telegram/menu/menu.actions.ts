@@ -32,7 +32,7 @@ export class MenuActions {
       await ctx.reply('Welcome');
       const inline_keyboard = Markup.keyboard([[{ text: 'Menu' }]]).resize();
       await ctx.reply('Welcome', {
-        reply_markup: inline_keyboard.reply_markup,
+        reply_markup: undefined,
       });
       console.log(
         `New user created: ${ctx.from?.username} with ID: ${ctx.from?.id}`,

@@ -44,6 +44,7 @@ export class TelegramService {
           ),
         },
         {
+          parse_mode: 'HTML',
           reply_markup: inline_keyboard,
           caption: message.text || '',
         },
@@ -97,6 +98,7 @@ export class TelegramService {
               messageId,
               undefined,
               {
+                parse_mode: 'HTML',
                 caption: newCaption || '',
                 type: 'photo',
                 media: { source: newMessage.source },
@@ -109,7 +111,7 @@ export class TelegramService {
               messageId,
               undefined,
               newCaption || '',
-              { reply_markup: newMessage.inline_keyboard },
+              { reply_markup: newMessage.inline_keyboard, parse_mode: 'HTML' },
             );
           }
         }
@@ -185,6 +187,7 @@ export class TelegramService {
             {
               reply_markup: inline_keyboard,
               caption: message.text || '',
+              parse_mode: 'HTML',
             },
           );
           const messageToSave: SerializedMessage = {
@@ -250,12 +253,14 @@ export class TelegramService {
               request as unknown as FullRequestType,
               message.photoUrl ? message.photoUrl : './src/assets/0056.jpg',
             );
+            console.log(messageE.inWork().caption);
             const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
                 source: messageE.inWork().source,
               },
               {
+                parse_mode: 'HTML',
                 caption: messageE.inWork().caption,
                 reply_markup: messageE.inWork(undefined, request.id).markup,
               },
@@ -311,6 +316,7 @@ export class TelegramService {
               messageId,
               undefined,
               {
+                parse_mode: 'HTML',
                 caption: newCaption || '',
                 type: 'photo',
                 media: { source: newMessage.source },
@@ -323,7 +329,7 @@ export class TelegramService {
               messageId,
               undefined,
               newCaption || '',
-              { reply_markup: newMessage.inline_keyboard },
+              { reply_markup: newMessage.inline_keyboard, parse_mode: 'HTML' },
             );
           }
         }
@@ -400,7 +406,7 @@ export class TelegramService {
           messageId,
           undefined,
           text ? text : '',
-          { reply_markup: markup ?? undefined },
+          { reply_markup: markup ?? undefined, parse_mode: 'HTML' },
         );
       }
     } catch (error) {
@@ -423,6 +429,7 @@ export class TelegramService {
           messageId,
           undefined,
           {
+            parse_mode: 'HTML',
             type: 'photo',
             media: imageUrl,
             caption: text,
@@ -435,6 +442,7 @@ export class TelegramService {
           messageId,
           undefined,
           {
+            parse_mode: 'HTML',
             type: 'photo',
             media: { source: source },
             caption: text,
@@ -447,7 +455,7 @@ export class TelegramService {
           messageId,
           undefined,
           text ? text : 'asdasdasd',
-          { reply_markup: markup ?? undefined },
+          { reply_markup: markup ?? undefined, parse_mode: 'HTML' },
         );
       }
     } catch (error) {
@@ -473,9 +481,10 @@ export class TelegramService {
             chatId,
             {
               source: source,
+
               filename: fileName,
             },
-            { caption: caption || '' },
+            { parse_mode: 'HTML', caption: caption || '' },
           );
         }
       }
@@ -525,6 +534,7 @@ export class TelegramService {
           ),
         },
         {
+          parse_mode: 'HTML',
           reply_markup: message.inline_keyboard,
           caption: message.text || '',
         },

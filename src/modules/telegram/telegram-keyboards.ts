@@ -122,76 +122,85 @@ abstract class BaseRequestMenu {
     const isCard = this.request.paymentMethod?.nameEn === 'CARD';
     if (isCard) {
       const cardMethods = this.request.cardMethods || [];
+      console.log('cardMethods', this.request);
       const card =
         cardMethods.length > 0 && cardMethods[0]?.card
-          ? `💳Номер карты: ${cardMethods[0].card}\n`
+          ? `💳<b>Номер карты:</b> <code>${cardMethods[0].card}</code>\n`
           : '';
       const bank = '-';
       const amount = this.request.amount || 0;
       const rateValue = this.request.rates?.rate;
-      const rate = rateValue ? `💱Курс: ${rateValue}\n` : '';
-      const usdt = rateValue
-        ? `💎USDT: ${(amount / rateValue).toFixed(2)}\n`
+      const rate = rateValue
+        ? `💱<b>Курс:</b> <code>${rateValue}</code>\n`
         : '';
-      const isBlacklisted =
-        cardMethods[0]?.blackList && cardMethods[0].blackList.length > 0;
+      const usdt = rateValue
+        ? `💎<b>USDT:</b> <code>${(amount / rateValue).toFixed(2)}</code>\n`
+        : '';
+      const isBlacklisted = (cardMethods[0]?.blackList || []).length > 0;
       const blacklist =
         isBlacklisted && cardMethods[0]?.blackList?.[0]
-          ? `🚫Карта в чёрном списке: ${cardMethods[0].blackList[0].reason}\n`
+          ? '🚫Карта в чёрном списке: ' + cardMethods[0].blackList[0].reason
           : '';
+      console.log('blacklist', blacklist, 'accessType', currentAccessType);
       const acceptedBy = this.request.activeUser
-        ? `Принята: @${this.request.activeUser.username}\n`
+        ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
         : '';
       const payedBy = this.request.payedByUser?.username
-        ? 'Оплачено: @' + this.request.payedByUser.username + '\n'
+        ? '<b>Оплачено:</b> @' + this.request.payedByUser.username + '\n'
         : '';
       const vendor = this.request.vendor?.title || '-';
       return (
-        `✉️Заявка номер: ${this.request.id ?? '-'}\n` +
-        `🏦Банк: ${bank}\n` +
-        `💵Сумма: ${amount}\n` +
+        `✉️<b>Заявка номер:</b> <code>${this.request.id ?? '-'}</code>\n` +
+        `🏦<b>Банк:</b> <i>${bank}</i>\n` +
+        `💵<b>Сумма:</b> <code>${amount}</code>\n` +
         rate +
         usdt +
         card +
         (currentAccessType === 'ADMIN' ? acceptedBy : '') +
         (currentAccessType === 'ADMIN' ? payedBy : '') +
-        (currentAccessType === 'ADMIN' ? `Партнер: ${vendor}` : '') +
-        (currentAccessType !== 'PUBLIC' ? blacklist : '')
+        (currentAccessType === 'ADMIN'
+          ? `<b>Партнер:</b> <i>${vendor}</i>\n`
+          : '') +
+        (currentAccessType === 'ADMIN' || currentAccessType === 'WORKER'
+          ? blacklist
+          : '')
       );
     } else if (this.request.paymentMethod?.nameEn === 'IBAN') {
       const ibanMethods = this.request.ibanMethods || [];
       const name =
         ibanMethods.length > 0 && ibanMethods[0]?.name
-          ? `👤Имя: ${ibanMethods[0].name}\n`
+          ? `👤<b>Имя:</b> <i>${ibanMethods[0].name}</i>\n`
           : '';
       const iban =
         ibanMethods.length > 0 && ibanMethods[0]?.iban
-          ? `🏦IBAN: ${ibanMethods[0].iban}\n`
+          ? `🏦<b>IBAN:</b> <code>${ibanMethods[0].iban}</code>\n`
           : '';
       const inn =
         ibanMethods.length > 0 && ibanMethods[0]?.inn
-          ? `📋ИНН: ${ibanMethods[0].inn}\n`
+          ? `📋<b>ИНН:</b> <code>${ibanMethods[0].inn}</code>\n`
           : '';
       const comment =
         ibanMethods.length > 0 && ibanMethods[0]?.comment
-          ? `💬Комментарий: ${ibanMethods[0].comment}\n`
+          ? `💬<b>Комментарий:</b> <i>${ibanMethods[0].comment}</i>\n`
           : '';
       const amount = this.request.amount || 0;
       const rateValue = this.request.rates?.rate;
-      const rate = rateValue ? `💱Курс: ${rateValue}\n` : '';
+      const rate = rateValue
+        ? `💱<b>Курс:</b> <code>${rateValue}</code>\n`
+        : '';
       const usdt = rateValue
-        ? `💎USDT: ${(amount / rateValue).toFixed(2)}\n`
+        ? `💎<b>USDT:</b> <code>${(amount / rateValue).toFixed(2)}</code>\n`
         : '';
       const acceptedBy = this.request.activeUser
-        ? `Принята: @${this.request.activeUser.username}\n`
+        ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
         : '';
       const payedBy = this.request.payedByUser?.username
-        ? 'Оплачено: @' + this.request.payedByUser.username + '\n'
+        ? '<b>Оплачено:</b> @' + this.request.payedByUser.username + '\n'
         : '';
 
       return (
-        `✉️Заявка номер: ${this.request.id ?? '-'}\n` +
-        `💵Сумма: ${amount}\n` +
+        `✉️<b>Заявка номер:</b> <code>${this.request.id ?? '-'}</code>\n` +
+        `💵<b>Сумма:</b> <code>${amount}</code>\n` +
         rate +
         usdt +
         name +
@@ -204,7 +213,7 @@ abstract class BaseRequestMenu {
     }
 
     // Возвращаем базовое сообщение если тип платежа не распознан
-    return `✉️Заявка номер: ${this.request.id ?? '-'}\nНеизвестный тип платежа`;
+    return `✉️<b>Заявка номер:</b> <code>${this.request.id ?? '-'}</code>\nНеизвестный тип платежа`;
   }
 
   inWork(url?: string, requestId?: string): MenuWithMedia {

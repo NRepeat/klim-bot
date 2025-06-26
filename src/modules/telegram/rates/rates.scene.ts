@@ -1,12 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  SceneEnter,
-  Ctx,
-  On,
-  SceneLeave,
-  Wizard,
-  WizardStep,
-} from 'nestjs-telegraf';
+import { Ctx, On, SceneLeave, Wizard, WizardStep } from 'nestjs-telegraf';
 import { RatesService } from 'src/modules/rates/rates.service';
 import { CustomSceneContext } from 'src/types/types';
 import { Markup } from 'telegraf';

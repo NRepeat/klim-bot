@@ -49,7 +49,7 @@ export default class PaymentWizard {
     const inline_keyboard = Markup.inlineKeyboard([
       [Markup.button.callback('Отмена', 'cancel_payment_photo_proceed')],
     ]);
-    const msg = await ctx.reply('Send photo message', {
+    const msg = await ctx.reply('Пожалуйста прикрепите квитанцию', {
       reply_markup: inline_keyboard.reply_markup,
     });
     ctx.session.messagesToDelete = ctx.session.messagesToDelete || [];

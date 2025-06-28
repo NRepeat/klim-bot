@@ -20,6 +20,13 @@ export class RequestRepository {
     return this.prisma.message.findMany({
       where: { requestId, accessType: 'PUBLIC' },
       orderBy: { createdAt: 'asc' },
+      include: {
+        paymentRequests: {
+          include: {
+            vendor: true,
+          },
+        },
+      },
     });
   }
   async findAndDeleteRequestMessageByRequestId(

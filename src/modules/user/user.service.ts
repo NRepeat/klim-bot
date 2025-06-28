@@ -3,13 +3,14 @@ import { Context } from 'telegraf';
 import UserRepository from './user.repo';
 
 import { User } from 'generated/prisma';
-import { SerializedMessage, UserRole } from 'src/types/types';
+import { SerializedMessage, SerializedUser, UserRole } from 'src/types/types';
 
 @Injectable()
 export class UserService {
   // private readonly logger = new Logger(TelegramService.name);
 
   constructor(private readonly userRepository: UserRepository) {}
+
   async getAllUsers() {
     const users = await this.userRepository.findAll();
     return users;
@@ -66,15 +67,18 @@ export class UserService {
     return admins;
   }
   async isAdminChat(ctx: Context): Promise<boolean> {
-    const chatId = ctx.chat?.id;
+    console.log(ctx.from);
+    const userId = ctx.from?.id;
+    console.log(`Checking if user is admin: ${userId}`);
     const admins = await this.getAdmins();
-    if (!chatId || !admins) {
+    if (!userId || !admins) {
       return false;
     }
 
-    return admins?.users.some(
-      (admin) => Number(admin.telegramId) === Number(chatId),
-    );
+    return admins?.users.some((user) => {
+      console.log(`Checking user: ${user.telegramId}`);
+      return Number(user.telegramId) === Number(userId);
+    });
   }
   async appendRequestToUser(userId: string, requestId: string): Promise<void> {
     return this.userRepository.appendRequestToUser(userId, requestId);
@@ -101,5 +105,9 @@ export class UserService {
       requestId,
       userId,
     );
+  }
+  async updateUser(user: Partial<SerializedUser>, id: number) {
+    const updatedUser = await this.userRepository.updateUser(user, id);
+    return updatedUser;
   }
 }

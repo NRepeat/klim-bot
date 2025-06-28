@@ -93,18 +93,38 @@ export class TelegramService {
         const newCaption = newMessage.text ? newMessage.text : message.text;
         if (chatId && messageId) {
           if (newMessage.source) {
-            await this.bot.telegram.editMessageMedia(
-              chatId,
-              messageId,
-              undefined,
-              {
-                parse_mode: 'HTML',
-                caption: newCaption || '',
-                type: 'photo',
-                media: { source: newMessage.source },
-              },
-              { reply_markup: newMessage.inline_keyboard },
+            console.log(
+              message.paymentRequests?.vendor,
+              'newMessage.source',
+              newMessage.source,
             );
+            if (!message.paymentRequests?.vendor.showReceipt) {
+              await this.bot.telegram.editMessageMedia(
+                chatId,
+                messageId,
+                undefined,
+                {
+                  parse_mode: 'HTML',
+                  caption: newCaption || '',
+                  type: 'photo',
+                  media: { source: createReadStream('./src/assets/0056.jpg') },
+                },
+                { reply_markup: newMessage.inline_keyboard },
+              );
+            } else {
+              await this.bot.telegram.editMessageMedia(
+                chatId,
+                messageId,
+                undefined,
+                {
+                  parse_mode: 'HTML',
+                  caption: newCaption || '',
+                  type: 'photo',
+                  media: { source: newMessage.source },
+                },
+                { reply_markup: newMessage.inline_keyboard },
+              );
+            }
           } else {
             await this.bot.telegram.editMessageCaption(
               chatId,

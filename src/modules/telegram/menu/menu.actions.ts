@@ -31,7 +31,6 @@ export class MenuActions {
       });
     } else {
       await ctx.reply('Welcome');
-      const inline_keyboard = Markup.keyboard([[{ text: 'Menu' }]]).resize();
       await ctx.reply('Welcome', {
         reply_markup: undefined,
       });
@@ -106,6 +105,10 @@ export class MenuActions {
     }[] = [];
     for (const vendor of vendors) {
       const chatId = vendor.chatId?.toString();
+      if (!vendor.work) {
+        console.log(`Vendor ${vendor.title} is on pause, skipping...`);
+        continue;
+      }
       if (!chatId) continue;
       const lastReportedAt = vendor.lastReportedAt || new Date(0);
       const requests =
@@ -157,13 +160,22 @@ export class MenuActions {
     }
     await ctx.reply(`Отчеты отправлены ${sentCount} вендорам.`);
   }
-  @Command('registration')
+  @Command('reg')
   async registration(@Ctx() ctx: Context) {
-    if (await this.utilsService.isChatRegistrated(ctx)) {
-      await ctx.reply('You are already registered');
+    const chatId = ctx.chat?.id;
+    const isAdmin = await this.userService.isAdminChat(ctx);
+    console.log(`Chat ID: ${chatId}, isAdmin: ${isAdmin}`);
+    if (!chatId) {
+      await ctx.reply('Chat ID not found');
       return;
     }
-    await this.vendorService.createVendor(ctx);
+    if (isAdmin) {
+      if (await this.utilsService.isChatRegistrated(ctx)) {
+        await ctx.reply('You are already registered');
+        return;
+      }
+      await this.vendorService.createVendor(ctx);
+    }
   }
 
   @Hears('Menu')
@@ -210,48 +222,64 @@ export class MenuActions {
   }
   @Command('pause')
   async pause(@Ctx() ctx: Context) {
-    const chatId = ctx.chat?.id;
-    if (!chatId) {
-      await ctx.reply('Chat ID not found');
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.reply('User ID not found');
       return;
     }
-    const vendor = await this.vendorService.getVendorByChatId(ctx.chat?.id);
-    if (!vendor) {
-      await ctx.reply('You are not registered as a vendor');
+    const isAdmin = await this.userService.isAdminChat(ctx);
+    if (!isAdmin) {
+      await ctx.reply('You are not allowed to use this command');
       return;
     }
-    if (!vendor.work) {
-      await ctx.reply('You are already on pause');
-      return;
-    }
-    await this.vendorService.updateVendor({
-      ...vendor,
-      work: false,
-    });
+    await this.userService.updateUser(
+      {
+        onPause: true,
+      },
+      userId,
+    );
+    await ctx.reply('You are now on pause');
+
+    // const chatId = ctx.chat?.id;
+    // if (!chatId) {
+    //   await ctx.reply('Chat ID not found');
+    //   return;
+    // }
+    // const vendor = await this.vendorService.getVendorByChatId(ctx.chat?.id);
+    // if (!vendor) {
+    //   await ctx.reply('You are not registered as a vendor');
+    //   return;
+    // }
+    // if (!vendor.work) {
+    //   await ctx.reply('You are already on pause');
+    //   return;
+    // }
+    // await this.vendorService.updateVendor({
+    //   ...vendor,
+    //   work: false,
+    // });
     await ctx.reply('You are now on pause');
   }
 
   @Command('resume')
   async resume(@Ctx() ctx: Context) {
-    const chatId = ctx.chat?.id;
-    if (!chatId) {
-      await ctx.reply('Chat ID not found');
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.reply('User ID not found');
       return;
     }
-    const vendor = await this.vendorService.getVendorByChatId(ctx.chat?.id);
-    if (!vendor) {
-      await ctx.reply('You are not registered as a vendor');
+    const isAdmin = await this.userService.isAdminChat(ctx);
+    if (!isAdmin) {
+      await ctx.reply('You are not allowed to use this command');
       return;
     }
-    if (vendor.work) {
-      await ctx.reply('You are not on pause');
-      return;
-    }
-    await this.vendorService.updateVendor({
-      ...vendor,
-      work: true,
-    });
-    await ctx.reply('You are now active');
+    await this.userService.updateUser(
+      {
+        onPause: false,
+      },
+      userId,
+    );
+    await ctx.reply('You are now on pause');
   }
 
   @Command('all_rates')

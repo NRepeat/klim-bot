@@ -69,7 +69,7 @@ model Vendors {
 model PaymentRequests {
   id                        String                      @id @default(cuid())
   vendorId                  String
-  vendor                    Vendors                     @relation(fields: [vendorId], references: [id])
+  vendor                    Vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   userId                    String?
   user                      User?                       @relation(fields: [userId], references: [id])
   cardMethods               CardPaymentRequestsMethod[]

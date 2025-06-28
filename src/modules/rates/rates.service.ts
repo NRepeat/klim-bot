@@ -71,13 +71,21 @@ export class RatesService {
   async getAllPublicRatesMarkupMessage() {
     const allRates = await this.getAllRates();
     if (!allRates.length) return 'Нет доступных курсов.';
-    // Сортируем: сначала Card, затем остальные, внутри Card — по maxAmount по убыванию
+    // Сортируем: сначала Card, затем остальные, внутри Card — сначала + (maxAmount === null/0), потом по minAmount по убыванию
+    type Rate = (typeof allRates)[number];
+    function plusFirstSort(a: Rate, b: Rate) {
+      const aPlus = !a.maxAmount || a.maxAmount === 0;
+      const bPlus = !b.maxAmount || b.maxAmount === 0;
+      if (aPlus && !bPlus) return -1;
+      if (!aPlus && bPlus) return 1;
+      return (b.minAmount ?? 0) - (a.minAmount ?? 0);
+    }
     const cardRates = allRates
       .filter((r) => r.paymentMethod.nameEn.toLowerCase() === 'card')
-      .sort((a, b) => (b.maxAmount ?? 0) - (a.maxAmount ?? 0));
-    const otherRates = allRates.filter(
-      (r) => r.paymentMethod.nameEn.toLowerCase() !== 'card',
-    );
+      .sort(plusFirstSort);
+    const otherRates = allRates
+      .filter((r) => r.paymentMethod.nameEn.toLowerCase() !== 'card')
+      .sort(plusFirstSort);
     const sortedRates = [...cardRates, ...otherRates];
     // Группируем по валюте и методу оплаты
     const grouped: Record<string, string[]> = {};
@@ -222,6 +230,10 @@ export class RatesService {
     }
     for (const vendor of allVendors) {
       try {
+        if (!vendor.work) {
+          console.log(`Vendor ${vendor.id} is on pause, skipping...`);
+          continue;
+        }
         if (vendor.lastAllRateMessageId == null) {
           const msg = await ctx.telegram.sendMessage(
             Number(vendor.chatId),

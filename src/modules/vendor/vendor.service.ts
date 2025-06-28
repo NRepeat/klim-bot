@@ -3,6 +3,7 @@ import { VendorRepository } from './vendor.repo';
 import { SerializedVendors } from 'src/types/types';
 import { Vendors } from 'generated/prisma';
 import { Context } from 'telegraf';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class VendorService {
@@ -16,12 +17,10 @@ export class VendorService {
       showReceipt: vendor.showReceipt,
       title: vendor.title,
       token: vendor.token,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       lastAllRateMessageId: vendor.lastAllRateMessageId
         ? vendor.lastAllRateMessageId
         : null,
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       lastAllRatesSentAt: vendor.lastAllRatesSentAt
         ? vendor.lastAllRatesSentAt
         : null,
@@ -74,13 +73,18 @@ export class VendorService {
     if (existingVendor) {
       return existingVendor;
     }
+    const chat = ctx.message?.chat as {
+      id: number;
+      title?: string;
+      type: string;
+    };
     const data: SerializedVendors = {
       chatId: BigInt(chatId),
       work: true,
       showReceipt: true,
       lastReportedAt: new Date(),
-      title: ctx.from?.username || 'Unknown Vendor',
-      token: '',
+      title: chat.title || 'Unknown Vendor',
+      token: randomUUID(),
       lastAllRateMessageId: null,
       lastAllRatesSentAt: null,
     };

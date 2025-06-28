@@ -10,6 +10,18 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export default class UserRepository implements Repository<SerializedUser> {
   constructor(private readonly prisma: PrismaService) {}
+
+  async updateUser(
+    user: Partial<SerializedUser>,
+    id: number,
+  ): Promise<SerializedUser> {
+    const updatedUser = await this.prisma.user.update({
+      where: { telegramId: BigInt(id) },
+      data: user,
+    });
+    return updatedUser;
+  }
+
   async findAllWorkers() {
     return this.prisma.user.findMany({
       where: {

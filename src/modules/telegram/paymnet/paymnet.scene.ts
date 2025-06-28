@@ -147,10 +147,7 @@ export default class PaymentWizard {
   }
   async deleteSceneMenuMessages(ctx: CustomSceneContext) {
     try {
-      await this.telegramService.deleteAllTelegramMessages(
-        ctx.session.requestMenuMessageId,
-        ctx.chat?.id,
-      );
+      await ctx.deleteMessages(ctx.session.requestMenuMessageId || []);
       ctx.session.requestMenuMessageId = [];
     } catch (error) {
       console.error('Failed to delete scene messages:', error);

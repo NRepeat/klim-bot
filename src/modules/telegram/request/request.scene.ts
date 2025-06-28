@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { createReadStream } from 'fs';
 import { Wizard, WizardStep, Ctx, SceneLeave, On } from 'nestjs-telegraf';
 import { RatesService } from 'src/modules/rates/rates.service';
 import { RequestService } from 'src/modules/request/request.service';

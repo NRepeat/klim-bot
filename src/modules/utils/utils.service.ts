@@ -18,10 +18,12 @@ export class UtilsService {
     private readonly ratesService: RatesService,
   ) {}
   async isChatRegistrated(ctx: Context) {
-    if (
-      (await this.userService.isAdminChat(ctx)) ||
-      (await this.vendorService.isVendorChat(ctx))
-    ) {
+    const existVendor = await this.vendorService.isVendorChat(ctx);
+    console.log(
+      `Checking if chat ${ctx.chat?.id} is registered: ${existVendor}`,
+    );
+    // Если
+    if (existVendor) {
       return true;
     }
     return false;
@@ -30,21 +32,21 @@ export class UtilsService {
   async getAllPublicRatesMarkupMessage() {
     const allRates = await this.ratesService.getAllRates();
     if (!allRates.length) return 'Нет доступных курсов.';
-    // Сортируем: сначала Card, затем остальные, внутри Card — по minAmount по убыванию, + вверху
+    // Сортируем: сначала Card, затем остальные, внутри Card — сначала + (maxAmount === null/0), потом по minAmount по убыванию
+    type Rate = (typeof allRates)[number];
+    function plusFirstSort(a: Rate, b: Rate) {
+      const aPlus = !a.maxAmount || a.maxAmount === 0;
+      const bPlus = !b.maxAmount || b.maxAmount === 0;
+      if (aPlus && !bPlus) return -1;
+      if (!aPlus && bPlus) return 1;
+      return (b.minAmount ?? 0) - (a.minAmount ?? 0);
+    }
     const cardRates = allRates
       .filter((r) => r.paymentMethod.nameEn.toLowerCase() === 'card')
-      .sort((a, b) => {
-        if (a.minAmount === null && b.minAmount !== null) return -1;
-        if (a.minAmount !== null && b.minAmount === null) return 1;
-        return (b.minAmount ?? 0) - (a.minAmount ?? 0);
-      });
+      .sort(plusFirstSort);
     const otherRates = allRates
       .filter((r) => r.paymentMethod.nameEn.toLowerCase() !== 'card')
-      .sort((a, b) => {
-        if (a.minAmount === null && b.minAmount !== null) return -1;
-        if (a.minAmount !== null && b.minAmount === null) return 1;
-        return (b.minAmount ?? 0) - (a.minAmount ?? 0);
-      });
+      .sort(plusFirstSort);
     const sortedRates = [...cardRates, ...otherRates];
     // Группируем по валюте и методу оплаты
     const grouped: Record<string, string[]> = {};

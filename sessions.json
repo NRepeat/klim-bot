@@ -21,14 +21,8 @@
     {
       "id": "8045572818:8045572818",
       "data": {
-        "__scenes": {
-          "current": "user-vendor-wizard",
-          "state": {},
-          "cursor": 1
-        },
-        "messagesToDelete": [
-          2076
-        ],
+        "__scenes": {},
+        "messagesToDelete": [],
         "customState": "",
         "requestType": "iban"
       }
@@ -36,9 +30,39 @@
     {
       "id": "375905624:375905624",
       "data": {
-        "__scenes": {},
-        "messagesToDelete": [],
+        "__scenes": {
+          "current": "user-vendor-wizard",
+          "state": {},
+          "cursor": 1
+        },
+        "messagesToDelete": [
+          2125
+        ],
         "customState": ""
+      }
+    },
+    {
+      "id": "-4783895188:8045572818",
+      "data": {
+        "__scenes": {}
+      }
+    },
+    {
+      "id": "-1002887877945:1087968824",
+      "data": {
+        "__scenes": {}
+      }
+    },
+    {
+      "id": "-4783895188:375905624",
+      "data": {
+        "__scenes": {}
+      }
+    },
+    {
+      "id": "-1002887877945:375905624",
+      "data": {
+        "__scenes": {}
       }
     }
   ]

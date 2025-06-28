@@ -24,7 +24,11 @@ export type SerializedMessage = Omit<
   | 'adminRequestPhotoMessageId'
   | 'workerRequestPhotoMessageId'
   | 'vendorRequestPhotoMessageId'
->;
+> & {
+  paymentRequests?: {
+    vendor: Vendors;
+  };
+};
 export type SerializedModel<T> = Omit<T, 'createdAt' | 'updatedAt' | 'id'>;
 export type IbanRequestType = Omit<
   SerializedRequest,

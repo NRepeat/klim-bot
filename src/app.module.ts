@@ -53,19 +53,15 @@ export class AppModule implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // Регистрация команд Telegram
     const { Telegraf } = await import('telegraf');
     const botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN') || '';
     if (!botToken) return;
     const bot = new Telegraf(botToken);
-    // Команды по умолчанию для всех
     await bot.telegram.setMyCommands(
       [
         { command: 'start', description: 'Начать работу с ботом' },
         { command: 'report', description: 'Отправить отчет' },
         { command: 'pay', description: 'Создать заказ' },
-        { command: 'pause', description: 'Остановить бота' },
-        { command: 'resume', description: 'Запустить бота' },
         { command: 'all_rates', description: 'Показать все курсы' },
       ],
       { scope: { type: 'default' } },
@@ -77,8 +73,6 @@ export class AppModule implements OnModuleInit {
         { command: 'start', description: 'Начать работу с ботом' },
         { command: 'report', description: 'Отправить отчет' },
         { command: 'pay', description: 'Создать заказ' },
-        { command: 'pause', description: 'Остановить бота' },
-        { command: 'resume', description: 'Запустить бота' },
         { command: 'all_rates', description: 'Показать все курсы' },
       ],
       { scope: { type: 'all_private_chats' } },
@@ -89,14 +83,11 @@ export class AppModule implements OnModuleInit {
       [
         { command: 'report', description: 'Отправить отчет' },
         { command: 'pay', description: 'Создать заказ' },
-        { command: 'pause', description: 'Остановить бота' },
-        { command: 'resume', description: 'Запустить бота' },
         { command: 'all_rates', description: 'Показать все курсы' },
       ],
       { scope: { type: 'all_group_chats' } },
     );
 
-    // Команды только для админов (пример для чатов-админов)
     const admin = await this.userService.getAdmins();
     if (!admin || !admin.users || admin.users.length === 0) {
       console.warn('No admins found, skipping admin command registration');
@@ -112,6 +103,8 @@ export class AppModule implements OnModuleInit {
                 description: 'Отправить отчет всем',
               },
               { command: 'all_rates', description: 'Показать все курсы' },
+              { command: 'pause', description: 'Остановить работу' },
+              { command: 'resume', description: 'Запустить работу' },
             ],
             { scope: { type: 'chat', chat_id: Number(user.telegramId) } },
           );

@@ -21,8 +21,14 @@
     {
       "id": "8045572818:8045572818",
       "data": {
-        "__scenes": {},
-        "messagesToDelete": [],
+        "__scenes": {
+          "current": "user-vendor-wizard",
+          "state": {},
+          "cursor": 1
+        },
+        "messagesToDelete": [
+          2076
+        ],
         "customState": "",
         "requestType": "iban"
       }

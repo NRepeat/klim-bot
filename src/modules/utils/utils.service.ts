@@ -9,11 +9,13 @@ import {
 } from 'src/types/types';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import * as sharp from 'sharp';
+import { RatesService } from '../rates/rates.service';
 @Injectable()
 export class UtilsService {
   constructor(
     private readonly userService: UserService,
     private readonly vendorService: VendorService,
+    private readonly ratesService: RatesService,
   ) {}
   async isChatRegistrated(ctx: Context) {
     if (
@@ -24,6 +26,47 @@ export class UtilsService {
     }
     return false;
   }
+
+  async getAllPublicRatesMarkupMessage() {
+    const allRates = await this.ratesService.getAllRates();
+    if (!allRates.length) return 'Нет доступных курсов.';
+    // Сортируем: сначала Card, затем остальные, внутри Card — по minAmount по убыванию, + вверху
+    const cardRates = allRates
+      .filter((r) => r.paymentMethod.nameEn.toLowerCase() === 'card')
+      .sort((a, b) => {
+        if (a.minAmount === null && b.minAmount !== null) return -1;
+        if (a.minAmount !== null && b.minAmount === null) return 1;
+        return (b.minAmount ?? 0) - (a.minAmount ?? 0);
+      });
+    const otherRates = allRates
+      .filter((r) => r.paymentMethod.nameEn.toLowerCase() !== 'card')
+      .sort((a, b) => {
+        if (a.minAmount === null && b.minAmount !== null) return -1;
+        if (a.minAmount !== null && b.minAmount === null) return 1;
+        return (b.minAmount ?? 0) - (a.minAmount ?? 0);
+      });
+    const sortedRates = [...cardRates, ...otherRates];
+    // Группируем по валюте и методу оплаты
+    const grouped: Record<string, string[]> = {};
+    for (const rate of sortedRates) {
+      const header = `💱 <b>${rate.currency.name}</b> — <i>${rate.paymentMethod.nameEn}</i>`;
+      const line = `▫️ <b>${rate.minAmount}${
+        rate.maxAmount !== null && rate.maxAmount > 0
+          ? ' - ' + rate.maxAmount
+          : '+'
+      }</b> — <b>${rate.rate}</b>`;
+      if (!grouped[header]) grouped[header] = [];
+      grouped[header].push(line);
+    }
+    const message: string[] = ['<b>Актуальные курсы:</b>\n'];
+    for (const header in grouped) {
+      message.push(header);
+      message.push(...grouped[header]);
+      message.push('');
+    }
+    return message.join('\n');
+  }
+  // Группируем по header
 
   buildRequestMessage(
     request: FullRequestType,

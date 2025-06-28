@@ -27,23 +27,6 @@ export default class PaymentWizard {
     private readonly requestService: RequestService,
   ) {}
   paymentPhotos: PaymentPhoto[] = [];
-
-  //   @On('callback_query')
-  //   async onCallBackQuery(@Context() ctx: CustomSceneContext) {
-  //     const callbackQuery = ctx.callbackQuery;
-  //     if (!callbackQuery) {
-  //       console.error('No callback query found');
-  //       return;
-  //     } else if ('data' in callbackQuery) {
-  //       if (callbackQuery.data.includes('proceeded_payment_')) {
-  //         console.log(callbackQuery.data);
-  //         await this.cancel(ctx);
-  //       }
-  //     } else {
-  //       console.error('Unknown callback query data:', callbackQuery);
-  //       await ctx.answerCbQuery('Unknown action');
-  //     }
-  //   }
   @WizardStep(0)
   async proceedFirstStep(@Ctx() ctx: CustomSceneContext) {
     const inline_keyboard = Markup.inlineKeyboard([
@@ -186,40 +169,4 @@ export default class PaymentWizard {
       console.error('Failed to update scene menu message:', error);
     }
   }
-  // @WizardStep(2)
-  // async proceedPaymentStep(@Ctx() ctx: CustomSceneContext) {
-  //   console.log('proceedPaymentStep');
-  //   try {
-  //     const message = ctx.message as { photo?: PaymentPhoto[] };
-  //     if (message && Array.isArray(message.photo)) {
-  //       // Сохраняем все фото в массив
-  //       this.paymentPhotos = message.photo.map((p) => ({ ...p }));
-  //       await ctx.reply('Фото(ы) сохранены!');
-  //       // await ctx.scene.leave();
-  //       const state = ctx.wizard.state as { requestId: string };
-  //       console.log('State:', ctx.wizard.state);
-  //       const requestId = state.requestId;
-  //       const buffers = await Promise.all(
-  //         this.paymentPhotos.map((photo) =>
-  //           this.utilsService.downloadTelegramPhoto('asd', photo.file_id),
-  //         ),
-  //       );
-
-  //       const mergedImageBuffer =
-  //         await this.utilsService.mergeImagesVertically(buffers);
-
-  //       await this.telegramService.updateAllWorkersMessagesWithRequestsId(
-  //         {
-  //           source: mergedImageBuffer,
-  //           text: 'Пользователь отправил фото подтверждения оплаты',
-  //         },
-  //         requestId,
-  //       );
-  //       ctx.wizard.selectStep(2);
-  //     }
-  //   } catch (error) {
-  //     // await ctx.scene.leave();
-  //     throw new Error('Error enter scene');
-  //   }
-  // }
 }

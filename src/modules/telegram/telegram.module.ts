@@ -14,6 +14,7 @@ import { CreateRequestWizard } from './request/request.scene';
 import { RequestActions } from './request/request.actions';
 import PaymentWizard from './paymnet/paymnet.scene';
 import { ReportModule } from '../report/report.module';
+import { UserVendorWizard } from './menu/user-vendor.wizard';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ReportModule } from '../report/report.module';
     CreateRatesScene,
     CreateRequestWizard,
     PaymentWizard,
+    UserVendorWizard,
     RequestActions,
     MenuActions,
     RatesActions,

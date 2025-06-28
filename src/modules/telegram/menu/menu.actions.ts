@@ -1,4 +1,4 @@
-import { Command, Ctx, Hears, Start, Update } from 'nestjs-telegraf';
+import { Command, Ctx, Hears, On, Start, Update } from 'nestjs-telegraf';
 import ReportService from 'src/modules/report/report.service';
 import { RequestService } from 'src/modules/request/request.service';
 import { UserService } from 'src/modules/user/user.service';
@@ -7,6 +7,7 @@ import { VendorService } from 'src/modules/vendor/vendor.service';
 import { FullRequestType } from 'src/types/types';
 import { Context, Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
+import { SceneContext } from 'telegraf/typings/scenes';
 
 @Update()
 export class MenuActions {
@@ -91,6 +92,11 @@ export class MenuActions {
   }
   @Command('report_all')
   async reportAll(@Ctx() ctx: Context) {
+    const isAdmin = await this.userService.isAdminChat(ctx);
+    if (!isAdmin) {
+      await ctx.reply('You are not allowed to use this command');
+      return;
+    }
     const vendors = await this.vendorService.getAllVendors();
     let sentCount = 0;
     const allReports: {
@@ -168,9 +174,98 @@ export class MenuActions {
       reply_markup: inline_keyboard.reply_markup,
     });
   }
+  @Hears('Показать пользователей')
+  async onUsersShow(@Ctx() ctx: Context) {
+    // const newButtonCallback = Markup.button.callback('New user', 'new_user');
+    // const inline_keyboard = Markup.inlineKeyboard([[newButtonCallback]]);
+    // await ctx.reply('Please choose an option:', {
+    //   reply_markup: inline_keyboard.reply_markup,
+    // });
+    const users = await this.userService.getAllUsers();
+    if (users.length === 0) {
+      await ctx.reply('No users found');
+      return;
+    }
+    const userList = users
+      .map((user) => {
+        const username = user.username
+          ? user.username[0] === '@'
+            ? user.username
+            : `@${user.username}`
+          : '@unknown';
+        const paddedUsername = username.padEnd(20, ' ');
+        const pauseStatus = user.onPause ? '🔴' : '🟢';
+        const pauseText = user.onPause ? 'на паузе' : 'активен ';
+        return `<code>${paddedUsername}</code> ${pauseStatus} <i>${pauseText}</i>`;
+      })
+      .join('\n');
 
-  @Hears('hi')
-  async onHi(@Ctx() ctx: Context) {
-    await ctx.reply('Hello there!');
+    const message = `<b>📋 Список пользователей</b>\n\n${userList}\n`;
+
+    await ctx.reply(message, {
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [] },
+    });
+    console.log(`Users: ${userList}`);
+  }
+  @Command('pause')
+  async pause(@Ctx() ctx: Context) {
+    const chatId = ctx.chat?.id;
+    if (!chatId) {
+      await ctx.reply('Chat ID not found');
+      return;
+    }
+    const vendor = await this.vendorService.getVendorByChatId(ctx.chat?.id);
+    if (!vendor) {
+      await ctx.reply('You are not registered as a vendor');
+      return;
+    }
+    if (!vendor.work) {
+      await ctx.reply('You are already on pause');
+      return;
+    }
+    await this.vendorService.updateVendor({
+      ...vendor,
+      work: false,
+    });
+    await ctx.reply('You are now on pause');
+  }
+
+  @Command('resume')
+  async resume(@Ctx() ctx: Context) {
+    const chatId = ctx.chat?.id;
+    if (!chatId) {
+      await ctx.reply('Chat ID not found');
+      return;
+    }
+    const vendor = await this.vendorService.getVendorByChatId(ctx.chat?.id);
+    if (!vendor) {
+      await ctx.reply('You are not registered as a vendor');
+      return;
+    }
+    if (vendor.work) {
+      await ctx.reply('You are not on pause');
+      return;
+    }
+    await this.vendorService.updateVendor({
+      ...vendor,
+      work: true,
+    });
+    await ctx.reply('You are now active');
+  }
+
+  @Command('all_rates')
+  async allRates(@Ctx() ctx: Context) {
+    const allRates = await this.utilsService.getAllPublicRatesMarkupMessage();
+    if (!allRates) {
+      await ctx.reply('No rates available');
+      return;
+    }
+    await ctx.reply(allRates, { parse_mode: 'HTML' });
+  }
+  @Hears('Показать поставщиков')
+  async onVendorShow(@Ctx() ctx: SceneContext) {
+    console.log('Showing users');
+    await ctx.scene.enter('user-vendor-wizard');
   }
 }

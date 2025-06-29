@@ -251,7 +251,7 @@ export class TelegramService {
   ) {
     try {
       const admins = await this.userService.getAllActiveAdmins();
-
+      console.log('Admins:', admins);
       if (!admins || admins.length === 0) {
         this.logger.warn('No active admins found');
         return;

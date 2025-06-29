@@ -8,7 +8,18 @@ import { randomUUID } from 'crypto';
 @Injectable()
 export class VendorService {
   constructor(private readonly vendorRepository: VendorRepository) {}
-
+  async getVendorByToken(token: string): Promise<Vendors | null> {
+    if (!token) {
+      console.error('Token is required to get vendor');
+      throw new Error('Token is required to get vendor');
+    }
+    const vendor = await this.vendorRepository.getByToken(token);
+    if (!vendor) {
+      console.error(`Vendor with token ${token} not found`);
+      throw new Error(`Vendor with token ${token} not found`);
+    }
+    return vendor;
+  }
   serializeVendor(vendor: Vendors): Partial<SerializedVendors> {
     const result: Partial<SerializedVendors> = {
       work: vendor.work,

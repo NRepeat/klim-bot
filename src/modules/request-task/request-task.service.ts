@@ -145,6 +145,7 @@ export class RequestTaskService {
       };
 
       const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
+      console.log('Has admin messages:', hasA);
       if (!hasA) {
         console.log(`Request ${request.id} has admin messages: ${hasA}`);
         await this.telegramService.sendPhotoMessageToAllAdmins(

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Ctx, SceneLeave, Wizard, WizardStep } from 'nestjs-telegraf';
+import { Ctx, On, SceneLeave, Wizard, WizardStep } from 'nestjs-telegraf';
 import { CustomSceneContext, FullRequestType } from 'src/types/types';
 import { Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
@@ -27,6 +27,7 @@ export default class PaymentWizard {
     private readonly requestService: RequestService,
   ) {}
   paymentPhotos: PaymentPhoto[] = [];
+
   @WizardStep(0)
   async proceedFirstStep(@Ctx() ctx: CustomSceneContext) {
     const inline_keyboard = Markup.inlineKeyboard([
@@ -121,10 +122,80 @@ export default class PaymentWizard {
 
       this.paymentPhotos = [];
     } else {
+      console.error('No photos found in the message');
+      console.log(ctx.callbackQuery);
+      if (ctx.callbackQuery) {
+        if (
+          'data' in ctx.callbackQuery &&
+          ctx.callbackQuery.data === 'cancel_payment_photo_proceed'
+        ) {
+          const state = ctx.wizard.state as { requestId: string };
+          const requestId = state.requestId;
+          const request = await this.requestService.findById(requestId);
+          if (!request) {
+            await ctx.scene.leave();
+            throw new Error('Request not found');
+          }
+          const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+
+          const workerMenu = MenuFactory.createWorkerMenu(
+            request as unknown as FullRequestType,
+            photoUrl,
+          );
+          await this.telegramService.updateAllWorkersMessagesWithRequestsId(
+            {
+              text: workerMenu.inWork().caption,
+              inline_keyboard: workerMenu.inProcess(undefined, request.id)
+                .markup,
+            },
+            requestId,
+          );
+
+          await ctx.deleteMessage();
+        }
+      }
       await ctx.scene.leave();
     }
   }
+  // @On('callback_query')
+  // async onCallbackQuery(@Ctx() ctx: CustomSceneContext) {
+  //   console.log('Callback query data:', ctx.callbackQuery);
+  //   const callbackQuery = ctx.callbackQuery;
+  //   if (!callbackQuery) {
+  //     console.error('No callback query found');
+  //     return;
+  //   } else if ('data' in callbackQuery) {
+  //     if (callbackQuery.data === 'cancel_payment_photo_proceed') {
+  //       const state = ctx.wizard.state as { requestId: string };
+  //       const requestId = state.requestId;
+  //       const request = await this.requestService.findById(requestId);
+  //       if (!request) {
+  //         await ctx.scene.leave();
+  //         throw new Error('Request not found');
+  //       }
+  //       const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
 
+  //       const workerMenu = MenuFactory.createWorkerMenu(
+  //         request as unknown as FullRequestType,
+  //         photoUrl,
+  //       );
+  //       await this.telegramService.updateAllWorkersMessagesWithRequestsId(
+  //         {
+  //           text: workerMenu.inWork().caption,
+  //           inline_keyboard: workerMenu.inWork().markup,
+  //         },
+  //         requestId,
+  //       );
+
+  //       await ctx.deleteMessage();
+  //     } else {
+  //       console.error('Unknown callback query data:', callbackQuery);
+  //       await ctx.answerCbQuery('Unknown action');
+  //       // await ctx.scene.leave();
+  //       return;
+  //     }
+  //   }
+  // }
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
     await this.deleteSceneMessages(ctx);

@@ -284,19 +284,18 @@ export class UserActions {
           throw new Error('Request not found');
         }
         const paymentMethod = request.paymentMethod;
-        const newMessage = this.utilsService.buildRequestMessage(
-          request as any as FullRequestType,
-          paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
-          'worker',
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
         );
         const button = Markup.button.callback(
           'Отменить',
-          'cancel_payment_photo_proceed',
+          'accept_request_' + requestId,
         );
         const inline_keyboard = Markup.inlineKeyboard([[button]]);
         await this.telegramService.updateAllWorkersMessagesWithRequestsId(
           {
-            text: newMessage.text,
+            text: workerMenu.inWork().caption,
             inline_keyboard: inline_keyboard.reply_markup,
           },
           requestId,

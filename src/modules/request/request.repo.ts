@@ -277,7 +277,7 @@ export class RequestRepository {
         cardMethods: {
           include: {
             blackList: true,
-            bank: true, // Include bank details if needed
+            bank: true,
           },
         },
         ibanMethods: true,

@@ -224,7 +224,9 @@ abstract class BaseRequestMenu {
   }
 
   inWork(url?: string, requestId?: string): MenuWithMedia {
+    console.log('inWork', url, requestId);
     const accessType = this.getAccessType();
+    console.log('accessType', accessType);
     let markup: InlineKeyboardMarkup;
     switch (accessType) {
       case 'ADMIN':
@@ -276,12 +278,18 @@ abstract class BaseRequestMenu {
       BUTTON_TEXTS.IN_WORK,
       BUTTON_CALLBACKS.IN_WORK,
     );
-
+    const newCancelButton = Markup.button.callback(
+      'Отмена',
+      'cancel_payment_' + requestId,
+    );
     const inline_keyboard = requestId
       ? Markup.inlineKeyboard([
           [
-            Markup.button.callback('Отказаться', 'cancel_request'),
-            Markup.button.callback('Невзять', 'accept_request_' + requestId),
+            createButton(
+              BUTTON_TEXTS.REQUEST_COMPLIED,
+              BUTTON_CALLBACKS.REQUEST_COMPLIED + requestId,
+            ),
+            newCancelButton,
           ],
         ]).reply_markup
       : markup;

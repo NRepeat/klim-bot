@@ -11,7 +11,11 @@ export class VendorRepository implements Repository<SerializedVendors> {
       data,
     });
   }
-
+  async getByToken(token: string): Promise<Vendors | null> {
+    return this.prisma.vendors.findUnique({
+      where: { token },
+    });
+  }
   async getAll(): Promise<Vendors[]> {
     return this.prisma.vendors.findMany();
   }

@@ -105,6 +105,11 @@ export class AppModule implements OnModuleInit {
               { command: 'all_rates', description: 'Показать все курсы' },
               { command: 'pause', description: 'Остановить работу' },
               { command: 'resume', description: 'Запустить работу' },
+              { command: 'blacklist', description: 'Добавить в черный список' },
+              {
+                command: 'remove_blacklist',
+                description: 'Удалить из черного списка',
+              },
             ],
             { scope: { type: 'chat', chat_id: Number(user.telegramId) } },
           );

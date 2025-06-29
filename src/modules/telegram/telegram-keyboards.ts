@@ -119,10 +119,24 @@ abstract class BaseRequestMenu {
       return MESSAGES.NO_DATA;
     }
     const currentAccessType = accessType || this.getAccessType();
-    const isCard = this.request.paymentMethod?.nameEn === 'CARD';
+    // CARD
+    let isCard = false;
+    let cardMethods: any[] = [];
+    if (Array.isArray(this.request.paymentMethod)) {
+      isCard = this.request.paymentMethod.some(
+        (pm: any) => pm.nameEn === 'CARD',
+      );
+      cardMethods = this.request.paymentMethod.flatMap(
+        (pm: any) => pm.cardMethods || [],
+      );
+    } else if (
+      this.request.paymentMethod &&
+      (this.request.paymentMethod as any).nameEn === 'CARD'
+    ) {
+      isCard = true;
+      cardMethods = (this.request.paymentMethod as any).cardMethods || [];
+    }
     if (isCard) {
-      const cardMethods = this.request.cardMethods || [];
-      console.log('cardMethods', this.request);
       const card =
         cardMethods.length > 0 && cardMethods[0]?.card
           ? `💳<b>Номер карты:</b> <code>${cardMethods[0].card}</code>\n`
@@ -143,7 +157,6 @@ abstract class BaseRequestMenu {
             ? cardMethods[0].blackList[0].reason
             : ''
           : '';
-      console.log('blacklist', blacklist, 'accessType', currentAccessType);
       const acceptedBy = this.request.activeUser
         ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
         : '';
@@ -169,8 +182,25 @@ abstract class BaseRequestMenu {
             : blacklist
           : '')
       );
-    } else if (this.request.paymentMethod?.nameEn === 'IBAN') {
-      const ibanMethods = this.request.ibanMethods || [];
+    }
+    // IBAN
+    let isIban = false;
+    let ibanMethods: any[] = [];
+    if (Array.isArray(this.request.paymentMethod)) {
+      isIban = this.request.paymentMethod.some(
+        (pm: any) => pm.nameEn === 'IBAN',
+      );
+      ibanMethods = this.request.paymentMethod.flatMap(
+        (pm: any) => pm.ibanMethods || [],
+      );
+    } else if (
+      this.request.paymentMethod &&
+      (this.request.paymentMethod as any).nameEn === 'IBAN'
+    ) {
+      isIban = true;
+      ibanMethods = (this.request.paymentMethod as any).ibanMethods || [];
+    }
+    if (isIban) {
       const name =
         ibanMethods.length > 0 && ibanMethods[0]?.name
           ? `👤<b>Имя:</b> <i>${ibanMethods[0].name}</i>\n`
@@ -215,7 +245,6 @@ abstract class BaseRequestMenu {
         (currentAccessType === 'ADMIN' ? payedBy : '')
       );
     }
-
     // Возвращаем базовое сообщение если тип платежа не распознан
     return `✉️<b>Заявка номер:</b> <code>${this.request.id ?? '-'}</code>\nНеизвестный тип платежа`;
   }

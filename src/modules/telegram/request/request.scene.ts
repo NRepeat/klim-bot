@@ -224,6 +224,7 @@ export class CreateRequestWizard {
           card: {
             card: cardDetail.cardNumber,
             comment: 'Card request created via bot',
+            paymentMethodId: null,
           },
         };
         try {
@@ -332,6 +333,7 @@ export class CreateRequestWizard {
           inn: ibanRawData.inn,
           name: ibanRawData.name,
           comment: ibanRawData.comment || '',
+          paymentMethodId: null,
         },
       };
       const request = await this.requestService.createIbanRequest(ibanRequest);

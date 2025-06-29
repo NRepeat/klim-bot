@@ -30,21 +30,25 @@ export class RequestRepository {
   async findCardPaymentByCardNumber(cardNumber: string) {
     return this.prisma.paymentRequests.findFirst({
       where: {
-        cardMethods: {
-          some: { card: cardNumber },
+        paymentMethod: {
+          some: {
+            cardMethods: {
+              some: { card: cardNumber },
+            },
+          },
         },
       },
       include: {
-        cardMethods: {
+        paymentMethod: {
           include: {
-            blackList: true,
+            cardMethods: { include: { blackList: true } },
+            ibanMethods: true,
           },
         },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
-        ibanMethods: true,
         user: true,
       },
     });
@@ -89,7 +93,7 @@ export class RequestRepository {
     messageId: number,
   ) {
     return this.prisma.message.delete({
-      where: { messageId, requestId },
+      where: { messageId },
     });
   }
   async updateRequestStatus(
@@ -125,41 +129,35 @@ export class RequestRepository {
             nameEn: 'IBAN',
           },
         },
-        ibanMethods: {
-          create: {
-            ...data.iban,
-          },
-        },
       },
       include: {
-        cardMethods: {
-          include: {
-            blackList: true,
-          },
-        },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
-        ibanMethods: true,
         user: true,
-        paymentMethod: true,
+        paymentMethod: {
+          include: {
+            ibanMethods: true,
+            cardMethods: true,
+          },
+        },
       },
     });
   }
   async getAllRequests() {
     return this.prisma.paymentRequests.findMany({
       include: {
-        cardMethods: {
+        paymentMethod: {
           include: {
-            blackList: true,
+            cardMethods: { include: { blackList: true } },
+            ibanMethods: true,
           },
         },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
-        ibanMethods: true,
         user: true,
       },
     });
@@ -194,19 +192,17 @@ export class RequestRepository {
         userId: null,
       },
       include: {
-        cardMethods: {
+        paymentMethod: {
           include: {
-            blackList: true,
+            cardMethods: { include: { blackList: true } },
+            ibanMethods: true,
           },
         },
-        paymentMethod: true,
         message: true,
         vendor: true,
         rates: true,
         currency: true,
         user: true,
-        adminRequestPhotoMessage: true,
-        ibanMethods: true,
         activeUser: true,
         payedByUser: true,
       },
@@ -226,31 +222,18 @@ export class RequestRepository {
             nameEn: 'CARD',
           },
         },
-        cardMethods: {
-          create: {
-            ...data.card,
-            blackList: data.blackList
-              ? {
-                  connect: {
-                    id: data.blackList.id,
-                  },
-                }
-              : undefined,
-          },
-        },
       },
       include: {
-        cardMethods: {
+        paymentMethod: {
           include: {
-            blackList: true,
+            cardMethods: { include: { blackList: true } },
+            ibanMethods: true,
           },
         },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
-        ibanMethods: true,
-        paymentMethod: true,
         user: true,
       },
     });
@@ -265,18 +248,16 @@ export class RequestRepository {
       where: { id },
       include: {
         user: true,
-        paymentMethod: true,
-        cardMethods: {
+        paymentMethod: {
           include: {
-            blackList: true,
+            cardMethods: { include: { blackList: true } },
+            ibanMethods: true,
           },
         },
-        ibanMethods: true,
         rates: true,
         vendor: true,
         message: true,
         currency: true,
-        adminRequestPhotoMessage: true,
         activeUser: true,
         payedByUser: true,
       },
@@ -286,20 +267,24 @@ export class RequestRepository {
   async findAllCardRequestsByCard(cardNumber?: string) {
     return this.prisma.paymentRequests.findMany({
       where: {
-        cardMethods: {
-          some: { card: cardNumber || undefined },
+        paymentMethod: {
+          some: {
+            cardMethods: {
+              some: { card: cardNumber || undefined },
+            },
+          },
         },
       },
       include: {
-        cardMethods: {
+        paymentMethod: {
           include: {
-            blackList: true,
+            cardMethods: { include: { blackList: true } },
+            ibanMethods: true,
           },
         },
         message: true,
         vendor: true,
         currency: true,
-        ibanMethods: true,
         user: true,
         rates: true,
       },
@@ -335,25 +320,18 @@ export class RequestRepository {
         },
       },
       include: {
-        cardMethods: { include: { blackList: true } },
+        paymentMethod: {
+          include: {
+            cardMethods: { include: { blackList: true } },
+            ibanMethods: true,
+          },
+        },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
-        ibanMethods: true,
         user: true,
       },
     });
   }
-  // async create(data: SerializedRequest) {
-  //   return this.prisma.paymentRequests.create({ data:{} });
-  // }
-
-  // async update(id: number, data: any) {
-  //   return this.prisma.request.update({ where: { id }, data });
-  // }
-
-  // async delete(id: number) {
-  //   return this.prisma.request.delete({ where: { id } });
-  // }
 }

@@ -27,19 +27,17 @@ enum PaymentMethodEnum {
 }
 
 model User {
-  id                        String                      @id @default(cuid())
-  username                  String?                     @unique
-  telegramId                BigInt                      @unique
-  onPause                   Boolean                     @default(false)
-  Role                      Role[]
-  createdAt                 DateTime                    @default(now())
-  updatedAt                 DateTime                    @updatedAt
-  paymentRequests           PaymentRequests[]
-  payedRequests             PaymentRequests[]           @relation("payedByUser")
-  activeRequests            PaymentRequests[]           @relation("activeRequests")
-  vendors                   Vendors[]
-  adminRequestPhotoMessage  AdminRequestPhotoMessage[]
-  WorkerRequestPhotoMessage WorkerRequestPhotoMessage[]
+  id              String            @id @default(cuid())
+  username        String?           @unique
+  telegramId      BigInt            @unique
+  onPause         Boolean           @default(false)
+  Role            Role[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  paymentRequests PaymentRequests[]
+  payedRequests   PaymentRequests[] @relation("payedByUser")
+  activeRequests  PaymentRequests[] @relation("activeRequests")
+  vendors         Vendors[]
 }
 
 model Role {
@@ -67,33 +65,30 @@ model Vendors {
 }
 
 model PaymentRequests {
-  id                        String                      @id @default(cuid())
-  vendorId                  String
-  vendor                    Vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  userId                    String?
-  user                      User?                       @relation(fields: [userId], references: [id])
-  cardMethods               CardPaymentRequestsMethod[]
-  ibanMethods               IbanPaymentRequestsMethod[]
-  paymentMethod             PaymentMethod?              @relation(fields: [paymentMethodId], references: [id])
-  payedByUser               User?                       @relation("payedByUser", fields: [payedByUserId], references: [id])
-  payedByUserId             String?
-  amount                    Float
-  status                    Status                      @default(PENDING)
-  error                     String?
-  currencyId                String
-  notificationSent          Boolean                     @default(false)
-  currency                  Currency                    @relation(fields: [currencyId], references: [id])
-  createdAt                 DateTime                    @default(now())
-  updatedAt                 DateTime                    @updatedAt
-  completedAt               DateTime?
-  message                   Message[]
-  rates                     Rates?                      @relation(fields: [ratesId], references: [id])
-  ratesId                   String?
-  activeUserId              String?
-  activeUser                User?                       @relation("activeRequests", fields: [activeUserId], references: [id])
-  adminRequestPhotoMessage  AdminRequestPhotoMessage[]
-  workerRequestPhotoMessage WorkerRequestPhotoMessage[]
-  paymentMethodId           String?
+  id       String  @id @default(cuid())
+  vendorId String
+  vendor   Vendors @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id])
+
+  payedByUser      User?           @relation("payedByUser", fields: [payedByUserId], references: [id])
+  payedByUserId    String?
+  amount           Float
+  status           Status          @default(PENDING)
+  error            String?
+  currencyId       String
+  notificationSent Boolean         @default(false)
+  currency         Currency        @relation(fields: [currencyId], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  completedAt      DateTime?
+  message          Message[]
+  rates            Rates?          @relation(fields: [ratesId], references: [id])
+  ratesId          String?
+  activeUserId     String?
+  activeUser       User?           @relation("activeRequests", fields: [activeUserId], references: [id])
+  paymentMethodId  String?
+  paymentMethod    PaymentMethod[]
 }
 
 enum AccessType {
@@ -103,44 +98,40 @@ enum AccessType {
 }
 
 model Message {
-  id                          String                     @id @default(cuid())
-  chatId                      BigInt
-  messageId                   BigInt                     @unique
-  paymentRequestId            String?
-  text                        String?
-  photoUrl                    String?
-  createdAt                   DateTime                   @default(now())
-  updatedAt                   DateTime                   @updatedAt
-  requestId                   String
-  accessType                  AccessType                 @default(PUBLIC)
-  paymentRequests             PaymentRequests            @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  adminRequestPhotoMessage    AdminRequestPhotoMessage?  @relation(fields: [adminRequestPhotoMessageId], references: [id], onDelete: Cascade)
-  adminRequestPhotoMessageId  String?
-  workerRequestPhotoMessage   WorkerRequestPhotoMessage? @relation(fields: [workerRequestPhotoMessageId], references: [id], onDelete: Cascade)
-  workerRequestPhotoMessageId String?
+  id               String          @id @default(cuid())
+  chatId           BigInt
+  messageId        BigInt          @unique
+  paymentRequestId String?
+  text             String?
+  photoUrl         String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  requestId        String
+  accessType       AccessType      @default(PUBLIC)
+  paymentRequests  PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
 }
 
 model CardPaymentRequestsMethod {
-  id              String           @id @default(cuid())
-  requestId       String?
-  paymentRequests PaymentRequests? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  id              String         @id @default(cuid())
   card            String
   blackList       BlackList[]
   comment         String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  paymentMethodId String?
 }
 
 model IbanPaymentRequestsMethod {
-  id              String          @id @default(cuid())
-  requestId       String
-  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  id              String         @id @default(cuid())
   iban            String
   inn             String
   comment         String?
   name            String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  paymentMethodId String?
 }
 
 model SeededBankCards {
@@ -165,11 +156,13 @@ model Rates {
 }
 
 model PaymentMethod {
-  id              String            @id @default(cuid())
-  nameEn          PaymentMethodEnum @unique
+  id              String                      @id @default(cuid())
+  nameEn          PaymentMethodEnum           @unique
   description     String?
   descriptionEn   String?
   icon            String?
+  cardMethods     CardPaymentRequestsMethod[]
+  ibanMethods     IbanPaymentRequestsMethod[]
   rates           Rates[]
   paymentRequests PaymentRequests[]
 }
@@ -193,24 +186,11 @@ model BlackList {
   updatedAt DateTime                    @updatedAt
 }
 
-model AdminRequestPhotoMessage {
-  id              String          @id @default(cuid())
-  message         Message[]
-  requestId       String
-  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  userId          String
-  user            User            @relation(fields: [userId], references: [id])
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-}
-
-model WorkerRequestPhotoMessage {
-  id              String          @id @default(cuid())
-  message         Message[]
-  requestId       String
-  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  userId          String
-  user            User            @relation(fields: [userId], references: [id])
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+model CardBank {
+  id         String   @id @default(cuid())
+  number     String   @unique
+  bankName   String
+  bankNameEn String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

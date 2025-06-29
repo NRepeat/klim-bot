@@ -174,20 +174,14 @@ export default class UserRepository implements Repository<SerializedUser> {
       `Saving photo message for user ${userId} with request ID ${requestId}`,
     );
 
-    return this.prisma.workerRequestPhotoMessage.create({
+    return this.prisma.message.create({
       data: {
-        userId: userId,
+        accessType: 'WORKER',
+        chatId: message.chatId,
+        messageId: message.messageId,
+        text: message.text,
         requestId: requestId,
-        message: {
-          create: {
-            accessType: 'WORKER',
-            chatId: message.chatId,
-            messageId: message.messageId,
-            text: message.text,
-            requestId: requestId,
-            photoUrl: message.photoUrl ? message.photoUrl : '',
-          },
-        },
+        photoUrl: message.photoUrl ? message.photoUrl : '',
       },
     });
   }
@@ -204,12 +198,23 @@ export default class UserRepository implements Repository<SerializedUser> {
       where: { id: requestId },
       data: {
         message: {
-          create: {
-            chatId: message.chatId,
-            messageId: message.messageId,
-            text: message.text,
-            accessType: message.accessType,
-            photoUrl: message.photoUrl ? message.photoUrl : '',
+          upsert: {
+            where: {
+              messageId: message.messageId,
+            },
+            create: {
+              chatId: message.chatId,
+              messageId: message.messageId,
+              text: message.text,
+              accessType: message.accessType,
+              photoUrl: message.photoUrl ? message.photoUrl : '',
+            },
+            update: {
+              chatId: message.chatId,
+              text: message.text,
+              accessType: message.accessType,
+              photoUrl: message.photoUrl ? message.photoUrl : '',
+            },
           },
         },
       },

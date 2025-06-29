@@ -12,6 +12,7 @@ import { MenuFactory } from '../telegram/telegram-keyboards';
 @Injectable()
 export class RequestTaskService {
   private readonly logger = new Logger('RequestTaskService');
+  private lastWorkerIndex = 0;
   constructor(
     private readonly requestService: RequestService, // Assuming you have a request service to inject
     private readonly telegramService: TelegramService, // Assuming you have a telegram service to inject
@@ -30,9 +31,13 @@ export class RequestTaskService {
       );
       if (requests.length === 0 || workers.length === 0) return;
 
-      // Round-robin: каждому работнику по одному запросу
       for (let i = 0; i < requests.length; i++) {
-        const worker = workers[i % workers.length];
+        // Честный round-robin: следующий воркер после предыдущего
+        const worker = workers[this.lastWorkerIndex % workers.length];
+        this.lastWorkerIndex = (this.lastWorkerIndex + 1) % workers.length;
+        this.logger.log(
+          `Processing request ${requests[i].id} for worker ${worker.username || worker.id}`,
+        );
         await this.processRequestForWorker(requests[i], worker);
       }
     } catch (error) {
@@ -224,6 +229,31 @@ export class RequestTaskService {
           `Error updating admin message for request ${request.id}: ${error.message}`,
         );
       }
+    }
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async notifyAboutStaleRequests() {
+    try {
+      const FIFTEEN_MINUTES = 15 * 60 * 1000;
+      const now = Date.now();
+      const notDoneRequests =
+        await this.requestService.findAllNotProcessedRequests();
+      for (const request of notDoneRequests) {
+        const createdAt = new Date(request.createdAt).getTime();
+        if (now - createdAt > FIFTEEN_MINUTES && !request.payedByUserId) {
+          await this.telegramService.sendPhotoMessageToAllAdmins(
+            {
+              text: `⏰ <b>Заявка №${request.id}</b> не выполнена более 15 минут!`,
+              photoUrl: '/home/nikita/Code/klim-bot/src/assets/0056.jpg',
+            },
+            request.id,
+          );
+          // await this.requestService.markStaleNotified(request.id);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error in notifyAboutStaleRequests:', error);
     }
   }
 }

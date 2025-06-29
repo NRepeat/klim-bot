@@ -284,9 +284,13 @@ export class UserActions {
           throw new Error('Request not found');
         }
         const paymentMethod = request.paymentMethod;
+        const isCard = Array.isArray(paymentMethod)
+          ? paymentMethod.some((pm) => pm.nameEn === 'CARD')
+          : paymentMethod === 'CARD';
+
         const newMessage = this.utilsService.buildRequestMessage(
           request as any as FullRequestType,
-          paymentMethod?.nameEn === 'CARD' ? 'card' : 'iban',
+          isCard ? 'card' : 'iban',
           'worker',
         );
         const button = Markup.button.callback(

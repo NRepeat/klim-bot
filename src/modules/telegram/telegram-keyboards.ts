@@ -127,7 +127,10 @@ abstract class BaseRequestMenu {
         cardMethods.length > 0 && cardMethods[0]?.card
           ? `💳<b>Номер карты:</b> <code>${cardMethods[0].card}</code>\n`
           : '';
-      const bank = '-';
+      console.log('cardMethods[0]', cardMethods[0].bank);
+      const bank = cardMethods[0]?.bank?.bankName
+        ? cardMethods[0]?.bank?.bankName
+        : '-';
       const amount = this.request.amount || 0;
       const rateValue = this.request.rates?.rate;
       const rate = rateValue

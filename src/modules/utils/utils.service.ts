@@ -10,13 +10,35 @@ import {
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import * as sharp from 'sharp';
 import { RatesService } from '../rates/rates.service';
+import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class UtilsService {
   constructor(
     private readonly userService: UserService,
     private readonly vendorService: VendorService,
     private readonly ratesService: RatesService,
+    private readonly prismaService: PrismaService, // Assuming you have a PrismaService to inject
   ) {}
+  async getBankNameByCardNumber(cardNumber: string) {
+    console.log(`Fetching bank name for card number: ${cardNumber}`);
+    // Try exact match first
+    let card = await this.prismaService.cardBank.findFirst({
+      where: { number: cardNumber },
+    });
+    // If not found, try by BIN (first 6 digits)
+    if (!card && cardNumber.length >= 6) {
+      const bin = cardNumber.slice(0, 6);
+      card = await this.prismaService.cardBank.findFirst({
+        where: { number: bin },
+      });
+    }
+    if (!card) {
+      console.log(`No bank found for card number: ${cardNumber}`);
+      return null;
+    }
+    console.log(`Found bank: ${card.bankName}`);
+    return card;
+  }
   async isChatRegistrated(ctx: Context) {
     const existVendor = await this.vendorService.isVendorChat(ctx);
     console.log(

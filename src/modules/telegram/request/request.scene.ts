@@ -214,6 +214,10 @@ export class CreateRequestWizard {
           ctx.wizard.selectStep(1);
           return;
         }
+        const bankName = await this.utilsService.getBankNameByCardNumber(
+          cardDetail.cardNumber,
+        );
+        console.log('Bank name found:', bankName);
         const cardRequest: CardRequestType = {
           amount: cardDetail.amount,
           currencyId: foundRate.currencyId,
@@ -224,6 +228,7 @@ export class CreateRequestWizard {
           card: {
             card: cardDetail.cardNumber,
             comment: 'Card request created via bot',
+            bankId: bankName ? bankName.id : '',
           },
         };
         try {

@@ -38,6 +38,7 @@ export class RequestRepository {
         cardMethods: {
           include: {
             blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
@@ -52,7 +53,7 @@ export class RequestRepository {
   async addToBlackList(
     card: Omit<
       CardPaymentRequestsMethod,
-      'id' | 'requestId' | 'createdAt' | 'updatedAt'
+      'id' | 'requestId' | 'createdAt' | 'updatedAt' | 'bankId'
     > & { chatId: bigint | number },
   ) {
     return this.prisma.blackList.create({
@@ -135,6 +136,7 @@ export class RequestRepository {
         cardMethods: {
           include: {
             blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
@@ -153,6 +155,7 @@ export class RequestRepository {
         cardMethods: {
           include: {
             blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
@@ -197,6 +200,7 @@ export class RequestRepository {
         cardMethods: {
           include: {
             blackList: true,
+            bank: true,
           },
         },
         paymentMethod: true,
@@ -226,6 +230,7 @@ export class RequestRepository {
             nameEn: 'CARD',
           },
         },
+
         cardMethods: {
           create: {
             ...data.card,
@@ -236,6 +241,7 @@ export class RequestRepository {
                   },
                 }
               : undefined,
+            bankId: data.card.bankId,
           },
         },
       },
@@ -243,6 +249,7 @@ export class RequestRepository {
         cardMethods: {
           include: {
             blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
@@ -251,6 +258,7 @@ export class RequestRepository {
         currency: true,
         ibanMethods: true,
         paymentMethod: true,
+
         user: true,
       },
     });
@@ -269,6 +277,7 @@ export class RequestRepository {
         cardMethods: {
           include: {
             blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         ibanMethods: true,
@@ -294,6 +303,7 @@ export class RequestRepository {
         cardMethods: {
           include: {
             blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
@@ -335,7 +345,7 @@ export class RequestRepository {
         },
       },
       include: {
-        cardMethods: { include: { blackList: true } },
+        cardMethods: { include: { blackList: true, bank: true } },
         message: true,
         vendor: true,
         rates: true,

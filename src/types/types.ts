@@ -1,6 +1,7 @@
 import {
   AdminRequestPhotoMessage,
   BlackList,
+  CardBank,
   CardPaymentRequestsMethod,
   Currency,
   IbanPaymentRequestsMethod,
@@ -70,11 +71,16 @@ export type CardRequestType = Omit<
   blackList?: BlackList;
   card: Omit<
     CardPaymentRequestsMethod,
-    'id' | 'createdAt' | 'updatedAt' | 'requestId'
-  >;
+    'id' | 'createdAt' | 'updatedAt' | 'requestId' | 'bankId'
+  > & {
+    bankId: string;
+  };
 };
 export type FullRequestType = PaymentRequests & {
-  cardMethods?: (CardPaymentRequestsMethod & { blackList?: BlackList[] })[];
+  cardMethods?: (CardPaymentRequestsMethod & {
+    blackList?: BlackList[];
+    bank?: CardBank;
+  })[];
   ibanMethods?: IbanPaymentRequestsMethod[];
   message?: Message[];
   vendor?: Vendors;

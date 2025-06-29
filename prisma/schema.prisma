@@ -126,21 +126,23 @@ model CardPaymentRequestsMethod {
   paymentRequests PaymentRequests? @relation(fields: [requestId], references: [id], onDelete: Cascade)
   card            String
   blackList       BlackList[]
+  bank            CardBank?        @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  bankId          String?
   comment         String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 }
 
 model IbanPaymentRequestsMethod {
-  id              String          @id @default(cuid())
-  requestId       String
-  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  id              String           @id @default(cuid())
+  requestId       String?
+  paymentRequests PaymentRequests? @relation(fields: [requestId], references: [id], onDelete: Cascade)
   iban            String
   inn             String
   comment         String?
   name            String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model SeededBankCards {
@@ -213,4 +215,15 @@ model WorkerRequestPhotoMessage {
   user            User            @relation(fields: [userId], references: [id])
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+}
+
+model CardBank {
+  id                        String                      @id @default(cuid())
+  number                    String                      @unique
+  bankName                  String
+  bankNameEn                String
+  icon                      String?
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+  cardPaymentRequestsMethod CardPaymentRequestsMethod[]
 }

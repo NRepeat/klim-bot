@@ -238,7 +238,6 @@ export class MenuActions {
       },
       userId,
     );
-    await ctx.reply('You are now on pause');
 
     // const chatId = ctx.chat?.id;
     // if (!chatId) {
@@ -260,7 +259,65 @@ export class MenuActions {
     // });
     await ctx.reply('You are now on pause');
   }
-
+  @Command('blacklist')
+  async blacklist(@Ctx() ctx: Context) {
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.reply('User ID not found');
+      return;
+    }
+    const isAdmin = await this.userService.isAdminChat(ctx);
+    if (!isAdmin) {
+      await ctx.reply('You are not allowed to use this command');
+      return;
+    }
+    const card = ctx.text?.split(' ')[1]?.trim();
+    if (!card) {
+      await ctx.reply('Please provide a card number to blacklist');
+      return;
+    }
+    const isBlacklisted = await this.requestService.isInBlackList(card);
+    if (isBlacklisted) {
+      await ctx.reply('This card is already blacklisted');
+      return;
+    }
+    const reason =
+      ctx.text?.split(' ').slice(2).join(' ') || 'No reason provided';
+    await this.requestService.addToBlackList(card, reason);
+    await ctx.reply(`Card ${card} has been blacklisted`);
+  }
+  @Command('remove_blacklist')
+  async removeBlacklist(@Ctx() ctx: Context) {
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.reply('User ID not found');
+      return;
+    }
+    const isAdmin = await this.userService.isAdminChat(ctx);
+    if (!isAdmin) {
+      await ctx.reply('You are not allowed to use this command');
+      return;
+    }
+    const card = ctx.text?.split(' ')[1]?.trim();
+    if (!card) {
+      await ctx.reply('Please provide a card number to remove from blacklist');
+      return;
+    }
+    const isBlacklisted = await this.requestService.isInBlackList(card);
+    if (!isBlacklisted) {
+      await ctx.reply('This card is not in the blacklist');
+      return;
+    }
+    const blacklistedCard =
+      await this.requestService.findBlackListCardByCardNumber(card);
+    if (!blacklistedCard) {
+      await ctx.reply('This card is not in the blacklist');
+      return;
+    }
+    console.log(blacklistedCard, 'blacklistedCard.id');
+    await this.requestService.removeFromBlackList(blacklistedCard.id);
+    await ctx.reply(`Card ${card} has been removed from the blacklist`);
+  }
   @Command('resume')
   async resume(@Ctx() ctx: Context) {
     const userId = ctx.from?.id;
@@ -279,7 +336,7 @@ export class MenuActions {
       },
       userId,
     );
-    await ctx.reply('You are now on pause');
+    await ctx.reply('You are now on work');
   }
 
   @Command('all_rates')
@@ -295,5 +352,32 @@ export class MenuActions {
   async onVendorShow(@Ctx() ctx: SceneContext) {
     console.log('Showing users');
     await ctx.scene.enter('user-vendor-wizard');
+  }
+
+  @Hears('Черный список')
+  async onBlackList(@Ctx() ctx: Context) {
+    const isAdmin = await this.userService.isAdminChat(ctx);
+    if (!isAdmin) {
+      await ctx.reply('You are not allowed to use this command');
+      return;
+    }
+    const blackList = await this.requestService.getBlackList();
+    if (blackList.length === 0) {
+      await ctx.reply('Черный список пуст');
+      return;
+    }
+    const message = [
+      '<b>🛑 Черный список карт</b>\n',
+      ...blackList.map((item, idx) => {
+        const date = item.createdAt
+          ? new Date(item.createdAt).toLocaleString('ru-RU', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            })
+          : '-';
+        return `<code>${item.card}</code>\n<i>Причина:</i> ${item.comment || '-'}\n<i>Добавлено:</i> ${date}\n`;
+      }),
+    ].join('\n');
+    await ctx.reply(message, { parse_mode: 'HTML' });
   }
 }

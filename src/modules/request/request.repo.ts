@@ -5,12 +5,67 @@ import {
   SerializedMessage,
 } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
-import { Status } from 'generated/prisma';
+import { CardPaymentRequestsMethod, Status } from 'generated/prisma';
 
 @Injectable()
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
-
+  async removeFromBlackList(id: string) {
+    return this.prisma.blackList.delete({
+      where: { id },
+    });
+  }
+  async findBlackListByCardNumber(cardNumber: string) {
+    return this.prisma.blackList.findFirst({
+      where: { card: { some: { card: cardNumber } } },
+    });
+  }
+  async getBlackList() {
+    return this.prisma.blackList.findMany({
+      include: {
+        card: true,
+      },
+    });
+  }
+  async findCardPaymentByCardNumber(cardNumber: string) {
+    return this.prisma.paymentRequests.findFirst({
+      where: {
+        cardMethods: {
+          some: { card: cardNumber },
+        },
+      },
+      include: {
+        cardMethods: {
+          include: {
+            blackList: true,
+          },
+        },
+        message: true,
+        vendor: true,
+        rates: true,
+        currency: true,
+        ibanMethods: true,
+        user: true,
+      },
+    });
+  }
+  async addToBlackList(
+    card: Omit<
+      CardPaymentRequestsMethod,
+      'id' | 'requestId' | 'createdAt' | 'updatedAt'
+    > & { chatId: bigint | number },
+  ) {
+    return this.prisma.blackList.create({
+      data: {
+        card: {
+          create: {
+            card: card.card,
+            comment: card.comment,
+          },
+        },
+      },
+    });
+  }
   async getAllPublicMessagesWithRequestsId(
     requestId: string,
   ): Promise<SerializedMessage[]> {

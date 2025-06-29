@@ -121,14 +121,14 @@ model Message {
 }
 
 model CardPaymentRequestsMethod {
-  id              String          @id @default(cuid())
-  requestId       String
-  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  id              String           @id @default(cuid())
+  requestId       String?
+  paymentRequests PaymentRequests? @relation(fields: [requestId], references: [id], onDelete: Cascade)
   card            String
   blackList       BlackList[]
   comment         String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model IbanPaymentRequestsMethod {
@@ -186,7 +186,6 @@ model Currency {
 
 model BlackList {
   id        String                      @id @default(cuid())
-  chatId    BigInt                      @unique
   requestId String?                     @unique
   card      CardPaymentRequestsMethod[]
   reason    String?

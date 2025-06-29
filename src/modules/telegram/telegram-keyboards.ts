@@ -140,6 +140,8 @@ abstract class BaseRequestMenu {
       const blacklist =
         isBlacklisted && cardMethods[0]?.blackList?.[0]
           ? '🚫Карта в чёрном списке: ' + cardMethods[0].blackList[0].reason
+            ? cardMethods[0].blackList[0].reason
+            : ''
           : '';
       console.log('blacklist', blacklist, 'accessType', currentAccessType);
       const acceptedBy = this.request.activeUser
@@ -162,7 +164,9 @@ abstract class BaseRequestMenu {
           ? `<b>Партнер:</b> <i>${vendor}</i>\n`
           : '') +
         (currentAccessType === 'ADMIN' || currentAccessType === 'WORKER'
-          ? blacklist
+          ? !blacklist
+            ? ''
+            : blacklist
           : '')
       );
     } else if (this.request.paymentMethod?.nameEn === 'IBAN') {

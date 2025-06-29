@@ -16,7 +16,33 @@ export class RequestService {
     private readonly userService: UserService,
     private readonly vendorService: VendorService,
   ) {}
-
+  async getBlackList() {
+    console.log('Fetching blacklist');
+    const blackList = await this.requestRepo.getBlackList();
+    if (!blackList || blackList.length === 0) {
+      console.log('Blacklist is empty');
+      return [];
+    }
+    console.log(`Found ${blackList.length} cards in blacklist`);
+    return blackList.map((card) => ({
+      card: card.card[0].card,
+      comment: card.reason,
+      createdAt: card.createdAt,
+    }));
+  }
+  async findBlackListCardByCardNumber(cardNumber: string) {
+    console.log(`Finding blacklist card by number: ${cardNumber}`);
+    const blackListCard =
+      await this.requestRepo.findBlackListByCardNumber(cardNumber);
+    if (!blackListCard) {
+      return null;
+    }
+    return blackListCard;
+  }
+  async removeFromBlackList(cardNumber: string) {
+    console.log(`Removing card ${cardNumber} from blacklist`);
+    await this.requestRepo.removeFromBlackList(cardNumber);
+  }
   async getAllPublicMessagesWithRequestsId(
     requestId: string | undefined,
   ): Promise<SerializedMessage[]> {
@@ -28,6 +54,7 @@ export class RequestService {
       await this.requestRepo.getAllPublicMessagesWithRequestsId(requestId);
     return messages;
   }
+
   async findAndDeleteRequestMessageByRequestId(
     requestId: string,
     messageId: number,
@@ -69,6 +96,27 @@ export class RequestService {
   async isInBlackList(cardNumber: string) {
     const isBlackListed = this.requestRepo.isInBlackList(cardNumber);
     return isBlackListed;
+  }
+  async addToBlackList(cardNumber: string, reason?: string) {
+    const isBlackListed = await this.isInBlackList(cardNumber);
+    if (isBlackListed) {
+      throw new Error(`Card ${cardNumber} is already in the blacklist`);
+    }
+    const cardPayment =
+      await this.requestRepo.findCardPaymentByCardNumber(cardNumber);
+    if (cardPayment) {
+      return this.requestRepo.addToBlackList({
+        card: cardPayment.cardMethods[0].card,
+        chatId: 0,
+        comment: reason || 'Card added to blacklist',
+      });
+    } else {
+      return this.requestRepo.addToBlackList({
+        card: cardNumber,
+        chatId: 0,
+        comment: reason || 'Card added to blacklist',
+      });
+    }
   }
   async findById(id: string) {
     return this.requestRepo.findOne(id);

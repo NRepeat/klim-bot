@@ -28,7 +28,7 @@ export class CreateRequestWizard {
 
   @WizardStep(0)
   async selectMethod(@Ctx() ctx: CustomSceneContext) {
-    console.log('@WizardStep selectMethod');
+    // console.log('@WizardStep selectMethod');
     const username = ctx.from?.username || 'Unknown User';
     const selectPaymentMenu =
       MenuFactory.createSelectPaymentMethodMenu(username);
@@ -54,7 +54,7 @@ export class CreateRequestWizard {
 
   @On('callback_query')
   async onCallbackQuery(@Ctx() ctx: CustomSceneContext) {
-    console.log('@WizardStep callBack');
+    // console.log('@WizardStep callBack');
     const callbackQuery = ctx.callbackQuery;
     if (!callbackQuery || !('data' in callbackQuery)) {
       await ctx.answerCbQuery('Unknown action');
@@ -108,7 +108,7 @@ export class CreateRequestWizard {
         break;
       }
       default: {
-        console.log('Unknown callback query data:', callbackQuery.data);
+        // console.log('Unknown callback query data:', callbackQuery.data);
 
         await ctx.scene.leave();
         break;
@@ -217,7 +217,7 @@ export class CreateRequestWizard {
         const bankName = await this.utilsService.getBankNameByCardNumber(
           cardDetail.cardNumber,
         );
-        console.log('Bank name found:', bankName);
+        // console.log('Bank name found:', bankName);
         const cardRequest: CardRequestType = {
           amount: cardDetail.amount,
           currencyId: foundRate.currencyId,
@@ -386,7 +386,7 @@ export class CreateRequestWizard {
 
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
-    console.log('Leaving scene, messages to delete:', ctx.session);
+    // console.log('Leaving scene, messages to delete:', ctx.session);
     await this.deleteSceneMessages(ctx);
     await this.deleteSceneMenuMessages(ctx);
     ctx.session.messagesToDelete = [];

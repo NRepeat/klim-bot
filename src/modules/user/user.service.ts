@@ -56,7 +56,6 @@ export class UserService {
         },
         UserRole.GEEST,
       );
-      console.log(`User created: ${username} with ID: ${userId}`);
     } else {
       console.error('User information is incomplete');
     }
@@ -67,16 +66,13 @@ export class UserService {
     return admins;
   }
   async isAdminChat(ctx: Context): Promise<boolean> {
-    console.log(ctx.from);
     const userId = ctx.from?.id;
-    console.log(`Checking if user is admin: ${userId}`);
     const admins = await this.getAdmins();
     if (!userId || !admins) {
       return false;
     }
 
     return admins?.users.some((user) => {
-      console.log(`Checking user: ${user.telegramId}`);
       return Number(user.telegramId) === Number(userId);
     });
   }

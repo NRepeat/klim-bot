@@ -34,9 +34,9 @@ export class MenuActions {
       await ctx.reply('Welcome', {
         reply_markup: undefined,
       });
-      console.log(
-        `New user created: ${ctx.from?.username} with ID: ${ctx.from?.id}`,
-      );
+      // console.log(
+      //   `New user created: ${ctx.from?.username} with ID: ${ctx.from?.id}`,
+      // );
     }
   }
   @Command('report')
@@ -73,7 +73,7 @@ export class MenuActions {
         { caption: report.caption },
       );
 
-      console.log(`Report sent to vendor ${vendor.title}`);
+      // console.log(`Report sent to vendor ${vendor.title}`);
       await this.vendorService.updateVendor({
         ...vendor,
         lastReportedAt: new Date(),
@@ -106,7 +106,7 @@ export class MenuActions {
     for (const vendor of vendors) {
       const chatId = vendor.chatId?.toString();
       if (!vendor.work) {
-        console.log(`Vendor ${vendor.title} is on pause, skipping...`);
+        // console.log(`Vendor ${vendor.title} is on pause, skipping...`);
         continue;
       }
       if (!chatId) continue;
@@ -137,7 +137,7 @@ export class MenuActions {
           filename: fileName,
           caption: report.caption,
         });
-        console.log(`Report sent to vendor ${vendor.title}`);
+        // console.log(`Report sent to vendor ${vendor.title}`);
         await this.vendorService.updateVendor({
           ...vendor,
           lastReportedAt: new Date(),
@@ -164,7 +164,7 @@ export class MenuActions {
   async registration(@Ctx() ctx: Context) {
     const chatId = ctx.chat?.id;
     const isAdmin = await this.userService.isAdminChat(ctx);
-    console.log(`Chat ID: ${chatId}, isAdmin: ${isAdmin}`);
+    // console.log(`Chat ID: ${chatId}, isAdmin: ${isAdmin}`);
     if (!chatId) {
       await ctx.reply('Chat ID not found');
       return;
@@ -218,7 +218,7 @@ export class MenuActions {
       parse_mode: 'HTML',
       reply_markup: { inline_keyboard: [] },
     });
-    console.log(`Users: ${userList}`);
+    // console.log(`Users: ${userList}`);
   }
   @Command('pause')
   async pause(@Ctx() ctx: Context) {
@@ -314,7 +314,7 @@ export class MenuActions {
       await ctx.reply('This card is not in the blacklist');
       return;
     }
-    console.log(blacklistedCard, 'blacklistedCard.id');
+    // console.log(blacklistedCard, 'blacklistedCard.id');
     await this.requestService.removeFromBlackList(blacklistedCard.id);
     await ctx.reply(`Card ${card} has been removed from the blacklist`);
   }
@@ -350,7 +350,6 @@ export class MenuActions {
   }
   @Hears('Показать поставщиков')
   async onVendorShow(@Ctx() ctx: SceneContext) {
-    console.log('Showing users');
     await ctx.scene.enter('user-vendor-wizard');
   }
 

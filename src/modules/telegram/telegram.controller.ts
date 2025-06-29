@@ -10,6 +10,6 @@ export class TelegramController {
   ) {}
   @On('message')
   on(@Ctx() ctx: Context) {
-    console.log('Received message:', ctx.message);
+    // console.log('Received message:', ctx.message);
   }
 }

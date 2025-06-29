@@ -98,9 +98,9 @@ export class RequestRepository {
     status: Status,
     userId: string,
   ): Promise<void> {
-    console.log(
-      `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
-    );
+    // console.log(
+    //   `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
+    // );
     await this.prisma.paymentRequests.update({
       where: { id: requestId },
       data: {
@@ -178,9 +178,9 @@ export class RequestRepository {
     userId: string,
     chatId?: number,
   ): Promise<void> {
-    console.log(
-      `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
-    );
+    // console.log(
+    //   `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
+    // );
     await this.prisma.paymentRequests.update({
       where: { id: requestId },
       data: {

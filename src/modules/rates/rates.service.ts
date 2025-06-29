@@ -275,7 +275,6 @@ export class RatesService {
             );
           }
         }
-        console.log(`Sent rates to vendor ${vendor.id}`);
       } catch (error) {
         console.error(`Failed to send rates to vendor ${vendor.id}:`, error);
       }

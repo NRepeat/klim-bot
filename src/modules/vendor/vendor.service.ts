@@ -58,7 +58,6 @@ export class VendorService {
   }
   async updateVendor(vendor: Vendors) {
     const updatedVendor = await this.vendorRepository.upsert(vendor, vendor.id);
-    console.log(`Updated vendor ${vendor.id}`);
     return updatedVendor;
   }
   async updateAllRatesLastMessageId(vendorId: string, messageId: number) {
@@ -69,9 +68,6 @@ export class VendorService {
     }
     vendor.lastAllRateMessageId = messageId;
     const updatedVendor = await this.updateVendor(vendor);
-    console.log(
-      `Updated vendor ${vendor.id} with new lastAllRateMessageId: ${messageId}`,
-    );
     return updatedVendor;
   }
 
@@ -100,7 +96,6 @@ export class VendorService {
       lastAllRatesSentAt: null,
     };
     const vendor = await this.vendorRepository.create(data);
-    console.log(`Created vendor ${vendor.id}`);
     return vendor;
   }
   async isVendorChat(ctx: Context): Promise<boolean> {

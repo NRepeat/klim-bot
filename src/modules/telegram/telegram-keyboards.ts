@@ -122,12 +122,12 @@ abstract class BaseRequestMenu {
     const isCard = this.request.paymentMethod?.nameEn === 'CARD';
     if (isCard) {
       const cardMethods = this.request.cardMethods || [];
-      console.log('cardMethods', this.request);
+      // console.log('cardMethods', this.request);
       const card =
         cardMethods.length > 0 && cardMethods[0]?.card
           ? `💳<b>Номер карты:</b> <code>${cardMethods[0].card}</code>\n`
           : '';
-      console.log('cardMethods[0]', cardMethods[0].bank);
+      // console.log('cardMethods[0]', cardMethods[0].bank);
       const bank = cardMethods[0]?.bank?.bankName
         ? cardMethods[0]?.bank?.bankName
         : '-';
@@ -146,7 +146,7 @@ abstract class BaseRequestMenu {
             ? cardMethods[0].blackList[0].reason
             : ''
           : '';
-      console.log('blacklist', blacklist, 'accessType', currentAccessType);
+      // console.log('blacklist', blacklist, 'accessType', currentAccessType);
       const acceptedBy = this.request.activeUser
         ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
         : '';
@@ -224,9 +224,9 @@ abstract class BaseRequestMenu {
   }
 
   inWork(url?: string, requestId?: string): MenuWithMedia {
-    console.log('inWork', url, requestId);
+    // console.log('inWork', url, requestId);
     const accessType = this.getAccessType();
-    console.log('accessType', accessType);
+    // console.log('accessType', accessType);
     let markup: InlineKeyboardMarkup;
     switch (accessType) {
       case 'ADMIN':

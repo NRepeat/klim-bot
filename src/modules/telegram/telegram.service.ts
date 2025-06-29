@@ -93,11 +93,11 @@ export class TelegramService {
         const newCaption = newMessage.text ? newMessage.text : message.text;
         if (chatId && messageId) {
           if (newMessage.source) {
-            console.log(
-              message.paymentRequests?.vendor,
-              'newMessage.source',
-              newMessage.source,
-            );
+            // console.log(
+            //   message.paymentRequests?.vendor,
+            //   'newMessage.source',
+            //   newMessage.source,
+            // );
             if (!message.paymentRequests?.vendor.showReceipt) {
               await this.bot.telegram.editMessageMedia(
                 chatId,
@@ -181,9 +181,9 @@ export class TelegramService {
             request.status !== 'COMPLETED' && request.status !== 'FAILED',
         );
 
-        console.log(
-          `Worker ${currentWorker.username} has ${notDoneActiveRequests.length} active requests`,
-        );
+        // console.log(
+        //   `Worker ${currentWorker.username} has ${notDoneActiveRequests.length} active requests`,
+        // );
 
         if (notDoneActiveRequests.length <= 1) {
           foundWorker = currentWorker;
@@ -251,7 +251,7 @@ export class TelegramService {
   ) {
     try {
       const admins = await this.userService.getAllActiveAdmins();
-      console.log('Admins:', admins);
+      // console.log('Admins:', admins);
       if (!admins || admins.length === 0) {
         this.logger.warn('No active admins found');
         return;
@@ -273,7 +273,7 @@ export class TelegramService {
               request as unknown as FullRequestType,
               message.photoUrl ? message.photoUrl : './src/assets/0056.jpg',
             );
-            console.log(messageE.inWork().caption);
+            // console.log(messageE.inWork().caption);
             const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
@@ -396,9 +396,6 @@ export class TelegramService {
     markup?: InlineKeyboardMarkup,
   ) {
     try {
-      console.log(
-        `Updating admin message for chatId: ${chatId}, messageId: ${messageId}, text: ${text}, imageUrl: ${imageUrl}, source: `,
-      );
       if (imageUrl) {
         await this.updateTelegramMessage(
           chatId,
@@ -418,9 +415,6 @@ export class TelegramService {
           markup,
         );
       } else {
-        console.log(
-          `Updating admin message for chatId: ${chatId}, messageId: ${messageId}, text: ${text}`,
-        );
         await this.bot.telegram.editMessageCaption(
           chatId,
           messageId,

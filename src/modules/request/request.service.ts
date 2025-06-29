@@ -17,13 +17,13 @@ export class RequestService {
     private readonly vendorService: VendorService,
   ) {}
   async getBlackList() {
-    console.log('Fetching blacklist');
+    // console.log('Fetching blacklist');
     const blackList = await this.requestRepo.getBlackList();
     if (!blackList || blackList.length === 0) {
-      console.log('Blacklist is empty');
+      // console.log('Blacklist is empty');
       return [];
     }
-    console.log(`Found ${blackList.length} cards in blacklist`);
+    // console.log(`Found ${blackList.length} cards in blacklist`);
     return blackList.map((card) => ({
       card: card.card[0].card,
       comment: card.reason,
@@ -31,7 +31,7 @@ export class RequestService {
     }));
   }
   async findBlackListCardByCardNumber(cardNumber: string) {
-    console.log(`Finding blacklist card by number: ${cardNumber}`);
+    // console.log(`Finding blacklist card by number: ${cardNumber}`);
     const blackListCard =
       await this.requestRepo.findBlackListByCardNumber(cardNumber);
     if (!blackListCard) {
@@ -40,13 +40,13 @@ export class RequestService {
     return blackListCard;
   }
   async removeFromBlackList(cardNumber: string) {
-    console.log(`Removing card ${cardNumber} from blacklist`);
+    // console.log(`Removing card ${cardNumber} from blacklist`);
     await this.requestRepo.removeFromBlackList(cardNumber);
   }
   async getAllPublicMessagesWithRequestsId(
     requestId: string | undefined,
   ): Promise<SerializedMessage[]> {
-    console.log(`Fetching all public messages with request ID: ${requestId}`);
+    // console.log(`Fetching all public messages with request ID: ${requestId}`);
     if (!requestId) {
       throw new Error('Request ID is required');
     }
@@ -69,11 +69,11 @@ export class RequestService {
     status: Status,
     userId: number,
   ): Promise<void> {
-    console.log(
-      `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
-    );
+    // console.log(
+    //   `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
+    // );
     const dbUser = await this.userService.findByTelegramId(userId);
-    console.log(`Found user: ${dbUser?.username} with ID: ${dbUser?.id}`);
+    // console.log(`Found user: ${dbUser?.username} with ID: ${dbUser?.id}`);
     if (!dbUser) {
       throw new Error('User not found');
     }
@@ -84,9 +84,9 @@ export class RequestService {
     userId: number,
     chatId?: number,
   ): Promise<void> {
-    console.log(
-      `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
-    );
+    // console.log(
+    //   `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
+    // );
     const dbUser = await this.userService.findByTelegramId(userId);
     if (!dbUser) {
       throw new Error('User not found');

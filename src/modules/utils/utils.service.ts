@@ -20,7 +20,7 @@ export class UtilsService {
     private readonly prismaService: PrismaService, // Assuming you have a PrismaService to inject
   ) {}
   async getBankNameByCardNumber(cardNumber: string) {
-    console.log(`Fetching bank name for card number: ${cardNumber}`);
+    // console.log(`Fetching bank name for card number: ${cardNumber}`);
     // Try exact match first
     let card = await this.prismaService.cardBank.findFirst({
       where: { number: cardNumber },
@@ -33,18 +33,15 @@ export class UtilsService {
       });
     }
     if (!card) {
-      console.log(`No bank found for card number: ${cardNumber}`);
+      // console.log(`No bank found for card number: ${cardNumber}`);
       return null;
     }
-    console.log(`Found bank: ${card.bankName}`);
+    // console.log(`Found bank: ${card.bankName}`);
     return card;
   }
   async isChatRegistrated(ctx: Context) {
     const existVendor = await this.vendorService.isVendorChat(ctx);
-    console.log(
-      `Checking if chat ${ctx.chat?.id} is registered: ${existVendor}`,
-    );
-    // Если
+
     if (existVendor) {
       return true;
     }

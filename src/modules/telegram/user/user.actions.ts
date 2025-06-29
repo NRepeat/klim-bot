@@ -33,7 +33,7 @@ export class UserActions {
       console.error('No callback query found');
       return;
     } else if ('data' in callbackQuery) {
-      console.log('Callback query data:', callbackQuery.data);
+      // console.log('Callback query data:', callbackQuery.data);
       if (callbackQuery.data.includes('admin_cancel_request')) {
         const requestId = callbackQuery.data.split('_')[3];
         const request = await this.requestService.findById(requestId);
@@ -96,7 +96,7 @@ export class UserActions {
       }
       if (callbackQuery.data.includes('accept_request_')) {
         const requestId = callbackQuery.data.split('_')[2];
-        console.log('Accepting request with ID:', requestId);
+        // console.log('Accepting request with ID:', requestId);
         const userId = callbackQuery.from.id;
         const chatId = callbackQuery.message?.chat.id;
         try {
@@ -180,7 +180,7 @@ export class UserActions {
               Number(user.telegramId),
             );
             newWorker = user;
-            console.log('New worker found:', newWorker);
+            // console.log('New worker found:', newWorker);
             break;
           } else {
             newWorker = undefined;

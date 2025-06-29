@@ -36,7 +36,7 @@ export class RequestApiController {
     @Body() requests: CardRequestType[],
     @ApiToken() apiToken: string,
   ) {
-    console.log('Received requests:', requests);
+    // console.log('Received requests:', requests);
     const responses: any[] = [];
     for (const req of requests) {
       const result: Record<string, any> = {
@@ -45,7 +45,7 @@ export class RequestApiController {
       };
       // Card number validation (16 digits, Luhn)
       const cardNumber = req.card?.card?.replace(/\s/g, '');
-      console.log(`Validating card number: ${cardNumber}`);
+      // console.log(`Validating card number: ${cardNumber}`);
       // Check if card number is valid: 16 digits and Luhn algorithm
       if (
         !cardNumber ||
@@ -90,7 +90,7 @@ export class RequestApiController {
       // Save request
       try {
         const vendor = await this.vendorService.getVendorByToken(apiToken);
-        console.log(`Creating request for vendor: ${vendor?.title}`);
+        // console.log(`Creating request for vendor: ${vendor?.title}`);
         if (!vendor) {
           result.status = 2215;
           result.error = 'Неверный API токен или вендор не найден';
@@ -103,7 +103,7 @@ export class RequestApiController {
         result.status = 2200;
         result.hexRequestNumber = created.id;
       } catch (e) {
-        console.error('Error creating request:', e);
+        // console.error('Error creating request:', e);
         result.status = 2215;
         result.error = 'Ошибка при создании заявки';
       }
@@ -176,7 +176,7 @@ export class RequestApiController {
       // Save request
       try {
         const vendor = await this.vendorService.getVendorByToken(apiToken);
-        console.log(`Creating request for vendor: ${vendor?.title}`);
+        // console.log(`Creating request for vendor: ${vendor?.title}`);
         if (!vendor) {
           result.status = 2215;
           result.error = 'Неверный API токен или вендор не найден';

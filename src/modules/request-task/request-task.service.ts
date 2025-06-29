@@ -81,7 +81,6 @@ export class RequestTaskService {
 
       const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
       if (!hasA) {
-        console.log(`Request ${request.id} has admin messages: ${hasA}`);
         await this.telegramService.sendPhotoMessageToAllAdmins(
           adminRequestPhotoMessage,
           request.id,
@@ -145,9 +144,7 @@ export class RequestTaskService {
       };
 
       const hasA = !!request.message?.find((msg) => msg.accessType === 'ADMIN');
-      console.log('Has admin messages:', hasA);
       if (!hasA) {
-        console.log(`Request ${request.id} has admin messages: ${hasA}`);
         await this.telegramService.sendPhotoMessageToAllAdmins(
           adminRequestPhotoMessage,
           request.id,
@@ -179,7 +176,6 @@ export class RequestTaskService {
 
     const adminMessages =
       request.message?.filter((r) => r.accessType === 'ADMIN') || [];
-    console.log(`------- ${adminMessages.length}`);
     if (adminMessages.length === 0) {
       this.logger.warn(
         `No admin messages found for request ${request.id}, skipping update`,
@@ -189,9 +185,6 @@ export class RequestTaskService {
 
     for (const adminMessage of adminMessages) {
       try {
-        console.log(
-          `Updating admin message for request ${request.id} with caption: ${adminMessage.text}`,
-        );
         const chatId = Number(adminMessage.chatId);
         const messageId = Number(adminMessage.messageId);
         if (!chatId || !messageId) {

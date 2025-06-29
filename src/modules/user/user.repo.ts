@@ -76,7 +76,6 @@ export default class UserRepository implements Repository<SerializedUser> {
         paymentRequests: true,
       },
     });
-    console.log(`Fetching all admin messages with request ID ${requestId}`);
     return allMessages;
   }
   async appendRequestToUser(userId: string, requestId: string): Promise<void> {
@@ -92,7 +91,6 @@ export default class UserRepository implements Repository<SerializedUser> {
           },
         },
       });
-      console.log(`Request ${requestId} added to user ${userId}`);
     } else {
       console.error(`User with ID ${userId} not found`);
     }
@@ -170,10 +168,6 @@ export default class UserRepository implements Repository<SerializedUser> {
     requestId: string,
     userId: string,
   ) {
-    console.log(
-      `Saving photo message for user ${userId} with request ID ${requestId}`,
-    );
-
     return this.prisma.workerRequestPhotoMessage.create({
       data: {
         userId: userId,
@@ -196,10 +190,6 @@ export default class UserRepository implements Repository<SerializedUser> {
     requestId: string,
     userId: string,
   ) {
-    console.log(
-      `Saving photo message for user ${userId} with request ID ${requestId}`,
-    );
-
     return this.prisma.paymentRequests.update({
       where: { id: requestId },
       data: {

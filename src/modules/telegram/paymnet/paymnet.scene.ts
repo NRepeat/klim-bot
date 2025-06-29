@@ -123,7 +123,6 @@ export default class PaymentWizard {
       this.paymentPhotos = [];
     } else {
       console.error('No photos found in the message');
-      console.log(ctx.callbackQuery);
       if (ctx.callbackQuery) {
         if (
           'data' in ctx.callbackQuery &&
@@ -151,7 +150,39 @@ export default class PaymentWizard {
             requestId,
           );
 
-          await ctx.deleteMessage();
+          await ctx.scene.leave();
+        } else if (
+          'data' in ctx.callbackQuery &&
+          ctx.callbackQuery.data.includes('accept_request')
+        ) {
+          console.error('Unknown callback query data:', ctx.callbackQuery);
+          const state = ctx.wizard.state as { requestId: string };
+          const requestId = state.requestId;
+          const request = await this.requestService.findById(requestId);
+          if (!request) {
+            await ctx.scene.leave();
+            throw new Error('Request not found');
+          }
+          const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+
+          const workerMenu = MenuFactory.createWorkerMenu(
+            request as unknown as FullRequestType,
+            photoUrl,
+          );
+          await this.telegramService.updateAllWorkersMessagesWithRequestsId(
+            {
+              text: workerMenu.inWork().caption,
+              inline_keyboard: workerMenu.inProcess(undefined, request.id)
+                .markup,
+            },
+            requestId,
+          );
+          await ctx.scene.leave();
+        } else {
+          console.error('Unknown callback query data:', ctx.callbackQuery);
+          await ctx.answerCbQuery('Unknown action');
+          // await ctx.scene.leave();
+          return;
         }
       }
       await ctx.scene.leave();

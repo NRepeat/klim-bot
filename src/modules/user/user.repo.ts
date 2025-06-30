@@ -6,6 +6,7 @@ import {
   UserRole,
 } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
+import { Role } from 'generated/prisma';
 
 @Injectable()
 export default class UserRepository implements Repository<SerializedUser> {
@@ -140,17 +141,22 @@ export default class UserRepository implements Repository<SerializedUser> {
       data: {
         ...data,
         Role: {
-          connect: {
-            id: roleId,
+          connectOrCreate: {
+            where: {
+              id: roleId,
+            },
+            create: {
+              name: 'WORKER',
+            },
           },
         },
       },
     });
   }
-  async getAllAdmins(where: { roleId: string } = { roleId: '1' }) {
+  async getAllAdmins() {
     return this.prisma.role.findFirst({
       where: {
-        id: where.roleId,
+        name: 'ADMIN',
       },
       include: {
         users: true,
@@ -204,10 +210,5 @@ export default class UserRepository implements Repository<SerializedUser> {
         },
       },
     });
-    // return this.prisma.message.create({
-    //   data: {
-
-    //   },
-    // });
   }
 }

@@ -6,14 +6,64 @@ import { Currency } from 'generated/prisma';
 @Injectable()
 export default class RatesRepository implements Repository<SerializedRate> {
   constructor(private readonly prisma: PrismaService) {}
-
+  async findOne(
+    minAmount: number,
+    maxAmount: number,
+    currencyId: string,
+    paymentMethodId: string,
+  ) {
+    return this.prisma.rates.findFirst({
+      where: {
+        minAmount,
+        maxAmount,
+        currencyId: currencyId.toString(),
+        paymentMethodId: paymentMethodId.toString(),
+      },
+    });
+  }
   async findById(userId: string) {
     return this.prisma.rates.findUnique({
       where: { id: userId },
     });
   }
-
+  async updateRates({
+    where,
+    data,
+  }: {
+    where: {
+      id: string;
+      minAmount: number;
+      maxAmount: number;
+      rate: number;
+    };
+    data: {
+      minAmount?: number;
+      maxAmount?: number;
+      rate?: number;
+      currencyId?: number;
+      paymentMethodId?: number;
+    };
+  }) {
+    try {
+      const updatedRate = await this.prisma.rates.update({
+        where: {
+          id: where.id,
+          rate: where.rate,
+          minAmount: where.minAmount,
+          maxAmount: where.maxAmount,
+        },
+        data: {
+          minAmount: data.minAmount,
+          maxAmount: data.maxAmount,
+          rate: data.rate,
+        },
+      });
+    } catch (error) {
+      console.error('Error updating rate:', error);
+    }
+  }
   async create(data: SerializedRate & { currency?: Currency }) {
+    console.log('Creating new rate:', data);
     return this.prisma.rates.create({
       data: {
         maxAmount: data.maxAmount,

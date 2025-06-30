@@ -30,7 +30,6 @@ export class MenuActions {
         reply_markup: inline_keyboard.reply_markup,
       });
     } else {
-      await ctx.reply('Welcome');
       await ctx.reply('Welcome', {
         reply_markup: undefined,
       });

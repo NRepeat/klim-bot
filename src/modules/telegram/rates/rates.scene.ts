@@ -36,7 +36,10 @@ export class CreateRatesScene {
       [Markup.button.callback('Cancel', 'cancel_update_all_rates')],
     ]);
     const msgRe = await ctx.reply('Send new rates in the same format:');
-    const msg = await ctx.reply(markup, inline_keyboard);
+    const msg = await ctx.reply(
+      markup || 'No rates available',
+      inline_keyboard,
+    );
     ctx.wizard.next();
     ctx.session.messagesToDelete?.push(msg.message_id);
     ctx.session.messagesToDelete?.push(msgRe.message_id);

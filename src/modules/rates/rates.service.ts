@@ -10,6 +10,7 @@ import RateRepository from './rates.repo';
 import { Context } from 'telegraf';
 import Rate from 'src/model/Rate';
 import { VendorService } from '../vendor/vendor.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class RatesService {
@@ -18,6 +19,7 @@ export class RatesService {
   constructor(
     private readonly rateRepository: RateRepository,
     private readonly vendorService: VendorService,
+    private readonly prisma: PrismaService,
   ) {}
   async getAllRates() {
     return this.rateRepository.getAll();
@@ -25,6 +27,7 @@ export class RatesService {
 
   async getAllRatesMarkupMessage() {
     const allRates = await this.getAllRates();
+    // Группируем по header
     const grouped: Record<
       string,
       { minAmount: number; maxAmount: number | null; rate: number }[]
@@ -48,11 +51,13 @@ export class RatesService {
     });
     const message: string[] = [];
     for (const header of headers) {
+      // Сортируем внутри header по minAmount по возрастанию, а maxAmount === null (то есть +) всегда в конце
       grouped[header].sort((a, b) => {
         if (a.maxAmount === null && b.maxAmount !== null) return 1;
         if (a.maxAmount !== null && b.maxAmount === null) return -1;
         return a.minAmount - b.minAmount;
       });
+      // Переворачиваем порядок (теперь сначала min, потом max+)
       grouped[header].reverse();
       message.push(header);
       for (const r of grouped[header]) {
@@ -113,13 +118,12 @@ export class RatesService {
       for (const line of lines) {
         if (line.includes(':')) {
           currentHeader = line;
-          console.log(currentHeader, 'currentHeader');
           rates.push({ header: currentHeader, lines: [] });
         } else if (currentHeader) {
           rates[rates.length - 1].lines.push(line);
         }
       }
-      console.log(rates, 'rates');
+
       return rates;
     } catch (error) {
       console.error('Error parsing rates markup message:', error);
@@ -136,12 +140,7 @@ export class RatesService {
 
     const parsedRates = this.parseAllRatesMarkupMessage(message);
 
-    const newRates: {
-      existRate: SerializedRate | null;
-      newRate: SerializedRate;
-    }[] = [];
-    const allRates = await this.getAllRates();
-
+    const newRates: SerializedRate[] = [];
     for (const parsedRate of parsedRates) {
       const method = parsedRate.header.split(':')[1].trim();
       const paymentMethodId =
@@ -149,16 +148,11 @@ export class RatesService {
       const currencyName = parsedRate.header.split(':')[0].trim();
       const currencyId =
         CurrencyEnum[currencyName as keyof typeof CurrencyEnum];
-      for (let i = 0; i < parsedRate.lines.length; i++) {
-        const line = parsedRate.lines[i];
-        const existRate = allRates[i];
+      for (const line of parsedRate.lines) {
         let minAmount = 0;
         let maxAmount: number | null = null;
         let rate = 0;
-        if (typeof line !== 'string') continue;
-        const [amountPartRaw, ratePartRaw] = line.split(' ');
-        const amountPart = amountPartRaw?.trim() ?? '';
-        const ratePart = ratePartRaw?.trim() ?? '';
+        const [amountPart, ratePart] = line.split(' ');
         rate = Number(ratePart);
         if (amountPart.includes('+')) {
           minAmount = Number(amountPart.replace('+', ''));
@@ -175,70 +169,43 @@ export class RatesService {
           currencyId,
           paymentMethodId,
         );
-        if (existRate) {
-          newRates.push({ existRate, newRate });
-        } else if (!existRate) {
-          newRates.push({ existRate: null, newRate });
-        }
-        console.log(newRate, 'newRate');
+        newRates.push(newRate);
       }
+    }
+    if (newRates.length === 0) {
+      console.error('No valid rates found to create');
+      throw new Error('No valid rates found');
+    }
+    console.log('New rates', newRates);
 
-      if (newRates.length === 0) {
-        console.error('No valid rates found to create');
-        throw new Error('No valid rates found');
-      }
-      console.log('New rates:', newRates.length);
-      if (allRates.length > 0) {
-        for (const rates of newRates) {
-          if (!rates.newRate) {
-            continue;
-          }
-          if (!rates.existRate) {
-            await this.rateRepository.create({
-              rate: rates.newRate.rate,
-              minAmount: rates.newRate.minAmount,
-              maxAmount: rates.newRate.maxAmount,
-              currencyId: rates.newRate.currencyId,
-              paymentMethodId: rates.newRate.paymentMethodId,
-            });
-          } else if (rates.existRate) {
-            const existRate = rates.existRate as any as {
-              maxAmount: number;
-              minAmount: number;
-              rate: number;
-              id: string;
-            };
-            const updatedRate = rates.newRate as any as {
-              maxAmount: number;
-              minAmount: number;
-              rate: number;
-              currencyId: number;
-              paymentMethodId: number;
-            };
+    try {
+      await this.prisma.$transaction(async (client) => {
+        await client.rates.deleteMany({});
 
-            await this.rateRepository.updateRates({
-              where: existRate,
-              data: {
-                rate: updatedRate.rate,
-                minAmount: updatedRate.minAmount,
-                maxAmount: updatedRate.maxAmount,
-                currencyId: updatedRate.currencyId,
-                paymentMethodId: updatedRate.paymentMethodId,
-              },
-            });
-          }
+        const result = await client.rates.createMany({
+          data: newRates.map((rate) => ({
+            rate: rate.rate,
+            minAmount: rate.minAmount,
+            maxAmount: rate.maxAmount,
+            currencyId: rate.currencyId,
+            paymentMethodId: rate.paymentMethodId,
+          })),
+        });
 
-          try {
-            // await Promise.all(createRatePromises);
-            // return true;
-          } catch (error) {
-            throw new Error(
-              `Failed to create rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            );
-          }
+        if (result.count !== newRates.length) {
+          throw new Error(
+            'Failed to create all rates. Transaction will be rolled back.',
+          );
         }
+
+        console.log('Rates created successfully');
         return true;
-      }
+      });
+      return true;
+    } catch (error) {
+      throw new Error(
+        `Failed to create rates: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
   async sendAllRatesToAllVendors(ctx: Context) {

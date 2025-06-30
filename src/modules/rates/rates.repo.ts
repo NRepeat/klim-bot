@@ -6,6 +6,7 @@ import { Currency } from 'generated/prisma';
 @Injectable()
 export default class RatesRepository implements Repository<SerializedRate> {
   constructor(private readonly prisma: PrismaService) {}
+
   async findOne(
     minAmount: number,
     maxAmount: number,
@@ -21,11 +22,13 @@ export default class RatesRepository implements Repository<SerializedRate> {
       },
     });
   }
+
   async findById(userId: string) {
     return this.prisma.rates.findUnique({
       where: { id: userId },
     });
   }
+
   async updateRates({
     where,
     data,
@@ -45,7 +48,7 @@ export default class RatesRepository implements Repository<SerializedRate> {
     };
   }) {
     try {
-      const updatedRate = await this.prisma.rates.update({
+      await this.prisma.rates.update({
         where: {
           id: where.id,
           rate: where.rate,
@@ -62,28 +65,50 @@ export default class RatesRepository implements Repository<SerializedRate> {
       console.error('Error updating rate:', error);
     }
   }
-  async create(data: SerializedRate & { currency?: Currency }) {
-    console.log('Creating new rate:', data);
-    return this.prisma.rates.create({
-      data: {
-        maxAmount: data.maxAmount,
-        minAmount: data.minAmount,
-        rate: data.rate,
-        currencyId: data.currencyId,
-        paymentMethodId: data.paymentMethodId,
-      },
-    });
+
+  async create(
+    data: Omit<SerializedRate, 'id'>,
+  ): Promise<SerializedRate | null> {
+    try {
+      if (
+        !data.currencyId ||
+        !data.paymentMethodId ||
+        !data.maxAmount ||
+        !data.minAmount ||
+        !data.rate
+      ) {
+        throw new Error(
+          'Currency, payment method, max amount, min amount, and rate are required',
+        );
+      }
+      const createdRate = await this.prisma.rates.create({
+        data: {
+          maxAmount: data.maxAmount,
+          minAmount: data.minAmount,
+          rate: data.rate,
+          currencyId: data.currencyId,
+          paymentMethodId: data.paymentMethodId,
+        },
+      });
+      return createdRate as SerializedRate;
+    } catch (error) {
+      console.error('Error creating rate:', error);
+      throw new Error('Failed to create rate');
+    }
   }
+
   async deleteAll() {
     const { count } = await this.prisma.rates.deleteMany({});
     return count > 0;
   }
+
   async update(userId: string, data: SerializedRate) {
     return this.prisma.rates.update({
       where: { id: userId },
       data,
     });
   }
+
   async getAll() {
     return this.prisma.rates.findMany({
       include: { currency: true, paymentMethod: true },

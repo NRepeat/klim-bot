@@ -115,7 +115,7 @@ export enum PaymentMethodEnum {
 
 export interface Repository<T> {
   findById?(id: string): Promise<T | null>;
-  create(data: Omit<T, 'id'>): Promise<T>;
+  create(data: Omit<T, 'id'>): Promise<T | null>;
   update?(id: string, data: Partial<T>): Promise<T>;
   getAll?(): Promise<T[]>;
   deleteAll?(): Promise<boolean>;

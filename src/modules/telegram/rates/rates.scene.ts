@@ -70,6 +70,7 @@ export class CreateRatesScene {
     } catch (error) {
       if (error instanceof Error) {
         console.error('Error creating rates:', error.message);
+        await ctx.reply('Somthing went wrong');
         await ctx.scene.leave();
       }
     }

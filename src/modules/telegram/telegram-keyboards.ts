@@ -106,7 +106,7 @@ abstract class BaseRequestMenu {
     request: FullRequestType,
     source?: Buffer<ArrayBufferLike>,
   ) {
-    const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+    const photoUrl = './src/assets/0056.jpg';
     this.request = request;
     this.url = url ? url : photoUrl;
     this.source = source || Buffer.from([]);

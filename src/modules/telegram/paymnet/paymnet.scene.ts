@@ -135,7 +135,7 @@ export default class PaymentWizard {
             await ctx.scene.leave();
             throw new Error('Request not found');
           }
-          const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+          const photoUrl = './src/assets/0056.jpg';
 
           const workerMenu = MenuFactory.createWorkerMenu(
             request as unknown as FullRequestType,
@@ -163,7 +163,7 @@ export default class PaymentWizard {
             await ctx.scene.leave();
             throw new Error('Request not found');
           }
-          const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+          const photoUrl = './src/assets/0056.jpg';
 
           const workerMenu = MenuFactory.createWorkerMenu(
             request as unknown as FullRequestType,
@@ -204,7 +204,7 @@ export default class PaymentWizard {
   //         await ctx.scene.leave();
   //         throw new Error('Request not found');
   //       }
-  //       const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+  //       const photoUrl = './src/assets/0056.jpg';
 
   //       const workerMenu = MenuFactory.createWorkerMenu(
   //         request as unknown as FullRequestType,

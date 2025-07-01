@@ -149,7 +149,7 @@ export class UserActions {
         if (!request) {
           throw new Error('Request not found');
         }
-        const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+        const photoUrl = './src/assets/0056.jpg';
 
         const workerMenu = MenuFactory.createWorkerMenu(
           request as unknown as FullRequestType,

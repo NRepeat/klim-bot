@@ -8,7 +8,7 @@ import { UserService } from '../user/user.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Context, Telegraf } from 'telegraf';
 import { MenuFactory } from '../telegram/telegram-keyboards';
-
+const photoUrl = './src/assets/0056.jpg';
 @Injectable()
 export class RequestTaskService {
   private readonly logger = new Logger('RequestTaskService');
@@ -28,12 +28,30 @@ export class RequestTaskService {
       this.logger.log(
         `Found ${requests.length} not processed requests and ${workers.length} workers at ${new Date().toISOString()}`,
       );
-      if (requests.length === 0 || workers.length === 0) return;
+      if (requests.length === 0) return;
 
       // Round-robin: каждому работнику по одному запросу
       for (let i = 0; i < requests.length; i++) {
-        const worker = workers[i % workers.length];
-        await this.processRequestForWorker(requests[i], worker);
+        // const worker = workers[i % workers.length];
+        // await this.processRequestForWorker(requests[i], worker);
+        await this.telegramService.sendRequestToWorkGroup(requests[i]);
+        const adminMenu = MenuFactory.createAdminMenu(
+          requests[i] as unknown as FullRequestType,
+          photoUrl,
+        );
+        const adminRequestPhotoMessage: ReplyPhotoMessage = {
+          photoUrl: adminMenu.inWork().url,
+          text: adminMenu.inWork().caption,
+          inline_keyboard: adminMenu.inWork().markup,
+        };
+        await this.telegramService.sendPhotoMessageToAllAdmins(
+          adminRequestPhotoMessage,
+          requests[i].id,
+        );
+        await this.requestService.updateRequestNotificationStatus(
+          requests[i].id,
+          true,
+        );
       }
     } catch (error) {
       this.logger.error('Error while processing requests', error);
@@ -42,8 +60,6 @@ export class RequestTaskService {
 
   private async processRequest(request: FullRequestType) {
     try {
-      const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
-
       const workerMenu = MenuFactory.createWorkerMenu(
         request as unknown as FullRequestType,
         photoUrl,
@@ -88,7 +104,7 @@ export class RequestTaskService {
       }
       for (const worker of workerNotifications) {
         if (hasA && worker.proceeded) {
-          await this.updateAdminMessages(request.id, worker.username);
+          await this.updateAdminMessages(request, worker.username);
         }
       }
     } catch (error) {
@@ -116,7 +132,7 @@ export class RequestTaskService {
         );
         return;
       }
-      const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+      const photoUrl = './src/assets/0056.jpg';
       const workerMenu = MenuFactory.createWorkerMenu(request, photoUrl);
 
       await this.telegramService.sendPhotoMessageToWorker(
@@ -152,25 +168,25 @@ export class RequestTaskService {
       }
       // Обновление сообщений админов, если нужно
       if (hasA) {
-        await this.updateAdminMessages(
-          request.id,
-          worker.username ?? undefined,
-        );
+        await this.updateAdminMessages(request, worker.username ?? undefined);
       }
     } catch (error) {
       this.logger.error('Error creating card request:', error);
     }
   }
 
-  private async updateAdminMessages(req: string, newWorker?: string) {
-    const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
-    const request = await this.requestService.findById(req);
+  private async updateAdminMessages(
+    request: FullRequestType,
+    newWorker?: string,
+  ) {
+    const photoUrl = './src/assets/0056.jpg';
+
     if (!request) {
-      this.logger.warn(`Request with ID ${req} not found, skipping update`);
+      this.logger.warn(`Request  not found, skipping update`);
       return;
     }
     const adminMenu = MenuFactory.createAdminMenu(
-      req as unknown as FullRequestType,
+      request as unknown as FullRequestType,
       photoUrl,
     );
 

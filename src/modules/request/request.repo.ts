@@ -10,6 +10,13 @@ import { CardPaymentRequestsMethod, Status } from 'generated/prisma';
 @Injectable()
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async updateRequestNotificationStatus(requestId: string, sended: boolean) {
+    await this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: { notificationSent: sended },
+    });
+  }
   async removeFromBlackList(id: string) {
     return this.prisma.blackList.delete({
       where: { id },
@@ -195,6 +202,7 @@ export class RequestRepository {
     return this.prisma.paymentRequests.findMany({
       where: {
         userId: null,
+        notificationSent: false,
       },
       include: {
         cardMethods: {
@@ -241,7 +249,7 @@ export class RequestRepository {
                   },
                 }
               : undefined,
-            bankId: data.card.bankId,
+            bankId: data.card.bankId ? data.card.bankId : undefined,
           },
         },
       },

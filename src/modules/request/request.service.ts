@@ -16,6 +16,9 @@ export class RequestService {
     private readonly userService: UserService,
     private readonly vendorService: VendorService,
   ) {}
+  async updateRequestNotificationStatus(requestId: string, sended: boolean) {
+    await this.requestRepo.updateRequestNotificationStatus(requestId, sended);
+  }
   async getBlackList() {
     // console.log('Fetching blacklist');
     const blackList = await this.requestRepo.getBlackList();

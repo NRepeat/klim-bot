@@ -14,6 +14,7 @@ import { RequestService } from '../request/request.service';
 import { UtilsService } from '../utils/utils.service';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { MenuFactory } from './telegram-keyboards';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -23,10 +24,33 @@ export class TelegramService {
     private readonly userService: UserService,
     private readonly requestService: RequestService,
     private readonly utilsService: UtilsService,
+    private readonly configService: ConfigService,
   ) {}
 
   private lastWorkerIndex = -1;
-
+  async sendRequestToWorkGroup(request: FullRequestType) {
+    try {
+      const workerMenu = MenuFactory.createWorkerMenu(request, photoUrl);
+      const chatId = this.configService.get<number>('WORK_GROUP_CHAT');
+      if (!chatId) {
+        throw new Error('Work group chat not found');
+      }
+      const photoMsg = await this.bot.telegram.sendPhoto(
+        chatId,
+        {
+          source: workerMenu.inWork().source,
+        },
+        {
+          parse_mode: 'HTML',
+          reply_markup: workerMenu.inWork().markup,
+          caption: workerMenu.inWork().caption || '',
+        },
+      );
+    } catch (err) {
+      console.error(err);
+      throw new Error('Failed to send request to work group');
+    }
+  }
   async sendMessageToUser(
     message: ReplyPhotoMessage,
     chatId: number,

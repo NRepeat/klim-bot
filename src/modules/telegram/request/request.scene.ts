@@ -234,7 +234,7 @@ export class CreateRequestWizard {
         try {
           const request =
             await this.requestService.createCardRequest(cardRequest);
-          const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+          const photoUrl = './src/assets/0056.jpg';
           const publicMenu = MenuFactory.createPublicMenu(
             request as unknown as FullRequestType,
             photoUrl,
@@ -341,7 +341,7 @@ export class CreateRequestWizard {
       };
       const request = await this.requestService.createIbanRequest(ibanRequest);
 
-      const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+      const photoUrl = './src/assets/0056.jpg';
       const publicMenu = MenuFactory.createPublicMenu(
         request as unknown as FullRequestType,
         photoUrl,

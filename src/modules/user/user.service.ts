@@ -80,7 +80,20 @@ export class UserService {
   async appendRequestToUser(userId: string, requestId: string): Promise<void> {
     return this.userRepository.appendRequestToUser(userId, requestId);
   }
-
+  async saveMessage(message: SerializedMessage) {
+    try {
+      await this.userRepository.saveMessage({
+        chatId: message.chatId,
+        accessType: message.accessType,
+        messageId: message.messageId,
+        requestId: message.requestId,
+        photoUrl: message.photoUrl ? message.photoUrl : '',
+        text: message.text ? message.text : '',
+      });
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  }
   async saveWorkerRequestPhotoMessage(
     message: SerializedMessage,
     requestId: string,

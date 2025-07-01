@@ -10,7 +10,12 @@ import { CardPaymentRequestsMethod, Status } from 'generated/prisma';
 @Injectable()
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
-
+  async unlinkUser(requestId: string) {
+    await this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: { userId: null, activeUserId: null },
+    });
+  }
   async updateRequestNotificationStatus(requestId: string, sended: boolean) {
     await this.prisma.paymentRequests.update({
       where: { id: requestId },
@@ -180,14 +185,7 @@ export class RequestRepository {
       where: { card: { some: { card: cardNumber } } },
     });
   }
-  async acceptRequest(
-    requestId: string,
-    userId: string,
-    chatId?: number,
-  ): Promise<void> {
-    // console.log(
-    //   `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
-    // );
+  async acceptRequest(requestId: string, userId: string): Promise<void> {
     await this.prisma.paymentRequests.update({
       where: { id: requestId },
       data: {
@@ -238,7 +236,6 @@ export class RequestRepository {
             nameEn: 'CARD',
           },
         },
-
         cardMethods: {
           create: {
             ...data.card,

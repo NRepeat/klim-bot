@@ -11,10 +11,12 @@ import {
   SerializedMessage,
 } from 'src/types/types';
 import { RequestService } from '../request/request.service';
-import { UtilsService } from '../utils/utils.service';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { MenuFactory } from './telegram-keyboards';
 import { ConfigService } from '@nestjs/config';
+
+const photoUrl = './src/assets/0056.jpg';
+
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -23,11 +25,42 @@ export class TelegramService {
     @InjectBot() private bot: Telegraf<Context>,
     private readonly userService: UserService,
     private readonly requestService: RequestService,
-    private readonly utilsService: UtilsService,
     private readonly configService: ConfigService,
   ) {}
 
   private lastWorkerIndex = -1;
+  async updateAdminMessages(requestId: string) {
+    try {
+      const request = await this.requestService.findById(requestId);
+      if (!request) throw new Error('Request not found');
+      const messages = request.message.filter((m) => m.accessType === 'ADMIN');
+      if (messages.length === 0) return;
+      const requests = messages.map((m) => {
+        const adminMenu = MenuFactory.createAdminMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
+        return this.bot.telegram.editMessageCaption(
+          Number(m.chatId),
+          Number(m.messageId),
+          undefined,
+          adminMenu.inWork(undefined, m.requestId).caption,
+          {
+            parse_mode: 'HTML',
+            reply_markup: adminMenu.inWork().markup,
+          },
+        );
+      });
+      await Promise.all(requests);
+      this.logger.log(
+        `Admin message for request ${request.id} updated successfully`,
+      );
+    } catch (err) {
+      console.error(err);
+      throw new Error('Failed to send request to work group');
+    }
+  }
+
   async sendRequestToWorkGroup(request: FullRequestType) {
     try {
       const workerMenu = MenuFactory.createWorkerMenu(request, photoUrl);
@@ -80,7 +113,6 @@ export class TelegramService {
         text: message.text || '',
         requestId: requestId,
         accessType: 'WORKER',
-        paymentRequestId: requestId,
       };
 
       if (photoMsg) {
@@ -117,11 +149,6 @@ export class TelegramService {
         const newCaption = newMessage.text ? newMessage.text : message.text;
         if (chatId && messageId) {
           if (newMessage.source) {
-            // console.log(
-            //   message.paymentRequests?.vendor,
-            //   'newMessage.source',
-            //   newMessage.source,
-            // );
             if (!message.paymentRequests?.vendor.showReceipt) {
               await this.bot.telegram.editMessageMedia(
                 chatId,
@@ -241,7 +268,6 @@ export class TelegramService {
             text: message.text || '',
             requestId: requestId,
             accessType: 'WORKER',
-            paymentRequestId: requestId,
           };
           processedRequestsId.push({
             requestId: requestId,
@@ -316,7 +342,6 @@ export class TelegramService {
               text: message.text || '',
               requestId: requestId,
               accessType: 'ADMIN',
-              paymentRequestId: requestId,
             };
             if (photoMsg.message_id) {
               await this.userService.saveRequestPhotoMessage(
@@ -345,6 +370,7 @@ export class TelegramService {
       }
       const messages =
         await this.userService.getAlWorkerMessagesWithRequestsId(requestId);
+      console.log('Messages:', messages);
       if (!messages || messages.length === 0) {
         this.logger.warn('No active admins found');
         return;
@@ -584,7 +610,6 @@ export class TelegramService {
         text: message.text || '',
         requestId: requestId,
         accessType: 'WORKER',
-        paymentRequestId: requestId,
       };
       if (photoMsg) {
         await this.userService.saveWorkerRequestPhotoMessage(

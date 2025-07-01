@@ -2,22 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RequestService } from '../request/request.service';
 import { TelegramService } from '../telegram/telegram.service';
-import { UtilsService } from '../utils/utils.service';
 import { FullRequestType, ReplyPhotoMessage } from 'src/types/types';
 import { UserService } from '../user/user.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Context, Telegraf } from 'telegraf';
 import { MenuFactory } from '../telegram/telegram-keyboards';
 const photoUrl = './src/assets/0056.jpg';
+
 @Injectable()
 export class RequestTaskService {
   private readonly logger = new Logger('RequestTaskService');
   constructor(
-    private readonly requestService: RequestService, // Assuming you have a request service to inject
-    private readonly telegramService: TelegramService, // Assuming you have a telegram service to inject
     @InjectBot() private readonly bot: Telegraf<Context>,
-    private readonly utilsService: UtilsService, // Assuming you have a utils service to inject
-    private readonly userService: UserService, // Assuming you have a user service to inject
+    private readonly requestService: RequestService,
+    private readonly telegramService: TelegramService,
+    private readonly userService: UserService,
   ) {}
   @Cron(CronExpression.EVERY_10_SECONDS)
   async handleRequests() {
@@ -30,10 +29,7 @@ export class RequestTaskService {
       );
       if (requests.length === 0) return;
 
-      // Round-robin: каждому работнику по одному запросу
       for (let i = 0; i < requests.length; i++) {
-        // const worker = workers[i % workers.length];
-        // await this.processRequestForWorker(requests[i], worker);
         await this.telegramService.sendRequestToWorkGroup(requests[i]);
         const adminMenu = MenuFactory.createAdminMenu(
           requests[i] as unknown as FullRequestType,

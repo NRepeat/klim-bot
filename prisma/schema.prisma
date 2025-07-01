@@ -103,21 +103,16 @@ enum AccessType {
 }
 
 model Message {
-  id                          String                     @id @default(cuid())
-  chatId                      BigInt
-  messageId                   BigInt                     @unique
-  paymentRequestId            String?
-  text                        String?
-  photoUrl                    String?
-  createdAt                   DateTime                   @default(now())
-  updatedAt                   DateTime                   @updatedAt
-  requestId                   String
-  accessType                  AccessType                 @default(PUBLIC)
-  paymentRequests             PaymentRequests            @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  adminRequestPhotoMessage    AdminRequestPhotoMessage?  @relation(fields: [adminRequestPhotoMessageId], references: [id], onDelete: Cascade)
-  adminRequestPhotoMessageId  String?
-  workerRequestPhotoMessage   WorkerRequestPhotoMessage? @relation(fields: [workerRequestPhotoMessageId], references: [id], onDelete: Cascade)
-  workerRequestPhotoMessageId String?
+  id              String          @id @default(cuid())
+  chatId          BigInt
+  messageId       BigInt          @unique
+  text            String?
+  photoUrl        String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  requestId       String
+  accessType      AccessType      @default(PUBLIC)
+  paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
 }
 
 model CardPaymentRequestsMethod {
@@ -197,7 +192,6 @@ model BlackList {
 
 model AdminRequestPhotoMessage {
   id              String          @id @default(cuid())
-  message         Message[]
   requestId       String
   paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
   userId          String
@@ -208,7 +202,6 @@ model AdminRequestPhotoMessage {
 
 model WorkerRequestPhotoMessage {
   id              String          @id @default(cuid())
-  message         Message[]
   requestId       String
   paymentRequests PaymentRequests @relation(fields: [requestId], references: [id], onDelete: Cascade)
   userId          String

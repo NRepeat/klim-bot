@@ -114,7 +114,7 @@ abstract class BaseRequestMenu {
 
   protected abstract getAccessType(): AccessType;
 
-  messageFromRequest(accessType?: AccessType): string {
+  messageFromRequest(accessType?: AccessType, accepted?: boolean): string {
     if (!this.request) {
       return MESSAGES.NO_DATA;
     }
@@ -244,10 +244,10 @@ abstract class BaseRequestMenu {
         markup = requestId
           ? Markup.inlineKeyboard([
               [
-                createButton(
-                  BUTTON_TEXTS.WORKER_CANCEL_REQUEST,
-                  BUTTON_CALLBACKS.CANCEL_WORKER_REQUEST + requestId,
-                ),
+                // createButton(
+                //   BUTTON_TEXTS.WORKER_CANCEL_REQUEST,
+                //   BUTTON_CALLBACKS.CANCEL_WORKER_REQUEST + requestId,
+                // ),
                 createButton(
                   BUTTON_TEXTS.TAKE_REQUEST,
                   BUTTON_CALLBACKS.TAKE_REQUEST + requestId,
@@ -315,10 +315,10 @@ abstract class BaseRequestMenu {
     if (accessType === 'WORKER' && requestId) {
       const markup = Markup.inlineKeyboard([
         [
-          createButton(
-            BUTTON_TEXTS.GIVE_NEXT,
-            BUTTON_CALLBACKS.GIVE_NEXT + requestId,
-          ),
+          // createButton(
+          //   BUTTON_TEXTS.GIVE_NEXT,
+          //   BUTTON_CALLBACKS.GIVE_NEXT + requestId,
+          // ),
           createButton(
             BUTTON_TEXTS.VALUT_CARD,
             BUTTON_CALLBACKS.VALUT_CARD + requestId,
@@ -453,7 +453,7 @@ const BUTTON_TEXTS = {
   REQUEST_COMPLIED: 'Перевел',
   GIVE_NEXT: 'Передать другому',
   VALUT_CARD: 'Валютная карта',
-  BACK_TO_TAKE_REQUEST: 'Вернуться назад',
+  BACK_TO_TAKE_REQUEST: 'Отказаться от заявки',
   REJECTED_BY_ADMIN: 'Отклонено админом',
 } as const;
 

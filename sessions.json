@@ -76,6 +76,14 @@
       "data": {
         "__scenes": {}
       }
+    },
+    {
+      "id": "-1002887877945:6455899560",
+      "data": {
+        "__scenes": {},
+        "messagesToDelete": [],
+        "customState": ""
+      }
     }
   ]
 }

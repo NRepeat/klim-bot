@@ -44,6 +44,9 @@ export default class UserRepository implements Repository<SerializedUser> {
       where: {
         telegramId: id,
       },
+      include: {
+        Role: true,
+      },
     });
   }
   async findAll() {
@@ -169,27 +172,43 @@ export default class UserRepository implements Repository<SerializedUser> {
       data,
     });
   }
+  async saveMessage(message: SerializedMessage) {
+    try {
+      await this.prisma.message.create({
+        data: {
+          chatId: message.chatId,
+          accessType: message.accessType,
+          messageId: message.messageId,
+          requestId: message.requestId,
+          photoUrl: message.photoUrl ? message.photoUrl : '',
+          text: message.text ? message.text : '',
+        },
+      });
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  }
   async saveWorkerRequestPhotoMessage(
     message: SerializedMessage,
     requestId: string,
     userId: string,
   ) {
-    return this.prisma.workerRequestPhotoMessage.create({
-      data: {
-        userId: userId,
-        requestId: requestId,
-        message: {
-          create: {
-            accessType: 'WORKER',
-            chatId: message.chatId,
-            messageId: message.messageId,
-            text: message.text,
-            requestId: requestId,
-            photoUrl: message.photoUrl ? message.photoUrl : '',
-          },
-        },
-      },
-    });
+    // return this.prisma.workerRequestPhotoMessage.create({
+    //   data: {
+    //     userId: userId,
+    //     requestId: requestId,
+    //     message: {
+    //       create: {
+    //         accessType: 'WORKER',
+    //         chatId: message.chatId,
+    //         messageId: message.messageId,
+    //         text: message.text,
+    //         requestId: requestId,
+    //         photoUrl: message.photoUrl ? message.photoUrl : '',
+    //       },
+    //     },
+    //   },
+    // });
   }
   async saveRequestPhotoMessage(
     message: SerializedMessage,

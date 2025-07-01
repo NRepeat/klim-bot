@@ -16,6 +16,9 @@ export class RequestService {
     private readonly userService: UserService,
     private readonly vendorService: VendorService,
   ) {}
+  async unlinkUser(requestId: string) {
+    await this.requestRepo.unlinkUser(requestId);
+  }
   async updateRequestNotificationStatus(requestId: string, sended: boolean) {
     await this.requestRepo.updateRequestNotificationStatus(requestId, sended);
   }
@@ -87,14 +90,14 @@ export class RequestService {
     userId: number,
     chatId?: number,
   ): Promise<void> {
-    // console.log(
-    //   `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
-    // );
+    console.log(
+      `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
+    );
     const dbUser = await this.userService.findByTelegramId(userId);
     if (!dbUser) {
       throw new Error('User not found');
     }
-    await this.requestRepo.acceptRequest(requestId, dbUser.id, chatId);
+    await this.requestRepo.acceptRequest(requestId, dbUser.id);
   }
   async isInBlackList(cardNumber: string) {
     const isBlackListed = this.requestRepo.isInBlackList(cardNumber);

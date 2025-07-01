@@ -114,7 +114,7 @@ abstract class BaseRequestMenu {
 
   protected abstract getAccessType(): AccessType;
 
-  messageFromRequest(accessType?: AccessType, accepted?: boolean): string {
+  messageFromRequest(accessType?: AccessType): string {
     if (!this.request) {
       return MESSAGES.NO_DATA;
     }
@@ -123,11 +123,7 @@ abstract class BaseRequestMenu {
     if (isCard) {
       const cardMethods = this.request.cardMethods || [];
       // console.log('cardMethods', this.request);
-      const card =
-        cardMethods.length > 0 && cardMethods[0]?.card
-          ? `💳<b>Номер карты:</b> <code>${cardMethods[0].card}</code>\n`
-          : '';
-      // console.log('cardMethods[0]', cardMethods[0].bank);
+
       const bank = cardMethods[0]?.bank?.bankName
         ? cardMethods[0]?.bank?.bankName
         : '-';
@@ -146,10 +142,13 @@ abstract class BaseRequestMenu {
             ? cardMethods[0].blackList[0].reason
             : ''
           : '';
-      // console.log('blacklist', blacklist, 'accessType', currentAccessType);
       const acceptedBy = this.request.activeUser
         ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
         : '';
+      const card =
+        cardMethods.length > 0 && cardMethods[0]?.card
+          ? `💳<b>Номер карты:</b> <code>${acceptedBy ? cardMethods[0].card : Array.from(cardMethods[0].card, () => '*').join('')}</code>\n`
+          : '';
       const payedBy = this.request.payedByUser?.username
         ? '<b>Оплачено:</b> @' + this.request.payedByUser.username + '\n'
         : '';
@@ -161,7 +160,9 @@ abstract class BaseRequestMenu {
         rate +
         usdt +
         card +
-        (currentAccessType === 'ADMIN' ? acceptedBy : '') +
+        (currentAccessType === 'ADMIN' || currentAccessType === 'WORKER'
+          ? acceptedBy
+          : '') +
         (currentAccessType === 'ADMIN' ? payedBy : '') +
         (currentAccessType === 'ADMIN'
           ? `<b>Партнер:</b> <i>${vendor}</i>\n`

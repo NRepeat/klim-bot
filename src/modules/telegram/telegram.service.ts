@@ -29,6 +29,36 @@ export class TelegramService {
   ) {}
 
   private lastWorkerIndex = -1;
+  async updateWorkerMessages(requestId: string) {
+    try {
+      const request = await this.requestService.findById(requestId);
+      if (!request) throw new Error('Request not found');
+      const messages = request.message.filter((m) => m.accessType === 'WORKER');
+      if (messages.length === 0) return;
+      for (const message of messages) {
+        const adminMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
+        console.log('adminMenu', adminMenu.inWork().caption);
+        await this.bot.telegram.editMessageCaption(
+          Number(message.chatId),
+          Number(message.messageId),
+          undefined,
+          adminMenu.inWork().caption,
+          {
+            parse_mode: 'HTML',
+            reply_markup: adminMenu.inWork(undefined, requestId).markup,
+          },
+        );
+      }
+      this.logger.log(
+        `Admin message for request ${request.id} updated successfully`,
+      );
+    } catch (error) {
+      this.logger.error(`Error updating worker messages: ${error.message}`);
+    }
+  }
   async updateAdminMessages(requestId: string) {
     try {
       const request = await this.requestService.findById(requestId);
@@ -68,17 +98,26 @@ export class TelegramService {
       if (!chatId) {
         throw new Error('Work group chat not found');
       }
-      const photoMsg = await this.bot.telegram.sendPhoto(
+      const message = await this.bot.telegram.sendPhoto(
         chatId,
         {
           source: workerMenu.inWork().source,
         },
         {
           parse_mode: 'HTML',
-          reply_markup: workerMenu.inWork().markup,
-          caption: workerMenu.inWork().caption || '',
+          reply_markup: workerMenu.inWork(undefined, request.id).markup,
+          caption: workerMenu.inWork().caption,
         },
       );
+
+      await this.userService.saveMessage({
+        accessType: 'WORKER',
+        chatId: BigInt(chatId),
+        messageId: BigInt(message.message_id),
+        photoUrl: photoUrl,
+        text: workerMenu.inWork().caption,
+        requestId: request.id,
+      });
     } catch (err) {
       console.error(err);
       throw new Error('Failed to send request to work group');

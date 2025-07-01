@@ -77,7 +77,7 @@ export class AccessControlService {
       // Проверка что пользователь является активным обработчиком заявки
       if (!request.activeUser) {
         return {
-          allowed: false,
+          allowed: true,
           message: '❌ Заявка не назначена ни одному пользователю',
         };
       }

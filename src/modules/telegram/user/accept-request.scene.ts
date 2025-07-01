@@ -27,7 +27,6 @@ export class AcceptRequestScene {
     const chatId = ctx.message?.chat.id;
 
     try {
-      // Проверка прав на принятие заявки через AccessControlService
       const accessCheck = await this.accessControlService.canAcceptRequest(
         state.requestId,
         userId,

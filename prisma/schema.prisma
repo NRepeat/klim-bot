@@ -220,3 +220,10 @@ model CardBank {
   updatedAt                 DateTime                    @updatedAt
   cardPaymentRequestsMethod CardPaymentRequestsMethod[]
 }
+
+model Settings {
+  name      String   @id @default("default")
+  onPause   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

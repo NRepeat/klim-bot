@@ -62,10 +62,22 @@ export default class ReportService {
       const bank = this.getBankNameByCardNumber(cardNumber);
       const provider = request.vendor?.title ?? '';
       const acceptedDateTime = request.completedAt ?? '';
-      const inn = (request.ibanMethods && request.ibanMethods[0].inn) || '';
+      const inn =
+        (request.ibanMethods &&
+          request.ibanMethods.length !== 0 &&
+          request.ibanMethods[0].inn) ||
+        '';
+      console.log('Request INN:', request.ibanMethods);
       const clientName =
-        (request.ibanMethods && request.ibanMethods[0].name) ?? '';
-      const iban = (request.ibanMethods && request.ibanMethods[0].iban) || '';
+        (request.ibanMethods &&
+          request.ibanMethods.length !== 0 &&
+          request.ibanMethods[0].name) ??
+        '';
+      const iban =
+        (request.ibanMethods &&
+          request.ibanMethods.length !== 0 &&
+          request.ibanMethods[0].iban) ||
+        '';
       const currency = request?.currency?.nameEn ?? '';
       let result = 0;
       if (rate && typeof rate === 'number' && rate !== 0) {
@@ -82,7 +94,7 @@ export default class ReportService {
           hour12: false,
         }),
         inn,
-        clientName,
+        clientName ? clientName : '',
         iban,
         result.toFixed(2) || '',
       ];

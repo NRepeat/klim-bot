@@ -34,7 +34,6 @@ export class UserActions {
     await this.VendorCallbackService.handleVendorAction(
       ctx as CustomSceneContext,
     );
-    console.log('Callback query data:', callbackQuery);
     if (!callbackQuery) {
       console.error('No callback query found');
       return;

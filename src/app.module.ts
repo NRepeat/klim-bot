@@ -21,6 +21,7 @@ const session = new LocalSession({});
     }),
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
+
       useFactory: (configService: ConfigService) => ({
         middlewares: [session.middleware()],
         token: configService.get<string>('TELEGRAM_BOT_TOKEN') || '',
@@ -57,6 +58,7 @@ export class AppModule implements OnModuleInit {
     const botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN') || '';
     if (!botToken) return;
     const bot = new Telegraf(botToken);
+
     await bot.telegram.setMyCommands(
       [
         { command: 'start', description: 'Начать работу с ботом' },
@@ -64,35 +66,25 @@ export class AppModule implements OnModuleInit {
         { command: 'pay', description: 'Создать заказ' },
         { command: 'all_rates', description: 'Показать все курсы' },
       ],
-      { scope: { type: 'default' } },
+      {
+        scope: { type: 'default' },
+      },
     );
-
-    // Команды только для приватных чатов
-    await bot.telegram.setMyCommands(
-      [
-        { command: 'start', description: 'Начать работу с ботом' },
-        { command: 'report', description: 'Отправить отчет' },
-        { command: 'pay', description: 'Создать заказ' },
-        { command: 'all_rates', description: 'Показать все курсы' },
-      ],
-      { scope: { type: 'all_private_chats' } },
-    );
-
-    // Команды только для групп
-    await bot.telegram.setMyCommands(
-      [
-        { command: 'report', description: 'Отправить отчет' },
-        { command: 'pay', description: 'Создать заказ' },
-        { command: 'all_rates', description: 'Показать все курсы' },
-      ],
-      { scope: { type: 'all_group_chats' } },
-    );
-
     const admin = await this.userService.getAdmins();
     if (!admin || !admin.users || admin.users.length === 0) {
       console.warn('No admins found, skipping admin command registration');
       return;
     }
+    const chatId = this.configService.get<number>('WORK_GROUP_CHAT');
+    await bot.telegram.setMyCommands(
+      [
+        { command: 'start', description: 'Начать работу с ботом' },
+        // { command: 'report', description: 'Отправить отчет' },
+        // { command: 'pay', description: 'Создать заказ' },
+        { command: 'all_rates', description: 'Показать все курсы' },
+      ],
+      { scope: { type: 'chat', chat_id: Number(chatId) } },
+    );
     for (const user of admin.users) {
       if (user.telegramId) {
         try {
@@ -106,6 +98,8 @@ export class AppModule implements OnModuleInit {
               { command: 'pause', description: 'Остановить работу' },
               { command: 'resume', description: 'Запустить работу' },
               { command: 'blacklist', description: 'Добавить в черный список' },
+              { command: 'on', description: 'Включить бота' },
+              { command: 'off', description: 'Выключить бота' },
               {
                 command: 'remove_blacklist',
                 description: 'Удалить из черного списка',

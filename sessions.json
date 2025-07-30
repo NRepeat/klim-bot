@@ -51,7 +51,7 @@
         },
         "messagesToDelete": [],
         "requestMenuMessageId": [
-          248
+          364
         ],
         "customState": "select_method"
       }
@@ -89,6 +89,15 @@
       "id": "-1002510029234:1087968824",
       "data": {
         "__scenes": {}
+      }
+    },
+    {
+      "id": "-4868917152:375905624",
+      "data": {
+        "__scenes": {},
+        "messagesToDelete": [],
+        "customState": "",
+        "requestType": "card"
       }
     }
   ]

@@ -63,7 +63,6 @@ export class UserService {
 
   async getAdmins() {
     const admins = await this.userRepository.getAllAdmins();
-    console.log('admins', admins);
     return admins;
   }
   async isAdminChat(ctx: Context): Promise<boolean> {

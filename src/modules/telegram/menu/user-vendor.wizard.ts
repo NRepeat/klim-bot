@@ -11,7 +11,6 @@ export class UserVendorWizard {
 
   @WizardStep(0)
   async showVendors(@Ctx() ctx: CustomSceneContext) {
-    console.log('@Scene(user-vendor-wizard) callBack');
     await this.sendVendorsList(ctx, false);
     // ctx.wizard.next();
     await ctx.scene.leave();

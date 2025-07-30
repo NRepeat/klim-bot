@@ -106,7 +106,6 @@ abstract class BaseRequestMenu {
     request: FullRequestType,
     source?: Buffer<ArrayBufferLike>,
   ) {
-    console.log(request, ' url:', url, 'source:', source);
     const photoUrl = './src/assets/0056.jpg';
     this.request = request;
     this.url = url ? url : photoUrl;
@@ -124,7 +123,7 @@ abstract class BaseRequestMenu {
     console.log('isCard:', isCard, 'currentAccessType:', currentAccessType);
     if (isCard) {
       const cardMethods = this.request.cardMethods || [];
-      // console.log('cardMethods', this.request);
+      console.log('cardMethods', this.request);
 
       const bank = cardMethods[0]?.bank?.bankName
         ? cardMethods[0]?.bank?.bankName
@@ -137,13 +136,12 @@ abstract class BaseRequestMenu {
       const usdt = rateValue
         ? `💎<b>USDT:</b> <code>${(amount / rateValue).toFixed(2)}</code>\n`
         : '';
-      const isBlacklisted = (cardMethods[0]?.blackList || []).length > 0;
-      const blacklist =
-        isBlacklisted && cardMethods[0]?.blackList?.[0]
-          ? '🚫Карта в чёрном списке: ' + cardMethods[0].blackList[0].reason
-            ? cardMethods[0].blackList[0].reason
-            : ''
-          : '';
+      const isBlacklisted =
+        cardMethods[0]?.blackList && cardMethods[0]?.blackList.length > 0;
+      console.log('isBlacklisted:', isBlacklisted, 'cardMethods:', cardMethods);
+      console.log('cardMethods[0].blackList:', cardMethods[0]?.blackList);
+      const blacklist = isBlacklisted && '🚫Карта в чёрном списке';
+
       const acceptedBy = this.request.activeUser
         ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
         : '';
@@ -170,9 +168,7 @@ abstract class BaseRequestMenu {
           ? `<b>Партнер:</b> <i>${vendor}</i>\n`
           : '') +
         (currentAccessType === 'ADMIN' || currentAccessType === 'WORKER'
-          ? !blacklist
-            ? ''
-            : blacklist
+          ? blacklist
           : '')
       );
     } else if (this.request.paymentMethod?.nameEn === 'IBAN') {

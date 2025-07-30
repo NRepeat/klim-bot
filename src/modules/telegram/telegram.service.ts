@@ -77,7 +77,7 @@ export class TelegramService {
           adminMenu.inWork(undefined, m.requestId).caption,
           {
             parse_mode: 'HTML',
-            reply_markup: adminMenu.inWork(undefined,requestId).markup,
+            reply_markup: adminMenu.inWork(undefined, requestId).markup,
           },
         );
       });
@@ -409,7 +409,7 @@ export class TelegramService {
       }
       const messages =
         await this.userService.getAlWorkerMessagesWithRequestsId(requestId);
-      console.log('Messages:', messages);
+
       if (!messages || messages.length === 0) {
         this.logger.warn('No active admins found');
         return;

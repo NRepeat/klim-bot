@@ -6,7 +6,7 @@ import { Markup } from 'telegraf';
 export class VendorCallbackService {
   constructor(private readonly vendorService: VendorService) {}
   public async handleVendorAction(ctx: CustomSceneContext) {
-    console.log('@Scene(user-vendor-wizard) callBack');
+    console.log('@Scene(user-vendor-wizard) callBack----');
     if (!('callbackQuery' in ctx) || !ctx.callbackQuery) return;
     const cbq = ctx.callbackQuery as { data?: string };
     const data = typeof cbq.data === 'string' ? cbq.data : '';

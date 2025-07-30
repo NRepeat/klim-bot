@@ -3,11 +3,12 @@ import { Context, Markup } from 'telegraf';
 import { UserService } from 'src/modules/user/user.service';
 import { RequestService } from 'src/modules/request/request.service';
 import { TelegramService } from '../telegram.service';
-import { FullRequestType } from 'src/types/types';
+import { CustomSceneContext, FullRequestType } from 'src/types/types';
 import { SceneContext } from 'telegraf/typings/scenes';
 import { MenuFactory } from '../telegram-keyboards';
 import { User } from 'generated/prisma';
 import { AccessControlService } from '../access-control/access-control.service';
+import { VendorCallbackService } from '../callback/vendors';
 
 @Update()
 export class UserActions {
@@ -16,6 +17,7 @@ export class UserActions {
     private readonly requestService: RequestService,
     private readonly telegramService: TelegramService,
     private readonly accessControlService: AccessControlService,
+    private readonly VendorCallbackService: VendorCallbackService,
   ) {}
 
   @Action('new_user')
@@ -29,6 +31,10 @@ export class UserActions {
   async onCallbackQuery(@Ctx() ctx: SceneContext) {
     await ctx.answerCbQuery();
     const callbackQuery = ctx.callbackQuery;
+    await this.VendorCallbackService.handleVendorAction(
+      ctx as CustomSceneContext,
+    );
+    console.log('Callback query data:', callbackQuery);
     if (!callbackQuery) {
       console.error('No callback query found');
       return;
@@ -316,7 +322,7 @@ export class UserActions {
           await this.requestService.unlinkUser(request.id);
           await this.telegramService.updateAdminMessages(request.id);
           await this.telegramService.updateWorkerMessages(request.id);
-          await ctx.answerCbQuery('Ошибка при отмене заявки');
+          await ctx.answerCbQuery('Заявка возвращена в очередь');
         } catch (error) {
           console.error(error);
           await ctx.answerCbQuery('Ошибка при отмене заявки');

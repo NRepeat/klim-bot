@@ -1,24 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Ctx, On, SceneLeave, Wizard, WizardStep } from 'nestjs-telegraf';
 import { VendorService } from 'src/modules/vendor/vendor.service';
-import { Markup } from 'telegraf';
 import { CustomSceneContext } from 'src/types/types';
-
+import { Markup } from 'telegraf';
 @Injectable()
-@Wizard('user-vendor-wizard')
-export class UserVendorWizard {
+export class VendorCallbackService {
   constructor(private readonly vendorService: VendorService) {}
-
-  @WizardStep(0)
-  async showVendors(@Ctx() ctx: CustomSceneContext) {
-    console.log('@Scene(user-vendor-wizard) callBack');
-    await this.sendVendorsList(ctx, false);
-    // ctx.wizard.next();
-    await ctx.scene.leave();
-  }
-
-  @On('callback_query')
-  async handleVendorAction(@Ctx() ctx: CustomSceneContext) {
+  public async handleVendorAction(ctx: CustomSceneContext) {
     console.log('@Scene(user-vendor-wizard) callBack');
     if (!('callbackQuery' in ctx) || !ctx.callbackQuery) return;
     const cbq = ctx.callbackQuery as { data?: string };
@@ -54,8 +41,7 @@ export class UserVendorWizard {
         work: !vendor.work,
       });
     } else if (data === 'close') {
-      await ctx.editMessageText('Меню закрыто.');
-      await ctx.scene.leave();
+      await ctx.deleteMessage();
       return;
     } else {
       await ctx.answerCbQuery('Неизвестная команда');
@@ -64,7 +50,6 @@ export class UserVendorWizard {
     await this.sendVendorsList(ctx, true);
     await ctx.answerCbQuery('Изменения сохранены');
   }
-
   private async sendVendorsList(ctx: CustomSceneContext, edit = false) {
     const vendors = await this.vendorService.getAllVendors();
     const providersData = vendors.map((vendor) => ({
@@ -102,13 +87,5 @@ export class UserVendorWizard {
       });
       ctx.session.messagesToDelete?.push(msg.message_id);
     }
-  }
-
-  @SceneLeave()
-  async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
-    console.log('@Scene(user-vendor-wizard) leave');
-    // await ctx.deleteMessages(ctx.session.messagesToDelete || []);
-    ctx.session.customState = '';
-    ctx.session.messagesToDelete = [];
   }
 }

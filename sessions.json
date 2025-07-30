@@ -6,7 +6,7 @@
         "__scenes": {},
         "messagesToDelete": [],
         "customState": "",
-        "requestType": "card"
+        "requestType": "iban"
       }
     },
     {
@@ -51,7 +51,7 @@
         },
         "messagesToDelete": [],
         "requestMenuMessageId": [
-          159
+          248
         ],
         "customState": "select_method"
       }
@@ -83,6 +83,12 @@
         "__scenes": {},
         "messagesToDelete": [],
         "customState": ""
+      }
+    },
+    {
+      "id": "-1002510029234:1087968824",
+      "data": {
+        "__scenes": {}
       }
     }
   ]

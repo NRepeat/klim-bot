@@ -110,9 +110,6 @@ export class RequestRepository {
     status: Status,
     userId: string,
   ): Promise<void> {
-    // console.log(
-    //   `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
-    // );
     await this.prisma.paymentRequests.update({
       where: { id: requestId },
       data: {
@@ -120,6 +117,7 @@ export class RequestRepository {
         payedByUser: {
           connect: { id: userId },
         },
+        completedAt: status === 'COMPLETED' ? new Date() : null,
       },
     });
   }

@@ -52,7 +52,6 @@ export class AcceptRequestScene {
   }
   @WizardStep(1)
   async notifyUsers(ctx: CustomSceneContext) {
-    console.log('notifyUsers', ctx);
     const state = ctx.wizard.state as { requestId: string };
     const requestId = state.requestId;
     let request;
@@ -77,6 +76,7 @@ export class AcceptRequestScene {
     const inline_keyboard = Markup.inlineKeyboard([
       [newPaymentButton, newCancelButton],
     ]);
+    console.log('Updating worker messages with requestId:', workerMenu.done().caption);
     await this.telegramService.updateAllWorkersMessagesWithRequestsId(
       {
         text: workerMenu.done().caption,

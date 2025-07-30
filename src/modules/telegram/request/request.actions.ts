@@ -24,7 +24,7 @@ export class RequestActions {
     }
 
     if (!vendor.work) {
-      await ctx.reply('You are not allowed to create requests. Chat on pause');
+      // await ctx.reply('You are not allowed to create requests. Chat on pause');
       return;
     }
     await ctx.scene.enter('create-request');

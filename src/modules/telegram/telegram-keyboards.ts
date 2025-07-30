@@ -106,6 +106,7 @@ abstract class BaseRequestMenu {
     request: FullRequestType,
     source?: Buffer<ArrayBufferLike>,
   ) {
+    console.log(request, ' url:', url, 'source:', source);
     const photoUrl = './src/assets/0056.jpg';
     this.request = request;
     this.url = url ? url : photoUrl;
@@ -120,6 +121,7 @@ abstract class BaseRequestMenu {
     }
     const currentAccessType = accessType || this.getAccessType();
     const isCard = this.request.paymentMethod?.nameEn === 'CARD';
+    console.log('isCard:', isCard, 'currentAccessType:', currentAccessType);
     if (isCard) {
       const cardMethods = this.request.cardMethods || [];
       // console.log('cardMethods', this.request);
@@ -199,13 +201,14 @@ abstract class BaseRequestMenu {
       const usdt = rateValue
         ? `💎<b>USDT:</b> <code>${(amount / rateValue).toFixed(2)}</code>\n`
         : '';
+      console.log('this.request.activeUser', this.request.activeUser);
       const acceptedBy = this.request.activeUser
         ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
         : '';
       const payedBy = this.request.payedByUser?.username
         ? '<b>Оплачено:</b> @' + this.request.payedByUser.username + '\n'
         : '';
-
+      const vendor = this.request.vendor?.title || '-';
       return (
         `✉️<b>Заявка номер:</b> <code>${this.request.id ?? '-'}</code>\n` +
         `💵<b>Сумма:</b> <code>${amount}</code>\n` +
@@ -215,19 +218,21 @@ abstract class BaseRequestMenu {
         iban +
         inn +
         comment +
-        (currentAccessType === 'ADMIN' ? acceptedBy : '') +
-        (currentAccessType === 'ADMIN' ? payedBy : '')
+        (currentAccessType === 'ADMIN' || currentAccessType === 'WORKER'
+          ? acceptedBy
+          : '') +
+        (currentAccessType === 'ADMIN' ? payedBy : '') +
+        (currentAccessType === 'ADMIN'
+          ? `<b>Партнер:</b> <i>${vendor}</i>\n`
+          : '')
       );
     }
 
-    // Возвращаем базовое сообщение если тип платежа не распознан
     return `✉️<b>Заявка номер:</b> <code>${this.request.id ?? '-'}</code>\nНеизвестный тип платежа`;
   }
 
   inWork(url?: string, requestId?: string): MenuWithMedia {
-    // console.log('inWork', url, requestId);
     const accessType = this.getAccessType();
-    // console.log('accessType', accessType);
     let markup: InlineKeyboardMarkup;
     switch (accessType) {
       case 'ADMIN':
@@ -245,10 +250,6 @@ abstract class BaseRequestMenu {
         markup = requestId
           ? Markup.inlineKeyboard([
               [
-                // createButton(
-                //   BUTTON_TEXTS.WORKER_CANCEL_REQUEST,
-                //   BUTTON_CALLBACKS.CANCEL_WORKER_REQUEST + requestId,
-                // ),
                 createButton(
                   BUTTON_TEXTS.TAKE_REQUEST,
                   BUTTON_CALLBACKS.TAKE_REQUEST + requestId,
@@ -302,7 +303,7 @@ abstract class BaseRequestMenu {
       BUTTON_TEXTS.DONE,
       BUTTON_CALLBACKS.DONE,
     );
-
+    console.log('Creating done menu with request:', this.messageFromRequest());
     return new MenuWithMedia(
       this.messageFromRequest(),
       markup,
@@ -316,10 +317,6 @@ abstract class BaseRequestMenu {
     if (accessType === 'WORKER' && requestId) {
       const markup = Markup.inlineKeyboard([
         [
-          // createButton(
-          //   BUTTON_TEXTS.GIVE_NEXT,
-          //   BUTTON_CALLBACKS.GIVE_NEXT + requestId,
-          // ),
           createButton(
             BUTTON_TEXTS.VALUT_CARD,
             BUTTON_CALLBACKS.VALUT_CARD + requestId,
@@ -484,7 +481,7 @@ const MESSAGES = {
   CARD_PAYMENT_FORM: (username: string) =>
     `@${username} отправьте, пожалуйста, заявку в форме:\n\n Карта сумма (5168745632147896 1000)`,
   IBAN_PAYMENT_FORM: (username: string) =>
-    `@${username} отправьте, пожалуйста, заявку в форме:\n\nИмя\nIBAN\nИНН\nСумма\nКомментарий (если нужно)`,
+    `@${username} отправьте, пожалуйста, заявку в форме:\nИмя\nIBAN\nИНН\nСумма\nКомментарий (если нужно)`,
   NO_DATA: 'Нет данных для отображения',
 } as const;
 

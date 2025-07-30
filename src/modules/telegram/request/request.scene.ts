@@ -108,8 +108,6 @@ export class CreateRequestWizard {
         break;
       }
       default: {
-        // console.log('Unknown callback query data:', callbackQuery.data);
-
         await ctx.scene.leave();
         break;
       }
@@ -280,7 +278,7 @@ export class CreateRequestWizard {
     const input = ctx.text;
     if (!input || input.split('\n').length < 4) {
       await ctx.reply(
-        'Пожалуйста, введите данные в формате: Имя\\nIBAN\\nИНН\\nСумма\\nКомментарий (если нужно)',
+        'Пожалуйста, введите данные в формате:\nИмя\nIBAN\nИНН\nСумма\nКомментарий (если нужно)',
       );
       ctx.wizard.selectStep(2);
       return;
@@ -290,7 +288,15 @@ export class CreateRequestWizard {
       return;
     }
     try {
-      const ibanRawData = this.parseIbanRequest(input);
+      let ibanRawData;
+      try {
+        ibanRawData = this.parseIbanRequest(input);
+        
+      } catch (error) {
+        ctx.sendMessage(`${error.message}`);
+        // await this.cancel(ctx);
+        return 
+      }
       const rates = await this.ratesService.getAllRates();
       if (!rates || rates.length === 0) {
         const msg = await ctx.reply('Нед доступного курса для данной суммы.');
@@ -351,7 +357,7 @@ export class CreateRequestWizard {
         },
         {
           parse_mode: 'HTML',
-          caption: publicMenu.inWork().caption,
+          caption: publicMenu.inWork(undefined,request.id).caption,
           reply_markup: publicMenu.inWork().markup,
         },
       );
@@ -447,6 +453,7 @@ export class CreateRequestWizard {
       throw new Error(
         'Некорректный IBAN. Пример: UAxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       );
+
     }
     if (!innPattern.test(inn)) {
       throw new Error('ИНН должен содержать 8 или 10 цифр.');

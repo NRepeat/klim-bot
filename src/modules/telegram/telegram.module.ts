@@ -17,6 +17,7 @@ import { ReportModule } from '../report/report.module';
 import { UserVendorWizard } from './menu/user-vendor.wizard';
 import { AcceptRequestScene } from './user/accept-request.scene';
 import { AccessControlService } from './access-control/access-control.service';
+import { VendorCallbackService } from './callback/vendors';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AccessControlService } from './access-control/access-control.service';
     UserActions,
     AcceptRequestScene,
     AccessControlService,
+    VendorCallbackService,
   ],
 })
 export class TelegramModule {}

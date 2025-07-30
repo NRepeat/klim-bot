@@ -48,6 +48,7 @@ export class CreateRatesScene {
   @WizardStep(1)
   async onText(@Ctx() ctx: CustomSceneContext) {
     const message = ctx.text;
+    console.log('Received message:', message);
     ctx.session.messagesToDelete?.push(ctx.message?.message_id || 0);
     if (!message) {
       const msg = await ctx.reply('Please send text with rates.');
@@ -70,7 +71,7 @@ export class CreateRatesScene {
     } catch (error) {
       if (error instanceof Error) {
         console.error('Error creating rates:', error.message);
-        await ctx.reply('Somthing went wrong');
+        // await ctx.reply('Somthing went wrong');
         await ctx.scene.leave();
       }
     }

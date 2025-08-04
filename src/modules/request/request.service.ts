@@ -7,7 +7,7 @@ import {
 } from 'src/types/types';
 import { UserService } from '../user/user.service';
 import { VendorService } from '../vendor/vendor.service';
-import { Status } from 'generated/prisma';
+import { Status } from '@prisma/client';
 
 @Injectable()
 export class RequestService {

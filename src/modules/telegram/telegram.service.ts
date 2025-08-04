@@ -90,7 +90,39 @@ export class TelegramService {
       throw new Error('Failed to send request to work group');
     }
   }
+  async notificateToWorkGroup(requests: FullRequestType[]) {
+    try {
+      const chatId = this.configService.get<number>('WORK_GROUP_CHAT');
 
+      if (!chatId) {
+        throw new Error('Work group chat not found');
+      }
+      const filteredRequeste = requests.filter((r) => r.status === 'PENDING');
+      for (const request of filteredRequeste) {
+        const messages = request.message?.filter(
+          (m) => m.accessType === 'WORKER',
+        );
+        if (messages) {
+          for (const message of messages) {
+            if (message.messageId) {
+              await this.bot.telegram.sendMessage(
+                chatId,
+                `Обратите внимание на заявку #${request.id}`,
+                {
+                  reply_parameters: {
+                    message_id: Number(message.messageId),
+                  },
+                },
+              );
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // It's a good practice to log the error for debugging
+      console.error('Error sending message to work group:', error);
+    }
+  }
   async sendRequestToWorkGroup(request: FullRequestType) {
     try {
       const workerMenu = MenuFactory.createWorkerMenu(request, photoUrl);
@@ -113,7 +145,7 @@ export class TelegramService {
       await this.userService.saveMessage({
         accessType: 'WORKER',
         chatId: BigInt(chatId),
-        messageId: BigInt(message.message_id),
+        messageId: message.message_id,
         photoUrl: photoUrl,
         text: workerMenu.inWork().caption,
         requestId: request.id,
@@ -148,7 +180,7 @@ export class TelegramService {
       const messageToSave: SerializedMessage = {
         chatId: BigInt(chatId),
         photoUrl: message.photoUrl ? message.photoUrl : '',
-        messageId: BigInt(photoMsg.message_id),
+        messageId: photoMsg.message_id,
         text: message.text || '',
         requestId: requestId,
         accessType: 'WORKER',
@@ -303,7 +335,7 @@ export class TelegramService {
           const messageToSave: SerializedMessage = {
             chatId: BigInt(chatId),
             photoUrl: message.photoUrl ? message.photoUrl : '',
-            messageId: BigInt(photoMsg.message_id),
+            messageId: photoMsg.message_id,
             text: message.text || '',
             requestId: requestId,
             accessType: 'WORKER',
@@ -377,7 +409,7 @@ export class TelegramService {
             const messageToSave: SerializedMessage = {
               chatId: BigInt(chatId),
               photoUrl: message.photoUrl ? message.photoUrl : '',
-              messageId: BigInt(photoMsg.message_id),
+              messageId: photoMsg.message_id,
               text: message.text || '',
               requestId: requestId,
               accessType: 'ADMIN',
@@ -645,7 +677,7 @@ export class TelegramService {
       const messageToSave: SerializedMessage = {
         chatId: BigInt(chatId),
         photoUrl: message.photoUrl ? message.photoUrl : '',
-        messageId: BigInt(photoMsg.message_id),
+        messageId: photoMsg.message_id,
         text: message.text || '',
         requestId: requestId,
         accessType: 'WORKER',

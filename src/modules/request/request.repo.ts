@@ -5,7 +5,7 @@ import {
   SerializedMessage,
 } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
-import { CardPaymentRequestsMethod, Status } from 'generated/prisma';
+import { CardPaymentRequestsMethod, Status } from '@prisma/client';
 
 @Injectable()
 export class RequestRepository {
@@ -221,7 +221,6 @@ export class RequestRepository {
     });
   }
   createCardRequest({ data }: { data: CardRequestType }) {
-    console.log(data, 'data');
     return this.prisma.paymentRequests.create({
       data: {
         amount: data.amount || 0,

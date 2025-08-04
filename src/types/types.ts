@@ -9,13 +9,14 @@ import {
   PaymentMethod,
   PaymentRequests,
   Rates,
+  RoleEnum,
   User,
   Vendors,
-} from 'generated/prisma';
+} from '@prisma/client';
 import { Scenes } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
-export type SerializedUser = SerializedModel<User & { role?: UserRole }>;
+export type SerializedUser = SerializedModel<User & { role?: RoleEnum }>;
 export type SerializedRate = SerializedModel<Rates>;
 export type SerializedVendors = SerializedModel<Vendors>;
 export type SerializedPaymentMethod = SerializedModel<PaymentMethod>;
@@ -98,21 +99,21 @@ export type CustomSceneContext = Scenes.WizardContext & {
   session: CustomSession;
 };
 
-export enum UserRole {
-  ADMIN = '1',
-  WORKER = '0',
-  GEEST = '2',
-}
+// export enum UserRole {
+//   ADMIN = '1',
+//   WORKER = '0',
+//   GEEST = '2',
+// }
 
-export enum CurrencyEnum {
-  UAH = '0',
-  USD = '1',
-}
+// export enum CurrencyEnum {
+//   UAH = '0',
+//   USD = '1',
+// }
 
-export enum PaymentMethodEnum {
-  CARD = '0',
-  IBAN = '1',
-}
+// export enum PaymentMethodEnum {
+//   CARD = '0',
+//   IBAN = '1',
+// }
 
 export interface Repository<T> {
   findById?(id: string): Promise<T | null>;

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { RoleEnum } from '@prisma/client';
 import { RequestService } from 'src/modules/request/request.service';
 import { UserService } from 'src/modules/user/user.service';
 import { FullRequestType } from 'src/types/types';
@@ -44,7 +45,12 @@ export class AccessControlService {
         return { allowed: false, message: '❌ Пользователь не найден' };
       }
 
-      if (!user.Role.some((role) => role.id === '0' || role.id === '1')) {
+      if (
+        !user.Role.some(
+          (role) =>
+            role.name === RoleEnum.ADMIN || role.name === RoleEnum.WORKER,
+        )
+      ) {
         return {
           allowed: false,
           message: '❌ У вас нет прав для принятия заявок',
@@ -109,7 +115,9 @@ export class AccessControlService {
         return { allowed: false, message: '❌ Пользователь не найден' };
       }
 
-      if (user.Role.find((role) => role.id === '1') === undefined) {
+      if (
+        user.Role.find((role) => role.name === RoleEnum.ADMIN) === undefined
+      ) {
         return {
           allowed: false,
           message: '❌ У вас нет прав администратора',
@@ -136,7 +144,7 @@ export class AccessControlService {
         return { allowed: false, message: '❌ Пользователь не найден' };
       }
 
-      if (!user.Role.some((role) => role.id === '0')) {
+      if (!user.Role.some((role) => role.name === RoleEnum.GUEST)) {
         return {
           allowed: false,
           message: '❌ У вас нет прав работника',
@@ -201,7 +209,7 @@ export class AccessControlService {
       }
 
       // Администраторы имеют доступ ко всем заявкам
-      if (user.Role.some((role) => role.id === '1')) {
+      if (user.Role.some((role) => role.name === RoleEnum.ADMIN)) {
         return {
           request: request as FullRequestType,
           access: { allowed: true },
@@ -209,7 +217,7 @@ export class AccessControlService {
       }
 
       // Работники имеют доступ только к своим активным заявкам
-      if (user.Role.some((role) => role.id === '0')) {
+      if (user.Role.some((role) => role.name === RoleEnum.WORKER)) {
         if (
           request.activeUser &&
           Number(request.activeUser.telegramId) === telegramUserId

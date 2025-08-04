@@ -32,17 +32,7 @@ export class MenuActions {
   }
   @Start()
   async start(@Ctx() ctx: Context) {
-    const groupChat = this.configService.get<number>('WORK_GROUP_CHAT');
-    console.log(
-      'groupChat !== ctx.chat?.id',
-      groupChat,
-      ctx.chat?.id,
-      groupChat !== ctx.chat?.id,
-    );
-    if (
-      (await this.userService.isAdminChat(ctx)) &&
-      Number(groupChat) !== Number(ctx.chat?.id)
-    ) {
+    if (await this.userService.isAdminChat(ctx)) {
       const inline_keyboard = Markup.keyboard([
         [{ text: 'Показать пользователей' }, { text: 'Показать поставщиков' }],
         [{ text: 'Черный список' }, { text: 'Обновить курсы' }],
@@ -54,6 +44,10 @@ export class MenuActions {
       await ctx.reply('Welcome', {
         reply_markup: undefined,
       });
+      await this.userService.createUser(ctx);
+      console.log(
+        `New user created: ${ctx.from?.username} with ID: ${ctx.from?.id}`,
+      );
     }
   }
 

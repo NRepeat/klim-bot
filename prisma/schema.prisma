@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  // output   = "../@prisma/client"
 }
 
 datasource db {
@@ -31,6 +31,12 @@ enum PaymentMethodEnum {
   IBAN
 }
 
+enum RoleEnum {
+  GUEST
+  ADMIN
+  WORKER
+}
+
 model User {
   id                        String                      @id @default(cuid())
   username                  String?                     @unique
@@ -48,8 +54,8 @@ model User {
 }
 
 model Role {
-  id    String @id @default(cuid())
-  name  String @unique
+  id    String   @id @default(cuid())
+  name  RoleEnum @unique
   users User[]
 }
 
@@ -110,7 +116,7 @@ enum AccessType {
 model Message {
   id              String          @id @default(cuid())
   chatId          BigInt
-  messageId       BigInt          @unique
+  messageId       Int             @unique
   text            String?
   photoUrl        String?
   createdAt       DateTime        @default(now())
@@ -143,13 +149,6 @@ model IbanPaymentRequestsMethod {
   name            String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-}
-
-model SeededBankCards {
-  id         String @id @default(cuid())
-  number     String @unique
-  bankName   String
-  bankNameEn String
 }
 
 model Rates {

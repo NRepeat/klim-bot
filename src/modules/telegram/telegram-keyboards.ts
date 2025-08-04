@@ -1,5 +1,5 @@
 import { createReadStream, ReadStream } from 'fs';
-import { AccessType } from 'generated/prisma';
+import { AccessType } from '@prisma/client';
 import { FullRequestType } from 'src/types/types';
 import { Markup } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
@@ -138,7 +138,7 @@ abstract class BaseRequestMenu {
         : '';
       const isBlacklisted =
         cardMethods[0]?.blackList && cardMethods[0]?.blackList.length > 0;
-      const blacklist = isBlacklisted && '🚫Карта в чёрном списке';
+      const blacklist = isBlacklisted ? '🚫Карта в чёрном списке' : '';
 
       const acceptedBy = this.request.activeUser
         ? `<b>Пользователь:</b> @${this.request.activeUser.username}\n`

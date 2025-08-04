@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Context } from 'telegraf';
 import UserRepository from './user.repo';
 
-import { User } from 'generated/prisma';
-import { SerializedMessage, SerializedUser, UserRole } from 'src/types/types';
+import { RoleEnum, User } from '@prisma/client';
+import { SerializedMessage, SerializedUser } from 'src/types/types';
 
 @Injectable()
 export class UserService {
@@ -48,13 +48,19 @@ export class UserService {
     const username = ctx.from?.username;
 
     if (userId && username) {
+      const existUser = await this.userRepository.findByTelegramId(userId);
+      console.log('Ex', existUser);
+      if (existUser) {
+        console.log('User already exist');
+        return;
+      }
       await this.userRepository.create(
         {
           username: username,
           onPause: true,
           telegramId: BigInt(userId),
         },
-        UserRole.GEEST,
+        RoleEnum.GUEST,
       );
     } else {
       console.error('User information is incomplete');

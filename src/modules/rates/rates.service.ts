@@ -1,16 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
-import {
-  CurrencyEnum,
-  ParsedMessageRates,
-  PaymentMethodEnum,
-  SerializedRate,
-} from 'src/types/types';
+import { ParsedMessageRates, SerializedRate } from 'src/types/types';
 import RateRepository from './rates.repo';
 import { Context } from 'telegraf';
 import Rate from 'src/model/Rate';
 import { VendorService } from '../vendor/vendor.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CurrencyEnum, PaymentMethodEnum, Rates } from '@prisma/client';
 
 @Injectable()
 export class RatesService {
@@ -181,15 +177,34 @@ export class RatesService {
     try {
       await this.prisma.$transaction(async (client) => {
         await client.rates.deleteMany({});
+        const data = await Promise.all(
+          newRates.map(async (rate) => {
+            const currency = await client.currency.findUnique({
+              where: {
+                name: rate.currencyId as CurrencyEnum,
+              },
+            });
+            const paymentMethodId = await client.paymentMethod.findUnique({
+              where: {
+                nameEn: rate.paymentMethodId as PaymentMethodEnum,
+              },
+            });
+            if (!currency || !paymentMethodId) {
+              return null;
+            }
 
+            return {
+              rate: rate.rate,
+              minAmount: rate.minAmount,
+              maxAmount: rate.maxAmount,
+              currencyId: currency.id,
+              paymentMethodId: paymentMethodId.id,
+            };
+          }),
+        );
+        const filteredData = data.filter(Boolean) as unknown as Rates;
         const result = await client.rates.createMany({
-          data: newRates.map((rate) => ({
-            rate: rate.rate,
-            minAmount: rate.minAmount,
-            maxAmount: rate.maxAmount,
-            currencyId: rate.currencyId,
-            paymentMethodId: rate.paymentMethodId,
-          })),
+          data: filteredData,
         });
 
         if (result.count !== newRates.length) {

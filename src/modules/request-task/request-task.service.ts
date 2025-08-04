@@ -54,9 +54,13 @@ export class RequestTaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_2_HOURS)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async sendNotificartion() {
     const requests =
-      (await this.requestService.findAllNotProcessedRequests()) as FullRequestType[];
+      (await this.requestService.getAllRequests()) as FullRequestType[];
+    if (requests.length === 0) {
+      return;
+    }
+    await this.telegramService.notificateToWorkGroup(requests);
   }
 }

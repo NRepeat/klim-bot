@@ -254,7 +254,7 @@ export class CreateRequestWizard {
             photoUrl: photoUrl,
             text: publicMenu.inWork().caption,
             chatId: BigInt(ctx.chat?.id || 0),
-            messageId: BigInt(requestMessage.message_id),
+            messageId: requestMessage.message_id,
             requestId: request.id,
             accessType: 'PUBLIC',
           };
@@ -291,11 +291,10 @@ export class CreateRequestWizard {
       let ibanRawData;
       try {
         ibanRawData = this.parseIbanRequest(input);
-        
       } catch (error) {
         ctx.sendMessage(`${error.message}`);
         // await this.cancel(ctx);
-        return 
+        return;
       }
       const rates = await this.ratesService.getAllRates();
       if (!rates || rates.length === 0) {
@@ -357,7 +356,7 @@ export class CreateRequestWizard {
         },
         {
           parse_mode: 'HTML',
-          caption: publicMenu.inWork(undefined,request.id).caption,
+          caption: publicMenu.inWork(undefined, request.id).caption,
           reply_markup: publicMenu.inWork().markup,
         },
       );
@@ -368,7 +367,7 @@ export class CreateRequestWizard {
         photoUrl: photoUrl,
         text: publicMenu.inWork().caption,
         chatId: BigInt(ctx.chat?.id || 0),
-        messageId: BigInt(requestMessage.message_id),
+        messageId: requestMessage.message_id,
         requestId: request.id,
         accessType: 'PUBLIC',
       };
@@ -453,7 +452,6 @@ export class CreateRequestWizard {
       throw new Error(
         'Некорректный IBAN. Пример: UAxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       );
-
     }
     if (!innPattern.test(inn)) {
       throw new Error('ИНН должен содержать 8 или 10 цифр.');

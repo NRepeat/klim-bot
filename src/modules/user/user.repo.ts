@@ -1,12 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Repository,
-  SerializedMessage,
-  SerializedUser,
-  UserRole,
-} from 'src/types/types';
+import { Repository, SerializedMessage, SerializedUser } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from 'generated/prisma';
+import { RoleEnum } from '@prisma/client';
 
 @Injectable()
 export default class UserRepository implements Repository<SerializedUser> {
@@ -29,7 +24,7 @@ export default class UserRepository implements Repository<SerializedUser> {
         onPause: false,
         Role: {
           some: {
-            id: UserRole.WORKER,
+            name: RoleEnum.WORKER,
           },
         },
       },
@@ -106,7 +101,7 @@ export default class UserRepository implements Repository<SerializedUser> {
         onPause: false,
         Role: {
           some: {
-            id: UserRole.WORKER,
+            name: RoleEnum.WORKER,
           },
         },
       },
@@ -123,7 +118,7 @@ export default class UserRepository implements Repository<SerializedUser> {
         // onPause: false,
         Role: {
           some: {
-            id: UserRole.ADMIN,
+            name: RoleEnum.ADMIN,
           },
         },
       },
@@ -139,14 +134,14 @@ export default class UserRepository implements Repository<SerializedUser> {
     });
   }
 
-  async create(data: SerializedUser, roleId: string = UserRole.GEEST) {
+  async create(data: SerializedUser, roleId: RoleEnum = RoleEnum.GUEST) {
     return this.prisma.user.create({
       data: {
         ...data,
         Role: {
           connectOrCreate: {
             where: {
-              id: roleId,
+              name: roleId,
             },
             create: {
               name: 'WORKER',

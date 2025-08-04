@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Repository, SerializedRate } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
-import { Currency } from 'generated/prisma';
 
 @Injectable()
 export default class RatesRepository implements Repository<SerializedRate> {

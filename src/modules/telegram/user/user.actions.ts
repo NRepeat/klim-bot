@@ -6,7 +6,7 @@ import { TelegramService } from '../telegram.service';
 import { CustomSceneContext, FullRequestType } from 'src/types/types';
 import { SceneContext } from 'telegraf/typings/scenes';
 import { MenuFactory } from '../telegram-keyboards';
-import { User } from 'generated/prisma';
+import { User } from '@prisma/client';
 import { AccessControlService } from '../access-control/access-control.service';
 import { VendorCallbackService } from '../callback/vendors';
 

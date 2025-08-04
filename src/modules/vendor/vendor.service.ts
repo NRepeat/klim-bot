@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { VendorRepository } from './vendor.repo';
 import { SerializedVendors } from 'src/types/types';
-import { Vendors } from 'generated/prisma';
 import { Context } from 'telegraf';
 import { randomUUID } from 'crypto';
+import { Vendors } from '@prisma/client';
 
 @Injectable()
 export class VendorService {

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Repository, SerializedVendors } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
-import { Vendors } from 'generated/prisma';
+import { Vendors } from '@prisma/client';
 
 @Injectable()
 export class VendorRepository implements Repository<SerializedVendors> {

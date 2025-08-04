@@ -55,7 +55,7 @@ export default class ReportService {
     let totalRate = 0;
     let rateCount = 0;
     for (const request of requests) {
-      console.log('Processing request:', request.id);
+      console.log(request);
       const rate = request.rates?.rate ?? '';
       const amount = request.amount ?? 0;
       const cardNumber = request.cardMethods?.[0]?.card ?? '';

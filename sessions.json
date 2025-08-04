@@ -51,7 +51,7 @@
         },
         "messagesToDelete": [],
         "requestMenuMessageId": [
-          364
+          392
         ],
         "customState": "select_method"
       }
@@ -74,7 +74,9 @@
     {
       "id": "-1002887877945:8045572818",
       "data": {
-        "__scenes": {}
+        "__scenes": {},
+        "messagesToDelete": [],
+        "customState": ""
       }
     },
     {
@@ -88,7 +90,16 @@
     {
       "id": "-1002510029234:1087968824",
       "data": {
-        "__scenes": {}
+        "__scenes": {
+          "current": "create-request",
+          "state": {},
+          "cursor": 0
+        },
+        "messagesToDelete": [],
+        "requestMenuMessageId": [
+          2745
+        ],
+        "customState": "select_method"
       }
     },
     {
@@ -97,7 +108,21 @@
         "__scenes": {},
         "messagesToDelete": [],
         "customState": "",
-        "requestType": "card"
+        "requestType": "iban"
+      }
+    },
+    {
+      "id": "-1002887877945:6787022993",
+      "data": {
+        "__scenes": {}
+      }
+    },
+    {
+      "id": "6787022993:6787022993",
+      "data": {
+        "__scenes": {},
+        "customState": "",
+        "messagesToDelete": []
       }
     }
   ]

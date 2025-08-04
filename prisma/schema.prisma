@@ -21,6 +21,11 @@ enum Status {
   FAILED
 }
 
+enum CurrencyEnum {
+  UAH
+  USD
+}
+
 enum PaymentMethodEnum {
   CARD
   IBAN
@@ -174,7 +179,7 @@ model PaymentMethod {
 model Currency {
   id              String            @id @default(cuid())
   code            String            @unique
-  name            String
+  name            CurrencyEnum      @unique
   nameEn          String
   symbol          String?
   paymentRequests PaymentRequests[]

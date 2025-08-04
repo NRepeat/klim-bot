@@ -106,6 +106,7 @@ export enum UserRole {
 
 export enum CurrencyEnum {
   UAH = '0',
+  USD = '1',
 }
 
 export enum PaymentMethodEnum {

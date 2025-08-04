@@ -221,6 +221,7 @@ export class RequestRepository {
     });
   }
   createCardRequest({ data }: { data: CardRequestType }) {
+    console.log(data, 'data');
     return this.prisma.paymentRequests.create({
       data: {
         amount: data.amount || 0,

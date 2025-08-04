@@ -19,7 +19,12 @@ export class VendorRepository implements Repository<SerializedVendors> {
   async getAll(): Promise<Vendors[]> {
     return this.prisma.vendors.findMany();
   }
-
+  async updateR(data: SerializedVendors, id: string): Promise<Vendors> {
+    return this.prisma.vendors.update({
+      where: { id },
+      data,
+    });
+  }
   async getById(id: string): Promise<Vendors | null> {
     return this.prisma.vendors.findUnique({
       where: { id },

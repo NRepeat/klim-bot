@@ -138,12 +138,10 @@ abstract class BaseRequestMenu {
         : '';
       const isBlacklisted =
         cardMethods[0]?.blackList && cardMethods[0]?.blackList.length > 0;
-      console.log('isBlacklisted:', isBlacklisted, 'cardMethods:', cardMethods);
-      console.log('cardMethods[0].blackList:', cardMethods[0]?.blackList);
       const blacklist = isBlacklisted && '🚫Карта в чёрном списке';
 
       const acceptedBy = this.request.activeUser
-        ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
+        ? `<b>Пользователь:</b> @${this.request.activeUser.username}\n`
         : '';
       const card =
         cardMethods.length > 0 && cardMethods[0]?.card
@@ -175,7 +173,7 @@ abstract class BaseRequestMenu {
       const ibanMethods = this.request.ibanMethods || [];
       const name =
         ibanMethods.length > 0 && ibanMethods[0]?.name
-          ? `👤<b>Имя:</b> <i>${ibanMethods[0].name}</i>\n`
+          ? `👤<b>Имя:</b> <code>${ibanMethods[0].name}</code>\n`
           : '';
       const iban =
         ibanMethods.length > 0 && ibanMethods[0]?.iban
@@ -187,7 +185,7 @@ abstract class BaseRequestMenu {
           : '';
       const comment =
         ibanMethods.length > 0 && ibanMethods[0]?.comment
-          ? `💬<b>Комментарий:</b> <i>${ibanMethods[0].comment}</i>\n`
+          ? `💬<b>Комментарий:</b> <code>${ibanMethods[0].comment}</code>\n`
           : '';
       const amount = this.request.amount || 0;
       const rateValue = this.request.rates?.rate;
@@ -197,7 +195,6 @@ abstract class BaseRequestMenu {
       const usdt = rateValue
         ? `💎<b>USDT:</b> <code>${(amount / rateValue).toFixed(2)}</code>\n`
         : '';
-      console.log('this.request.activeUser', this.request.activeUser);
       const acceptedBy = this.request.activeUser
         ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
         : '';
@@ -219,7 +216,7 @@ abstract class BaseRequestMenu {
           : '') +
         (currentAccessType === 'ADMIN' ? payedBy : '') +
         (currentAccessType === 'ADMIN'
-          ? `<b>Партнер:</b> <i>${vendor}</i>\n`
+          ? `<b>Партнер:</b> <code>${vendor}</code>\n`
           : '')
       );
     }
@@ -434,8 +431,8 @@ export class MenuFactory {
 // Константы для кнопок и сообщений
 const BUTTON_TEXTS = {
   IN_WORK: 'В работе',
-  DONE: 'Выполнено',
-  REJECTED: 'Отклонено',
+  DONE: '✅Выполнено',
+  REJECTED: '🚫Отклонено',
   BACK: 'Назад',
   CARD: 'CARD',
   IBAN: 'IBAN',

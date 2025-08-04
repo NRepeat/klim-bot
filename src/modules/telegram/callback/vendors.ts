@@ -10,6 +10,7 @@ export class VendorCallbackService {
     if (!('callbackQuery' in ctx) || !ctx.callbackQuery) return;
     const cbq = ctx.callbackQuery as { data?: string };
     const data = typeof cbq.data === 'string' ? cbq.data : '';
+    console.log(data);
     if (data.startsWith('provider_')) {
       const vendorId = data.replace('provider_', '');
       if (!vendorId) {
@@ -58,6 +59,7 @@ export class VendorCallbackService {
       checkOn: !!vendor.showReceipt,
       off: !!vendor.work,
     }));
+    console.log(providersData);
     const inline_keyboard = providersData.map((provider) => {
       const checkOnIcon = provider.checkOn ? '✅' : '🚫';
       const offIcon = provider.off ? '▶️' : '⏸️';

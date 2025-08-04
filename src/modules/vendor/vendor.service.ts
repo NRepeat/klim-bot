@@ -41,12 +41,15 @@ export class VendorService {
   }
 
   async getAllVendors() {
-    return this.vendorRepository.getAll();
+    return (await this.vendorRepository.getAll()).sort((a, b) =>
+      a.title.localeCompare(b.title),
+    );
   }
 
   async getAllActiveVendors() {
     const allVendors = await this.getAllVendors();
-    return allVendors.filter((vendor) => vendor.work);
+    console.log('allVendors', allVendors);
+    return allVendors.filter((vendor) => vendor.work).sort();
   }
   async getVendorById(vendorId: string) {
     const vendor = await this.vendorRepository.getById(vendorId);
@@ -57,7 +60,10 @@ export class VendorService {
     return vendor;
   }
   async updateVendor(vendor: Vendors) {
-    const updatedVendor = await this.vendorRepository.upsert(vendor, vendor.id);
+    const updatedVendor = await this.vendorRepository.updateR(
+      vendor,
+      vendor.id,
+    );
     return updatedVendor;
   }
   async updateAllRatesLastMessageId(vendorId: string, messageId: number) {

@@ -274,7 +274,7 @@ export class UserActions {
           '',
         );
         const markup = Markup.inlineKeyboard([
-          Markup.button.callback('Влютная карта', 'афлют'),
+          Markup.button.callback('Валютная карта', 'афлют'),
         ]);
         await ctx.editMessageCaption(
           workerMenu.inWork().caption + '\n' + 'Заявка отменина',

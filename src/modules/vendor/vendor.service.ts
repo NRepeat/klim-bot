@@ -1,14 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { VendorRepository } from './vendor.repo';
 import { SerializedVendors } from 'src/types/types';
-import { Vendors } from 'generated/prisma';
 import { Context } from 'telegraf';
 import { randomUUID } from 'crypto';
+import { Vendors } from '@prisma/client';
 
 @Injectable()
 export class VendorService {
   constructor(private readonly vendorRepository: VendorRepository) {}
-
+  async getVendorByToken(token: string): Promise<Vendors | null> {
+    if (!token) {
+      console.error('Token is required to get vendor');
+      throw new Error('Token is required to get vendor');
+    }
+    const vendor = await this.vendorRepository.getByToken(token);
+    if (!vendor) {
+      console.error(`Vendor with token ${token} not found`);
+      throw new Error(`Vendor with token ${token} not found`);
+    }
+    return vendor;
+  }
   serializeVendor(vendor: Vendors): Partial<SerializedVendors> {
     const result: Partial<SerializedVendors> = {
       work: vendor.work,
@@ -30,12 +41,15 @@ export class VendorService {
   }
 
   async getAllVendors() {
-    return this.vendorRepository.getAll();
+    return (await this.vendorRepository.getAll()).sort((a, b) =>
+      a.title.localeCompare(b.title),
+    );
   }
 
   async getAllActiveVendors() {
     const allVendors = await this.getAllVendors();
-    return allVendors.filter((vendor) => vendor.work);
+    console.log('allVendors', allVendors);
+    return allVendors.filter((vendor) => vendor.work).sort();
   }
   async getVendorById(vendorId: string) {
     const vendor = await this.vendorRepository.getById(vendorId);
@@ -46,8 +60,10 @@ export class VendorService {
     return vendor;
   }
   async updateVendor(vendor: Vendors) {
-    const updatedVendor = await this.vendorRepository.upsert(vendor, vendor.id);
-    console.log(`Updated vendor ${vendor.id}`);
+    const updatedVendor = await this.vendorRepository.updateR(
+      vendor,
+      vendor.id,
+    );
     return updatedVendor;
   }
   async updateAllRatesLastMessageId(vendorId: string, messageId: number) {
@@ -58,9 +74,6 @@ export class VendorService {
     }
     vendor.lastAllRateMessageId = messageId;
     const updatedVendor = await this.updateVendor(vendor);
-    console.log(
-      `Updated vendor ${vendor.id} with new lastAllRateMessageId: ${messageId}`,
-    );
     return updatedVendor;
   }
 
@@ -89,7 +102,6 @@ export class VendorService {
       lastAllRatesSentAt: null,
     };
     const vendor = await this.vendorRepository.create(data);
-    console.log(`Created vendor ${vendor.id}`);
     return vendor;
   }
   async isVendorChat(ctx: Context): Promise<boolean> {

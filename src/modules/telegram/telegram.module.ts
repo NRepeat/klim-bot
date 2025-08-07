@@ -15,6 +15,9 @@ import { RequestActions } from './request/request.actions';
 import PaymentWizard from './paymnet/paymnet.scene';
 import { ReportModule } from '../report/report.module';
 import { UserVendorWizard } from './menu/user-vendor.wizard';
+import { AcceptRequestScene } from './user/accept-request.scene';
+import { AccessControlService } from './access-control/access-control.service';
+import { VendorCallbackService } from './callback/vendors';
 
 @Module({
   imports: [
@@ -38,6 +41,9 @@ import { UserVendorWizard } from './menu/user-vendor.wizard';
     MenuActions,
     RatesActions,
     UserActions,
+    AcceptRequestScene,
+    AccessControlService,
+    VendorCallbackService,
   ],
 })
 export class TelegramModule {}

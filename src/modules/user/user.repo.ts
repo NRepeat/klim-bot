@@ -1,11 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Repository,
-  SerializedMessage,
-  SerializedUser,
-  UserRole,
-} from 'src/types/types';
+import { Repository, SerializedMessage, SerializedUser } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
+import { RoleEnum } from '@prisma/client';
 
 @Injectable()
 export default class UserRepository implements Repository<SerializedUser> {
@@ -28,7 +24,7 @@ export default class UserRepository implements Repository<SerializedUser> {
         onPause: false,
         Role: {
           some: {
-            id: UserRole.WORKER,
+            name: RoleEnum.WORKER,
           },
         },
       },
@@ -42,6 +38,9 @@ export default class UserRepository implements Repository<SerializedUser> {
     return this.prisma.user.findUnique({
       where: {
         telegramId: id,
+      },
+      include: {
+        Role: true,
       },
     });
   }
@@ -76,7 +75,6 @@ export default class UserRepository implements Repository<SerializedUser> {
         paymentRequests: true,
       },
     });
-    console.log(`Fetching all admin messages with request ID ${requestId}`);
     return allMessages;
   }
   async appendRequestToUser(userId: string, requestId: string): Promise<void> {
@@ -92,7 +90,6 @@ export default class UserRepository implements Repository<SerializedUser> {
           },
         },
       });
-      console.log(`Request ${requestId} added to user ${userId}`);
     } else {
       console.error(`User with ID ${userId} not found`);
     }
@@ -104,7 +101,7 @@ export default class UserRepository implements Repository<SerializedUser> {
         onPause: false,
         Role: {
           some: {
-            id: UserRole.WORKER,
+            name: RoleEnum.WORKER,
           },
         },
       },
@@ -118,10 +115,10 @@ export default class UserRepository implements Repository<SerializedUser> {
   async getAllActiveAdmins() {
     return this.prisma.user.findMany({
       where: {
-        onPause: false,
+        // onPause: false,
         Role: {
           some: {
-            id: UserRole.ADMIN,
+            name: RoleEnum.ADMIN,
           },
         },
       },
@@ -137,22 +134,27 @@ export default class UserRepository implements Repository<SerializedUser> {
     });
   }
 
-  async create(data: SerializedUser, roleId: string = UserRole.GEEST) {
+  async create(data: SerializedUser, roleId: RoleEnum = RoleEnum.GUEST) {
     return this.prisma.user.create({
       data: {
         ...data,
         Role: {
-          connect: {
-            id: roleId,
+          connectOrCreate: {
+            where: {
+              name: roleId,
+            },
+            create: {
+              name: 'WORKER',
+            },
           },
         },
       },
     });
   }
-  async getAllAdmins(where: { roleId: string } = { roleId: '1' }) {
+  async getAllAdmins() {
     return this.prisma.role.findFirst({
       where: {
-        id: where.roleId,
+        name: 'ADMIN',
       },
       include: {
         users: true,
@@ -165,64 +167,62 @@ export default class UserRepository implements Repository<SerializedUser> {
       data,
     });
   }
+  async saveMessage(message: SerializedMessage) {
+    try {
+      await this.prisma.message.create({
+        data: {
+          chatId: message.chatId,
+          accessType: message.accessType,
+          messageId: message.messageId,
+          requestId: message.requestId,
+          photoUrl: message.photoUrl ? message.photoUrl : '',
+          text: message.text ? message.text : '',
+        },
+      });
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  }
   async saveWorkerRequestPhotoMessage(
     message: SerializedMessage,
     requestId: string,
     userId: string,
   ) {
-    console.log(
-      `Saving photo message for user ${userId} with request ID ${requestId}`,
-    );
-
-    return this.prisma.message.create({
-      data: {
-        accessType: 'WORKER',
-        chatId: message.chatId,
-        messageId: message.messageId,
-        text: message.text,
-        requestId: requestId,
-        photoUrl: message.photoUrl ? message.photoUrl : '',
-      },
-    });
+    // return this.prisma.workerRequestPhotoMessage.create({
+    //   data: {
+    //     userId: userId,
+    //     requestId: requestId,
+    //     message: {
+    //       create: {
+    //         accessType: 'WORKER',
+    //         chatId: message.chatId,
+    //         messageId: message.messageId,
+    //         text: message.text,
+    //         requestId: requestId,
+    //         photoUrl: message.photoUrl ? message.photoUrl : '',
+    //       },
+    //     },
+    //   },
+    // });
   }
   async saveRequestPhotoMessage(
     message: SerializedMessage,
     requestId: string,
     userId: string,
   ) {
-    console.log(
-      `Saving photo message for user ${userId} with request ID ${requestId}`,
-    );
-
     return this.prisma.paymentRequests.update({
       where: { id: requestId },
       data: {
         message: {
-          upsert: {
-            where: {
-              messageId: message.messageId,
-            },
-            create: {
-              chatId: message.chatId,
-              messageId: message.messageId,
-              text: message.text,
-              accessType: message.accessType,
-              photoUrl: message.photoUrl ? message.photoUrl : '',
-            },
-            update: {
-              chatId: message.chatId,
-              text: message.text,
-              accessType: message.accessType,
-              photoUrl: message.photoUrl ? message.photoUrl : '',
-            },
+          create: {
+            chatId: message.chatId,
+            messageId: message.messageId,
+            text: message.text,
+            accessType: message.accessType,
+            photoUrl: message.photoUrl ? message.photoUrl : '',
           },
         },
       },
     });
-    // return this.prisma.message.create({
-    //   data: {
-
-    //   },
-    // });
   }
 }

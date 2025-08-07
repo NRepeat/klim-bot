@@ -1,5 +1,7 @@
 import {
+  AdminRequestPhotoMessage,
   BlackList,
+  CardBank,
   CardPaymentRequestsMethod,
   Currency,
   IbanPaymentRequestsMethod,
@@ -7,13 +9,14 @@ import {
   PaymentMethod,
   PaymentRequests,
   Rates,
+  RoleEnum,
   User,
   Vendors,
-} from 'generated/prisma';
+} from '@prisma/client';
 import { Scenes } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 
-export type SerializedUser = SerializedModel<User & { role?: UserRole }>;
+export type SerializedUser = SerializedModel<User & { role?: RoleEnum }>;
 export type SerializedRate = SerializedModel<Rates>;
 export type SerializedVendors = SerializedModel<Vendors>;
 export type SerializedPaymentMethod = SerializedModel<PaymentMethod>;
@@ -69,18 +72,23 @@ export type CardRequestType = Omit<
   blackList?: BlackList;
   card: Omit<
     CardPaymentRequestsMethod,
-    'id' | 'createdAt' | 'updatedAt' | 'requestId'
-  >;
+    'id' | 'createdAt' | 'updatedAt' | 'requestId' | 'bankId'
+  > & {
+    bankId: string;
+  };
 };
 export type FullRequestType = PaymentRequests & {
-  paymentMethod?: (PaymentMethod & {
-    cardMethods?: (CardPaymentRequestsMethod & { blackList?: BlackList[] })[];
-    ibanMethods?: IbanPaymentRequestsMethod[];
+  cardMethods?: (CardPaymentRequestsMethod & {
+    blackList?: BlackList[];
+    bank?: CardBank;
   })[];
+  ibanMethods?: IbanPaymentRequestsMethod[];
   message?: Message[];
   vendor?: Vendors;
   user?: SerializedUser;
   activeUser?: User;
+  paymentMethod?: SerializedPaymentMethod;
+  adminRequestPhotoMessage?: AdminRequestPhotoMessage[];
   currency?: Currency;
   rates?: Rates;
   payedByUser?: User;
@@ -91,24 +99,25 @@ export type CustomSceneContext = Scenes.WizardContext & {
   session: CustomSession;
 };
 
-export enum UserRole {
-  ADMIN = '1',
-  WORKER = '0',
-  GEEST = '2',
-}
+// export enum UserRole {
+//   ADMIN = '1',
+//   WORKER = '0',
+//   GEEST = '2',
+// }
 
-export enum CurrencyEnum {
-  UAH = '0',
-}
+// export enum CurrencyEnum {
+//   UAH = '0',
+//   USD = '1',
+// }
 
-export enum PaymentMethodEnum {
-  CARD = '0',
-  IBAN = '1',
-}
+// export enum PaymentMethodEnum {
+//   CARD = '0',
+//   IBAN = '1',
+// }
 
 export interface Repository<T> {
   findById?(id: string): Promise<T | null>;
-  create(data: Omit<T, 'id'>): Promise<T>;
+  create(data: Omit<T, 'id'>): Promise<T | null>;
   update?(id: string, data: Partial<T>): Promise<T>;
   getAll?(): Promise<T[]>;
   deleteAll?(): Promise<boolean>;

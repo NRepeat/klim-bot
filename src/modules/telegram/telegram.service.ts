@@ -11,9 +11,12 @@ import {
   SerializedMessage,
 } from 'src/types/types';
 import { RequestService } from '../request/request.service';
-import { UtilsService } from '../utils/utils.service';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
 import { MenuFactory } from './telegram-keyboards';
+import { ConfigService } from '@nestjs/config';
+
+const photoUrl = './src/assets/0056.jpg';
+
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -22,11 +25,136 @@ export class TelegramService {
     @InjectBot() private bot: Telegraf<Context>,
     private readonly userService: UserService,
     private readonly requestService: RequestService,
-    private readonly utilsService: UtilsService,
+    private readonly configService: ConfigService,
   ) {}
 
   private lastWorkerIndex = -1;
+  async updateWorkerMessages(requestId: string) {
+    try {
+      const request = await this.requestService.findById(requestId);
+      if (!request) throw new Error('Request not found');
+      const messages = request.message.filter((m) => m.accessType === 'WORKER');
+      if (messages.length === 0) return;
+      for (const message of messages) {
+        const adminMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
+        console.log('adminMenu', adminMenu.inWork().caption);
+        await this.bot.telegram.editMessageCaption(
+          Number(message.chatId),
+          Number(message.messageId),
+          undefined,
+          adminMenu.inWork().caption,
+          {
+            parse_mode: 'HTML',
+            reply_markup: adminMenu.inWork(undefined, requestId).markup,
+          },
+        );
+      }
+      this.logger.log(
+        `Admin message for request ${request.id} updated successfully`,
+      );
+    } catch (error) {
+      this.logger.error(`Error updating worker messages: ${error.message}`);
+    }
+  }
+  async updateAdminMessages(requestId: string) {
+    try {
+      const request = await this.requestService.findById(requestId);
+      if (!request) throw new Error('Request not found');
+      const messages = request.message.filter((m) => m.accessType === 'ADMIN');
+      if (messages.length === 0) return;
+      const requests = messages.map((m) => {
+        const adminMenu = MenuFactory.createAdminMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
+        );
+        return this.bot.telegram.editMessageCaption(
+          Number(m.chatId),
+          Number(m.messageId),
+          undefined,
+          adminMenu.inWork(undefined, m.requestId).caption,
+          {
+            parse_mode: 'HTML',
+            reply_markup: adminMenu.inWork(undefined, requestId).markup,
+          },
+        );
+      });
+      await Promise.all(requests);
+      this.logger.log(
+        `Admin message for request ${request.id} updated successfully`,
+      );
+    } catch (err) {
+      console.error(err);
+      throw new Error('Failed to send request to work group');
+    }
+  }
+  async notificateToWorkGroup(requests: FullRequestType[]) {
+    try {
+      const chatId = this.configService.get<number>('WORK_GROUP_CHAT');
 
+      if (!chatId) {
+        throw new Error('Work group chat not found');
+      }
+      const filteredRequeste = requests.filter((r) => r.status === 'PENDING');
+      for (const request of filteredRequeste) {
+        const messages = request.message?.filter(
+          (m) => m.accessType === 'WORKER',
+        );
+        if (messages) {
+          for (const message of messages) {
+            if (message.messageId) {
+              await this.bot.telegram.sendMessage(
+                chatId,
+                `Обратите внимание на заявку #${request.id}`,
+                {
+                  reply_parameters: {
+                    message_id: Number(message.messageId),
+                  },
+                },
+              );
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // It's a good practice to log the error for debugging
+      console.error('Error sending message to work group:', error);
+    }
+  }
+  async sendRequestToWorkGroup(request: FullRequestType) {
+    try {
+      const workerMenu = MenuFactory.createWorkerMenu(request, photoUrl);
+      const chatId = this.configService.get<number>('WORK_GROUP_CHAT');
+      if (!chatId) {
+        throw new Error('Work group chat not found');
+      }
+      const message = await this.bot.telegram.sendPhoto(
+        chatId,
+        {
+          source: workerMenu.inWork().source,
+        },
+        {
+          parse_mode: 'HTML',
+          reply_markup: workerMenu.inWork(undefined, request.id).markup,
+          caption: workerMenu.inWork().caption,
+        },
+      );
+
+      await this.userService.saveMessage({
+        accessType: 'WORKER',
+        chatId: BigInt(chatId),
+        messageId: message.message_id,
+        photoUrl: photoUrl,
+        text: workerMenu.inWork().caption,
+        requestId: request.id,
+      });
+    } catch (err) {
+      console.error(err);
+      throw new Error('Failed to send request to work group');
+    }
+  }
   async sendMessageToUser(
     message: ReplyPhotoMessage,
     chatId: number,
@@ -52,11 +180,10 @@ export class TelegramService {
       const messageToSave: SerializedMessage = {
         chatId: BigInt(chatId),
         photoUrl: message.photoUrl ? message.photoUrl : '',
-        messageId: BigInt(photoMsg.message_id),
+        messageId: photoMsg.message_id,
         text: message.text || '',
         requestId: requestId,
         accessType: 'WORKER',
-        paymentRequestId: requestId,
       };
 
       if (photoMsg) {
@@ -93,11 +220,6 @@ export class TelegramService {
         const newCaption = newMessage.text ? newMessage.text : message.text;
         if (chatId && messageId) {
           if (newMessage.source) {
-            console.log(
-              message.paymentRequests?.vendor,
-              'newMessage.source',
-              newMessage.source,
-            );
             if (!message.paymentRequests?.vendor.showReceipt) {
               await this.bot.telegram.editMessageMedia(
                 chatId,
@@ -181,9 +303,9 @@ export class TelegramService {
             request.status !== 'COMPLETED' && request.status !== 'FAILED',
         );
 
-        console.log(
-          `Worker ${currentWorker.username} has ${notDoneActiveRequests.length} active requests`,
-        );
+        // console.log(
+        //   `Worker ${currentWorker.username} has ${notDoneActiveRequests.length} active requests`,
+        // );
 
         if (notDoneActiveRequests.length <= 1) {
           foundWorker = currentWorker;
@@ -213,11 +335,10 @@ export class TelegramService {
           const messageToSave: SerializedMessage = {
             chatId: BigInt(chatId),
             photoUrl: message.photoUrl ? message.photoUrl : '',
-            messageId: BigInt(photoMsg.message_id),
+            messageId: photoMsg.message_id,
             text: message.text || '',
             requestId: requestId,
             accessType: 'WORKER',
-            paymentRequestId: requestId,
           };
           processedRequestsId.push({
             requestId: requestId,
@@ -251,7 +372,7 @@ export class TelegramService {
   ) {
     try {
       const admins = await this.userService.getAllActiveAdmins();
-
+      console.log('Admins:', admins);
       if (!admins || admins.length === 0) {
         this.logger.warn('No active admins found');
         return;
@@ -273,7 +394,7 @@ export class TelegramService {
               request as unknown as FullRequestType,
               message.photoUrl ? message.photoUrl : './src/assets/0056.jpg',
             );
-            console.log(messageE.inWork().caption);
+            // console.log(messageE.inWork().caption);
             const photoMsg = await this.bot.telegram.sendPhoto(
               chatId,
               {
@@ -288,11 +409,10 @@ export class TelegramService {
             const messageToSave: SerializedMessage = {
               chatId: BigInt(chatId),
               photoUrl: message.photoUrl ? message.photoUrl : '',
-              messageId: BigInt(photoMsg.message_id),
+              messageId: photoMsg.message_id,
               text: message.text || '',
               requestId: requestId,
               accessType: 'ADMIN',
-              paymentRequestId: requestId,
             };
             if (photoMsg.message_id) {
               await this.userService.saveRequestPhotoMessage(
@@ -321,6 +441,7 @@ export class TelegramService {
       }
       const messages =
         await this.userService.getAlWorkerMessagesWithRequestsId(requestId);
+
       if (!messages || messages.length === 0) {
         this.logger.warn('No active admins found');
         return;
@@ -396,9 +517,6 @@ export class TelegramService {
     markup?: InlineKeyboardMarkup,
   ) {
     try {
-      console.log(
-        `Updating admin message for chatId: ${chatId}, messageId: ${messageId}, text: ${text}, imageUrl: ${imageUrl}, source: `,
-      );
       if (imageUrl) {
         await this.updateTelegramMessage(
           chatId,
@@ -418,9 +536,6 @@ export class TelegramService {
           markup,
         );
       } else {
-        console.log(
-          `Updating admin message for chatId: ${chatId}, messageId: ${messageId}, text: ${text}`,
-        );
         await this.bot.telegram.editMessageCaption(
           chatId,
           messageId,
@@ -562,11 +677,10 @@ export class TelegramService {
       const messageToSave: SerializedMessage = {
         chatId: BigInt(chatId),
         photoUrl: message.photoUrl ? message.photoUrl : '',
-        messageId: BigInt(photoMsg.message_id),
+        messageId: photoMsg.message_id,
         text: message.text || '',
         requestId: requestId,
         accessType: 'WORKER',
-        paymentRequestId: requestId,
       };
       if (photoMsg) {
         await this.userService.saveWorkerRequestPhotoMessage(

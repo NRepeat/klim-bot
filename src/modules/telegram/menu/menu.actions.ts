@@ -4,10 +4,12 @@ import { RequestService } from 'src/modules/request/request.service';
 import { UserService } from 'src/modules/user/user.service';
 import { UtilsService } from 'src/modules/utils/utils.service';
 import { VendorService } from 'src/modules/vendor/vendor.service';
-import { FullRequestType } from 'src/types/types';
+import { CustomSceneContext, FullRequestType } from 'src/types/types';
 import { Context, Markup } from 'telegraf';
 import { TelegramService } from '../telegram.service';
 import { SceneContext } from 'telegraf/typings/scenes';
+import { PrismaService } from 'src/modules/prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
 
 @Update()
 export class MenuActions {
@@ -18,7 +20,16 @@ export class MenuActions {
     private readonly reportService: ReportService,
     private readonly requestService: RequestService,
     private readonly telegramService: TelegramService,
+    private readonly prismaService: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
+
+  async isBotPaused(ctx: Context): Promise<boolean> {
+    const settings = await this.prismaService.settings.findUnique({
+      where: { name: 'default' },
+    });
+    return settings?.onPause || false;
+  }
   @Start()
   async start(@Ctx() ctx: Context) {
     if (await this.userService.isAdminChat(ctx)) {
@@ -30,14 +41,36 @@ export class MenuActions {
         reply_markup: inline_keyboard.reply_markup,
       });
     } else {
-      await ctx.reply('Welcome');
       await ctx.reply('Welcome', {
         reply_markup: undefined,
       });
+      await this.userService.createUser(ctx);
       console.log(
         `New user created: ${ctx.from?.username} with ID: ${ctx.from?.id}`,
       );
     }
+  }
+
+  @On('my_chat_member')
+  async onMyChatMember(@Ctx() ctx: Context) {
+    console.log('Chat member updated:', ctx.myChatMember);
+    const chatId = ctx.myChatMember?.chat?.id;
+    if (!chatId) return;
+    if (ctx.myChatMember.new_chat_member.status === 'kicked') {
+      console.log('Bot has been kicked from the chat:', chatId);
+      return;
+    }
+    // Register commands for this chat when bot is added
+    await ctx.telegram.setMyCommands(
+      [
+        { command: 'start', description: 'Начать работу с ботом' },
+        { command: 'report', description: 'Отправить отчет' },
+        { command: 'pay', description: 'Создать заказ' },
+        { command: 'all_rates', description: 'Показать все курсы' },
+      ],
+      { scope: { type: 'chat', chat_id: chatId } },
+    );
+    console.log('Commands registered for chat:', chatId);
   }
   @Command('report')
   async reportVendor(@Ctx() ctx: Context) {
@@ -49,7 +82,9 @@ export class MenuActions {
     if (!vendor) {
       return;
     }
-
+    if (await this.isBotPaused(ctx)) {
+      return;
+    }
     const lastReportedAt = vendor.lastReportedAt || new Date(0);
     const requests =
       await this.requestService.getRequestsForVendorSinceLastReport(
@@ -73,7 +108,7 @@ export class MenuActions {
         { caption: report.caption },
       );
 
-      console.log(`Report sent to vendor ${vendor.title}`);
+      // console.log(`Report sent to vendor ${vendor.title}`);
       await this.vendorService.updateVendor({
         ...vendor,
         lastReportedAt: new Date(),
@@ -106,7 +141,7 @@ export class MenuActions {
     for (const vendor of vendors) {
       const chatId = vendor.chatId?.toString();
       if (!vendor.work) {
-        console.log(`Vendor ${vendor.title} is on pause, skipping...`);
+        // console.log(`Vendor ${vendor.title} is on pause, skipping...`);
         continue;
       }
       if (!chatId) continue;
@@ -137,7 +172,7 @@ export class MenuActions {
           filename: fileName,
           caption: report.caption,
         });
-        console.log(`Report sent to vendor ${vendor.title}`);
+        // console.log(`Report sent to vendor ${vendor.title}`);
         await this.vendorService.updateVendor({
           ...vendor,
           lastReportedAt: new Date(),
@@ -164,7 +199,7 @@ export class MenuActions {
   async registration(@Ctx() ctx: Context) {
     const chatId = ctx.chat?.id;
     const isAdmin = await this.userService.isAdminChat(ctx);
-    console.log(`Chat ID: ${chatId}, isAdmin: ${isAdmin}`);
+    // console.log(`Chat ID: ${chatId}, isAdmin: ${isAdmin}`);
     if (!chatId) {
       await ctx.reply('Chat ID not found');
       return;
@@ -188,11 +223,6 @@ export class MenuActions {
   }
   @Hears('Показать пользователей')
   async onUsersShow(@Ctx() ctx: Context) {
-    // const newButtonCallback = Markup.button.callback('New user', 'new_user');
-    // const inline_keyboard = Markup.inlineKeyboard([[newButtonCallback]]);
-    // await ctx.reply('Please choose an option:', {
-    //   reply_markup: inline_keyboard.reply_markup,
-    // });
     const users = await this.userService.getAllUsers();
     if (users.length === 0) {
       await ctx.reply('No users found');
@@ -218,7 +248,7 @@ export class MenuActions {
       parse_mode: 'HTML',
       reply_markup: { inline_keyboard: [] },
     });
-    console.log(`Users: ${userList}`);
+    // console.log(`Users: ${userList}`);
   }
   @Command('pause')
   async pause(@Ctx() ctx: Context) {
@@ -238,25 +268,6 @@ export class MenuActions {
       },
       userId,
     );
-
-    // const chatId = ctx.chat?.id;
-    // if (!chatId) {
-    //   await ctx.reply('Chat ID not found');
-    //   return;
-    // }
-    // const vendor = await this.vendorService.getVendorByChatId(ctx.chat?.id);
-    // if (!vendor) {
-    //   await ctx.reply('You are not registered as a vendor');
-    //   return;
-    // }
-    // if (!vendor.work) {
-    //   await ctx.reply('You are already on pause');
-    //   return;
-    // }
-    // await this.vendorService.updateVendor({
-    //   ...vendor,
-    //   work: false,
-    // });
     await ctx.reply('You are now on pause');
   }
   @Command('blacklist')
@@ -314,7 +325,7 @@ export class MenuActions {
       await ctx.reply('This card is not in the blacklist');
       return;
     }
-    console.log(blacklistedCard, 'blacklistedCard.id');
+    // console.log(blacklistedCard, 'blacklistedCard.id');
     await this.requestService.removeFromBlackList(blacklistedCard.id);
     await ctx.reply(`Card ${card} has been removed from the blacklist`);
   }
@@ -338,9 +349,27 @@ export class MenuActions {
     );
     await ctx.reply('You are now on work');
   }
-
+  @Command('on')
+  async on(@Ctx() ctx: Context) {
+    await this.prismaService.settings.update({
+      where: { name: 'default' },
+      data: { onPause: false },
+    });
+    await ctx.reply('Bot is now active');
+  }
+  @Command('off')
+  async off(@Ctx() ctx: Context) {
+    await this.prismaService.settings.update({
+      where: { name: 'default' },
+      data: { onPause: true },
+    });
+    await ctx.reply('Bot is now paused');
+  }
   @Command('all_rates')
   async allRates(@Ctx() ctx: Context) {
+    if (await this.isBotPaused(ctx)) {
+      return;
+    }
     const allRates = await this.utilsService.getAllPublicRatesMarkupMessage();
     if (!allRates) {
       await ctx.reply('No rates available');
@@ -350,7 +379,10 @@ export class MenuActions {
   }
   @Hears('Показать поставщиков')
   async onVendorShow(@Ctx() ctx: SceneContext) {
-    console.log('Showing users');
+    const isAdmin = await this.userService.isAdminChat(ctx);
+    if (!isAdmin) {
+      return;
+    }
     await ctx.scene.enter('user-vendor-wizard');
   }
 
@@ -379,5 +411,31 @@ export class MenuActions {
       }),
     ].join('\n');
     await ctx.reply(message, { parse_mode: 'HTML' });
+  }
+  @Command('pay')
+  async onPayCommand(@Ctx() ctx: CustomSceneContext) {
+    if (await this.isBotPaused(ctx)) {
+      return;
+    }
+    const workGroup = this.configService.get<number>('WORK_GROUP_CHAT');
+    if (workGroup === ctx.chat?.id) {
+      return;
+    }
+    if (!ctx.chat || !ctx.chat.id) {
+      console.error('Chat ID is not available in the context');
+      return;
+    }
+
+    const vendor = await this.vendorService.getVendorByChatId(ctx.chat?.id);
+    if (!vendor) {
+      console.error('Vendor not found for the current chat');
+      return;
+    }
+
+    if (!vendor.work) {
+      // await ctx.reply('You are not allowed to create requests. Chat on pause');
+      return;
+    }
+    await ctx.scene.enter('create-request');
   }
 }

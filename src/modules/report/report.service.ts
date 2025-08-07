@@ -55,29 +55,29 @@ export default class ReportService {
     let totalRate = 0;
     let rateCount = 0;
     for (const request of requests) {
-      // Get card number and bank from new schema
-      let cardNumber = '';
-      let bank = '';
-      if (request.paymentMethod && Array.isArray(request.paymentMethod)) {
-        const cardMethod = request.paymentMethod
-          .flatMap((pm) => pm.cardMethods || [])
-          .find((cm) => cm.card);
-        cardNumber = cardMethod?.card || '';
-        bank = this.getBankNameByCardNumber(cardNumber);
-      }
+      console.log(request);
       const rate = request.rates?.rate ?? '';
       const amount = request.amount ?? 0;
+      const cardNumber = request.cardMethods?.[0]?.card ?? '';
+      const bank = this.getBankNameByCardNumber(cardNumber);
       const provider = request.vendor?.title ?? '';
-      const acceptedDateTime = request.updatedAt ?? '';
-      const inn = '';
-      const clientName = request.user?.username ?? '';
-      let iban = '';
-      if (request.paymentMethod && Array.isArray(request.paymentMethod)) {
-        const ibanMethod = request.paymentMethod
-          .flatMap((pm) => pm.ibanMethods || [])
-          .find((im) => im.iban);
-        iban = ibanMethod?.iban || '';
-      }
+      const acceptedDateTime = request.completedAt ?? '';
+      const inn =
+        (request.ibanMethods &&
+          request.ibanMethods.length !== 0 &&
+          request.ibanMethods[0].inn) ||
+        '';
+      console.log('Request INN:', request.ibanMethods);
+      const clientName =
+        (request.ibanMethods &&
+          request.ibanMethods.length !== 0 &&
+          request.ibanMethods[0].name) ??
+        '';
+      const iban =
+        (request.ibanMethods &&
+          request.ibanMethods.length !== 0 &&
+          request.ibanMethods[0].iban) ||
+        '';
       const currency = request?.currency?.nameEn ?? '';
       let result = 0;
       if (rate && typeof rate === 'number' && rate !== 0) {
@@ -90,15 +90,13 @@ export default class ReportService {
         bank,
         provider,
         rate !== '' ? Number(Number(rate).toFixed(2)) : '',
-        acceptedDateTime instanceof Date
-          ? acceptedDateTime
-          : acceptedDateTime
-            ? new Date(acceptedDateTime)
-            : '',
+        new Date(acceptedDateTime).toLocaleString('ru-RU', {
+          hour12: false,
+        }),
         inn,
-        clientName,
+        clientName ? clientName : '',
         iban,
-        result || '',
+        result.toFixed(2) || '',
       ];
       sheet.addRow(row);
       totalAmount += amount;
@@ -129,7 +127,7 @@ export default class ReportService {
       '',
       '',
       '',
-      totalCurrency,
+      totalCurrency.toFixed(2),
     ];
     const totalRowRef = sheet.addRow(totalRow);
     totalRowRef.eachCell((cell) => {

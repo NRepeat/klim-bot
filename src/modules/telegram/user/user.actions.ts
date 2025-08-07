@@ -3,11 +3,12 @@ import { Context, Markup } from 'telegraf';
 import { UserService } from 'src/modules/user/user.service';
 import { RequestService } from 'src/modules/request/request.service';
 import { TelegramService } from '../telegram.service';
-import { UtilsService } from 'src/modules/utils/utils.service';
-import { FullRequestType } from 'src/types/types';
+import { CustomSceneContext, FullRequestType } from 'src/types/types';
 import { SceneContext } from 'telegraf/typings/scenes';
 import { MenuFactory } from '../telegram-keyboards';
-import { User } from 'generated/prisma';
+import { User } from '@prisma/client';
+import { AccessControlService } from '../access-control/access-control.service';
+import { VendorCallbackService } from '../callback/vendors';
 
 @Update()
 export class UserActions {
@@ -15,7 +16,8 @@ export class UserActions {
     private readonly userService: UserService,
     private readonly requestService: RequestService,
     private readonly telegramService: TelegramService,
-    private readonly utilsService: UtilsService,
+    private readonly accessControlService: AccessControlService,
+    private readonly VendorCallbackService: VendorCallbackService,
   ) {}
 
   @Action('new_user')
@@ -29,13 +31,27 @@ export class UserActions {
   async onCallbackQuery(@Ctx() ctx: SceneContext) {
     await ctx.answerCbQuery();
     const callbackQuery = ctx.callbackQuery;
+    await this.VendorCallbackService.handleVendorAction(
+      ctx as CustomSceneContext,
+    );
     if (!callbackQuery) {
       console.error('No callback query found');
       return;
     } else if ('data' in callbackQuery) {
-      console.log('Callback query data:', callbackQuery.data);
+      const currentUserId = callbackQuery.from.id;
       if (callbackQuery.data.includes('admin_cancel_request')) {
         const requestId = callbackQuery.data.split('_')[3];
+
+        const adminCheck =
+          await this.accessControlService.canCancelRequestAsAdmin(
+            requestId,
+            currentUserId,
+          );
+        if (!adminCheck.allowed) {
+          await ctx.answerCbQuery(adminCheck.message);
+          return;
+        }
+
         const request = await this.requestService.findById(requestId);
         if (!request) {
           throw new Error('Request not found');
@@ -78,6 +94,17 @@ export class UserActions {
       }
       if (callbackQuery.data.includes('cancel_payment_')) {
         const requestId = callbackQuery.data.split('_')[2];
+
+        // Проверка прав на управление заявкой
+        const accessCheck = await this.accessControlService.canManageRequest(
+          requestId,
+          currentUserId,
+        );
+        if (!accessCheck.allowed) {
+          await ctx.answerCbQuery(accessCheck.message);
+          return;
+        }
+
         const request = await this.requestService.findById(requestId);
         if (!request) {
           throw new Error('Request not found');
@@ -97,59 +124,42 @@ export class UserActions {
       if (callbackQuery.data.includes('accept_request_')) {
         const requestId = callbackQuery.data.split('_')[2];
         console.log('Accepting request with ID:', requestId);
-        const userId = callbackQuery.from.id;
-        const chatId = callbackQuery.message?.chat.id;
+        // Проверка прав на принятие заявки
+        const acceptCheck = await this.accessControlService.canAcceptRequest(
+          requestId,
+          currentUserId,
+        );
+        console.log('acceptCheck', acceptCheck);
+        if (!acceptCheck.allowed) {
+          await ctx.answerCbQuery(acceptCheck.message);
+          return;
+        }
         try {
-          await this.requestService.acceptRequest(requestId, userId, chatId);
+          await ctx.scene.enter('accept-request', { requestId });
+          await ctx.answerCbQuery('Request accepted');
+          return;
         } catch (error) {
           console.error('Error accepting request:', error);
           return;
         }
-        const request = await this.requestService.findById(requestId);
-
-        const workerMenu = MenuFactory.createWorkerMenu(
-          request as unknown as FullRequestType,
-          './src/assets/0056.jpg',
-        );
-        const newPaymentButton = Markup.button.callback(
-          'Перевел',
-          'proceeded_payment_' + requestId,
-        );
-        const newCancelButton = Markup.button.callback(
-          'Отмена',
-          'cancel_payment_' + requestId,
-        );
-        const inline_keyboard = Markup.inlineKeyboard([
-          [newPaymentButton, newCancelButton],
-        ]);
-        await this.telegramService.updateAllWorkersMessagesWithRequestsId(
-          {
-            text: workerMenu.inWork().caption,
-            inline_keyboard: inline_keyboard.reply_markup,
-          },
-          requestId,
-        );
-
-        const adminMenu = MenuFactory.createAdminMenu(
-          request as unknown as FullRequestType,
-          './src/assets/0056.jpg',
-        );
-        await this.telegramService.updateAllAdminsMessagesWithRequestsId(
-          {
-            text: adminMenu.inWork().caption,
-            inline_keyboard: adminMenu.inWork(undefined, requestId).markup,
-          },
-          requestId,
-        );
-        await ctx.answerCbQuery('Request accepted');
       }
       if (callbackQuery.data.includes('cancel_worker_request_')) {
         const requestId = callbackQuery.data.split('_')[3];
+
+        const accessCheck = await this.accessControlService.canManageRequest(
+          requestId,
+          currentUserId,
+        );
+        if (!accessCheck.allowed) {
+          await ctx.answerCbQuery(accessCheck.message);
+          return;
+        }
+
         const request = await this.requestService.findById(requestId);
         if (!request) {
           throw new Error('Request not found');
         }
-        const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+        const photoUrl = './src/assets/0056.jpg';
 
         const workerMenu = MenuFactory.createWorkerMenu(
           request as unknown as FullRequestType,
@@ -165,7 +175,21 @@ export class UserActions {
         );
       } else if (callbackQuery.data.includes('give_next_')) {
         const requestId = callbackQuery.data.split('_')[2];
+
+        // Проверка прав на управление заявкой
+        const accessCheck = await this.accessControlService.canManageRequest(
+          requestId,
+          currentUserId,
+        );
+        if (!accessCheck.allowed) {
+          await ctx.answerCbQuery(accessCheck.message);
+          return;
+        }
+
         const request = await this.requestService.findById(requestId);
+        if (!request) {
+          throw new Error('Request not found');
+        }
         const users = await this.userService.findAllWorkers();
         const workerMenu = MenuFactory.createWorkerMenu(
           request as unknown as FullRequestType,
@@ -180,7 +204,7 @@ export class UserActions {
               Number(user.telegramId),
             );
             newWorker = user;
-            console.log('New worker found:', newWorker);
+            // console.log('New worker found:', newWorker);
             break;
           } else {
             newWorker = undefined;
@@ -226,6 +250,17 @@ export class UserActions {
         );
       } else if (callbackQuery.data.includes('valut_card_')) {
         const requestId = callbackQuery.data.split('_')[2];
+
+        // Проверка прав на управление заявкой
+        const accessCheck = await this.accessControlService.canManageRequest(
+          requestId,
+          currentUserId,
+        );
+        if (!accessCheck.allowed) {
+          await ctx.answerCbQuery(accessCheck.message);
+          return;
+        }
+
         const request = await this.requestService.findById(requestId);
         if (!request) {
           throw new Error('Request not found');
@@ -239,7 +274,7 @@ export class UserActions {
           '',
         );
         const markup = Markup.inlineKeyboard([
-          Markup.button.callback('Влютная карта', 'афлют'),
+          Markup.button.callback('Валютная карта', 'афлют'),
         ]);
         await ctx.editMessageCaption(
           workerMenu.inWork().caption + '\n' + 'Заявка отменина',
@@ -266,41 +301,63 @@ export class UserActions {
         );
       } else if (callbackQuery.data.includes('back_to_take_request_')) {
         const requestId = callbackQuery.data.split('_')[4];
-        const request = await this.requestService.findById(requestId);
-        const workerMenu = MenuFactory.createWorkerMenu(
-          request as unknown as FullRequestType,
-          '',
+        console.log('back_to_take_request_', requestId);
+        // Проверка прав на управление заявкой
+        const accessCheck = await this.accessControlService.canManageRequest(
+          requestId,
+          currentUserId,
         );
-        await ctx.editMessageCaption(workerMenu.inWork().caption, {
-          reply_markup: workerMenu.inWork(undefined, requestId).markup,
-          parse_mode: 'HTML',
-        });
-      }
+        console.log('accessCheck', accessCheck);
+        if (!accessCheck.allowed) {
+          await ctx.answerCbQuery(accessCheck.message);
+          return;
+        }
 
-      if (callbackQuery.data.includes('proceeded_payment_')) {
-        const requestId = callbackQuery.data.split('_')[2];
         const request = await this.requestService.findById(requestId);
         if (!request) {
           throw new Error('Request not found');
         }
-        const paymentMethod = request.paymentMethod;
-        const isCard = Array.isArray(paymentMethod)
-          ? paymentMethod.some((pm) => pm.nameEn === 'CARD')
-          : paymentMethod === 'CARD';
+        try {
+          await this.requestService.unlinkUser(request.id);
+          await this.telegramService.updateAdminMessages(request.id);
+          await this.telegramService.updateWorkerMessages(request.id);
+          await ctx.answerCbQuery('Заявка возвращена в очередь');
+        } catch (error) {
+          console.error(error);
+          await ctx.answerCbQuery('Ошибка при отмене заявки');
+          return;
+        }
+      }
 
-        const newMessage = this.utilsService.buildRequestMessage(
-          request as any as FullRequestType,
-          isCard ? 'card' : 'iban',
-          'worker',
+      if (callbackQuery.data.includes('proceeded_payment_')) {
+        const requestId = callbackQuery.data.split('_')[2];
+
+        // Проверка прав на управление заявкой
+        const accessCheck = await this.accessControlService.canManageRequest(
+          requestId,
+          currentUserId,
+        );
+        if (!accessCheck.allowed) {
+          await ctx.answerCbQuery(accessCheck.message);
+          return;
+        }
+
+        const request = await this.requestService.findById(requestId);
+        if (!request) {
+          throw new Error('Request not found');
+        }
+        const workerMenu = MenuFactory.createWorkerMenu(
+          request as unknown as FullRequestType,
+          './src/assets/0056.jpg',
         );
         const button = Markup.button.callback(
           'Отменить',
-          'cancel_payment_photo_proceed',
+          'accept_request_' + requestId,
         );
         const inline_keyboard = Markup.inlineKeyboard([[button]]);
         await this.telegramService.updateAllWorkersMessagesWithRequestsId(
           {
-            text: newMessage.text,
+            text: workerMenu.inWork().caption,
             inline_keyboard: inline_keyboard.reply_markup,
           },
           requestId,

@@ -5,11 +5,23 @@ import {
   SerializedMessage,
 } from 'src/types/types';
 import { PrismaService } from '../prisma/prisma.service';
-import { CardPaymentRequestsMethod, Status } from 'generated/prisma';
+import { CardPaymentRequestsMethod, Status } from '@prisma/client';
 
 @Injectable()
 export class RequestRepository {
   constructor(private readonly prisma: PrismaService) {}
+  async unlinkUser(requestId: string) {
+    await this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: { userId: null, activeUserId: null },
+    });
+  }
+  async updateRequestNotificationStatus(requestId: string, sended: boolean) {
+    await this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: { notificationSent: sended },
+    });
+  }
   async removeFromBlackList(id: string) {
     return this.prisma.blackList.delete({
       where: { id },
@@ -30,25 +42,22 @@ export class RequestRepository {
   async findCardPaymentByCardNumber(cardNumber: string) {
     return this.prisma.paymentRequests.findFirst({
       where: {
-        paymentMethod: {
-          some: {
-            cardMethods: {
-              some: { card: cardNumber },
-            },
-          },
+        cardMethods: {
+          some: { card: cardNumber },
         },
       },
       include: {
-        paymentMethod: {
+        cardMethods: {
           include: {
-            cardMethods: { include: { blackList: true } },
-            ibanMethods: true,
+            blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
+        ibanMethods: true,
         user: true,
       },
     });
@@ -56,7 +65,7 @@ export class RequestRepository {
   async addToBlackList(
     card: Omit<
       CardPaymentRequestsMethod,
-      'id' | 'requestId' | 'createdAt' | 'updatedAt'
+      'id' | 'requestId' | 'createdAt' | 'updatedAt' | 'bankId'
     > & { chatId: bigint | number },
   ) {
     return this.prisma.blackList.create({
@@ -93,7 +102,7 @@ export class RequestRepository {
     messageId: number,
   ) {
     return this.prisma.message.delete({
-      where: { messageId },
+      where: { messageId, requestId },
     });
   }
   async updateRequestStatus(
@@ -101,9 +110,6 @@ export class RequestRepository {
     status: Status,
     userId: string,
   ): Promise<void> {
-    console.log(
-      `Updating request status for ID: ${requestId}, Status: ${status}, User ID: ${userId}`,
-    );
     await this.prisma.paymentRequests.update({
       where: { id: requestId },
       data: {
@@ -111,6 +117,7 @@ export class RequestRepository {
         payedByUser: {
           connect: { id: userId },
         },
+        completedAt: status === 'COMPLETED' ? new Date() : null,
       },
     });
   }
@@ -129,35 +136,43 @@ export class RequestRepository {
             nameEn: 'IBAN',
           },
         },
+        ibanMethods: {
+          create: {
+            ...data.iban,
+          },
+        },
       },
       include: {
+        cardMethods: {
+          include: {
+            blackList: true,
+            bank: true, // Include bank details if needed
+          },
+        },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
+        ibanMethods: true,
         user: true,
-        paymentMethod: {
-          include: {
-            ibanMethods: true,
-            cardMethods: true,
-          },
-        },
+        paymentMethod: true,
       },
     });
   }
   async getAllRequests() {
     return this.prisma.paymentRequests.findMany({
       include: {
-        paymentMethod: {
+        cardMethods: {
           include: {
-            cardMethods: { include: { blackList: true } },
-            ibanMethods: true,
+            blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
+        ibanMethods: true,
         user: true,
       },
     });
@@ -168,14 +183,7 @@ export class RequestRepository {
       where: { card: { some: { card: cardNumber } } },
     });
   }
-  async acceptRequest(
-    requestId: string,
-    userId: string,
-    chatId?: number,
-  ): Promise<void> {
-    console.log(
-      `Accepting request with ID: ${requestId}, User ID: ${userId}, Chat ID: ${chatId}`,
-    );
+  async acceptRequest(requestId: string, userId: string): Promise<void> {
     await this.prisma.paymentRequests.update({
       where: { id: requestId },
       data: {
@@ -190,19 +198,23 @@ export class RequestRepository {
     return this.prisma.paymentRequests.findMany({
       where: {
         userId: null,
+        notificationSent: false,
       },
       include: {
-        paymentMethod: {
+        cardMethods: {
           include: {
-            cardMethods: { include: { blackList: true } },
-            ibanMethods: true,
+            blackList: true,
+            bank: true,
           },
         },
+        paymentMethod: true,
         message: true,
         vendor: true,
         rates: true,
         currency: true,
         user: true,
+        adminRequestPhotoMessage: true,
+        ibanMethods: true,
         activeUser: true,
         payedByUser: true,
       },
@@ -222,18 +234,34 @@ export class RequestRepository {
             nameEn: 'CARD',
           },
         },
+        cardMethods: {
+          create: {
+            ...data.card,
+            blackList: data.blackList
+              ? {
+                  connect: {
+                    id: data.blackList.id,
+                  },
+                }
+              : undefined,
+            bankId: data.card.bankId ? data.card.bankId : undefined,
+          },
+        },
       },
       include: {
-        paymentMethod: {
+        cardMethods: {
           include: {
-            cardMethods: { include: { blackList: true } },
-            ibanMethods: true,
+            blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
+        ibanMethods: true,
+        paymentMethod: true,
+
         user: true,
       },
     });
@@ -248,16 +276,19 @@ export class RequestRepository {
       where: { id },
       include: {
         user: true,
-        paymentMethod: {
+        paymentMethod: true,
+        cardMethods: {
           include: {
-            cardMethods: { include: { blackList: true } },
-            ibanMethods: true,
+            blackList: true,
+            bank: true,
           },
         },
+        ibanMethods: true,
         rates: true,
         vendor: true,
         message: true,
         currency: true,
+        adminRequestPhotoMessage: true,
         activeUser: true,
         payedByUser: true,
       },
@@ -267,24 +298,21 @@ export class RequestRepository {
   async findAllCardRequestsByCard(cardNumber?: string) {
     return this.prisma.paymentRequests.findMany({
       where: {
-        paymentMethod: {
-          some: {
-            cardMethods: {
-              some: { card: cardNumber || undefined },
-            },
-          },
+        cardMethods: {
+          some: { card: cardNumber || undefined },
         },
       },
       include: {
-        paymentMethod: {
+        cardMethods: {
           include: {
-            cardMethods: { include: { blackList: true } },
-            ibanMethods: true,
+            blackList: true,
+            bank: true, // Include bank details if needed
           },
         },
         message: true,
         vendor: true,
         currency: true,
+        ibanMethods: true,
         user: true,
         rates: true,
       },
@@ -320,18 +348,25 @@ export class RequestRepository {
         },
       },
       include: {
-        paymentMethod: {
-          include: {
-            cardMethods: { include: { blackList: true } },
-            ibanMethods: true,
-          },
-        },
+        cardMethods: { include: { blackList: true, bank: true } },
         message: true,
         vendor: true,
         rates: true,
         currency: true,
+        ibanMethods: true,
         user: true,
       },
     });
   }
+  // async create(data: SerializedRequest) {
+  //   return this.prisma.paymentRequests.create({ data:{} });
+  // }
+
+  // async update(id: number, data: any) {
+  //   return this.prisma.request.update({ where: { id }, data });
+  // }
+
+  // async delete(id: number) {
+  //   return this.prisma.request.delete({ where: { id } });
+  // }
 }

@@ -28,7 +28,7 @@ export class CreateRequestWizard {
 
   @WizardStep(0)
   async selectMethod(@Ctx() ctx: CustomSceneContext) {
-    console.log('@WizardStep selectMethod');
+    // console.log('@WizardStep selectMethod');
     const username = ctx.from?.username || 'Unknown User';
     const selectPaymentMenu =
       MenuFactory.createSelectPaymentMethodMenu(username);
@@ -54,7 +54,7 @@ export class CreateRequestWizard {
 
   @On('callback_query')
   async onCallbackQuery(@Ctx() ctx: CustomSceneContext) {
-    console.log('@WizardStep callBack');
+    // console.log('@WizardStep callBack');
     const callbackQuery = ctx.callbackQuery;
     if (!callbackQuery || !('data' in callbackQuery)) {
       await ctx.answerCbQuery('Unknown action');
@@ -108,8 +108,6 @@ export class CreateRequestWizard {
         break;
       }
       default: {
-        console.log('Unknown callback query data:', callbackQuery.data);
-
         await ctx.scene.leave();
         break;
       }
@@ -214,6 +212,10 @@ export class CreateRequestWizard {
           ctx.wizard.selectStep(1);
           return;
         }
+        const bankName = await this.utilsService.getBankNameByCardNumber(
+          cardDetail.cardNumber,
+        );
+        // console.log('Bank name found:', bankName);
         const cardRequest: CardRequestType = {
           amount: cardDetail.amount,
           currencyId: foundRate.currencyId,
@@ -224,13 +226,13 @@ export class CreateRequestWizard {
           card: {
             card: cardDetail.cardNumber,
             comment: 'Card request created via bot',
-            paymentMethodId: null,
+            bankId: bankName ? bankName.id : '',
           },
         };
         try {
           const request =
             await this.requestService.createCardRequest(cardRequest);
-          const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+          const photoUrl = './src/assets/0056.jpg';
           const publicMenu = MenuFactory.createPublicMenu(
             request as unknown as FullRequestType,
             photoUrl,
@@ -252,10 +254,9 @@ export class CreateRequestWizard {
             photoUrl: photoUrl,
             text: publicMenu.inWork().caption,
             chatId: BigInt(ctx.chat?.id || 0),
-            messageId: BigInt(requestMessage.message_id),
+            messageId: requestMessage.message_id,
             requestId: request.id,
             accessType: 'PUBLIC',
-            paymentRequestId: request.id,
           };
           await this.requestService.insertCardRequestMessage(
             request.id,
@@ -277,7 +278,7 @@ export class CreateRequestWizard {
     const input = ctx.text;
     if (!input || input.split('\n').length < 4) {
       await ctx.reply(
-        'Пожалуйста, введите данные в формате: Имя\\nIBAN\\nИНН\\nСумма\\nКомментарий (если нужно)',
+        'Пожалуйста, введите данные в формате:\nИмя\nIBAN\nИНН\nСумма\nКомментарий (если нужно)',
       );
       ctx.wizard.selectStep(2);
       return;
@@ -287,7 +288,14 @@ export class CreateRequestWizard {
       return;
     }
     try {
-      const ibanRawData = this.parseIbanRequest(input);
+      let ibanRawData;
+      try {
+        ibanRawData = this.parseIbanRequest(input);
+      } catch (error) {
+        ctx.sendMessage(`${error.message}`);
+        // await this.cancel(ctx);
+        return;
+      }
       const rates = await this.ratesService.getAllRates();
       if (!rates || rates.length === 0) {
         const msg = await ctx.reply('Нед доступного курса для данной суммы.');
@@ -333,12 +341,11 @@ export class CreateRequestWizard {
           inn: ibanRawData.inn,
           name: ibanRawData.name,
           comment: ibanRawData.comment || '',
-          paymentMethodId: null,
         },
       };
       const request = await this.requestService.createIbanRequest(ibanRequest);
 
-      const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+      const photoUrl = './src/assets/0056.jpg';
       const publicMenu = MenuFactory.createPublicMenu(
         request as unknown as FullRequestType,
         photoUrl,
@@ -349,7 +356,7 @@ export class CreateRequestWizard {
         },
         {
           parse_mode: 'HTML',
-          caption: publicMenu.inWork().caption,
+          caption: publicMenu.inWork(undefined, request.id).caption,
           reply_markup: publicMenu.inWork().markup,
         },
       );
@@ -360,10 +367,9 @@ export class CreateRequestWizard {
         photoUrl: photoUrl,
         text: publicMenu.inWork().caption,
         chatId: BigInt(ctx.chat?.id || 0),
-        messageId: BigInt(requestMessage.message_id),
+        messageId: requestMessage.message_id,
         requestId: request.id,
         accessType: 'PUBLIC',
-        paymentRequestId: request.id,
       };
       await this.requestService.insertCardRequestMessage(
         request.id,
@@ -383,7 +389,7 @@ export class CreateRequestWizard {
 
   @SceneLeave()
   async onSceneLeave(@Ctx() ctx: CustomSceneContext) {
-    console.log('Leaving scene, messages to delete:', ctx.session);
+    // console.log('Leaving scene, messages to delete:', ctx.session);
     await this.deleteSceneMessages(ctx);
     await this.deleteSceneMenuMessages(ctx);
     ctx.session.messagesToDelete = [];

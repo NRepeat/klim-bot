@@ -12,12 +12,16 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "start:pm2": "npm run build && nest start",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "setup": "npx prisma migrate dev",
+    "seed": "cd prisma/seed && npx tsx cards.ts",
+    "postinstall": "npx -y prisma generate"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -26,6 +30,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.0.0",
     "@prisma/client": "^6.10.0",
+    "dotenv": "^17.2.1",
     "exceljs": "^4.4.0",
     "nestjs-telegraf": "^2.9.1",
     "reflect-metadata": "^0.2.2",

@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Context } from 'telegraf';
 import UserRepository from './user.repo';
 
-import { User } from 'generated/prisma';
-import { SerializedMessage, SerializedUser, UserRole } from 'src/types/types';
+import { RoleEnum, User } from '@prisma/client';
+import { SerializedMessage, SerializedUser } from 'src/types/types';
 
 @Injectable()
 export class UserService {
@@ -48,15 +48,20 @@ export class UserService {
     const username = ctx.from?.username;
 
     if (userId && username) {
+      const existUser = await this.userRepository.findByTelegramId(userId);
+      console.log('Ex', existUser);
+      if (existUser) {
+        console.log('User already exist');
+        return;
+      }
       await this.userRepository.create(
         {
           username: username,
           onPause: true,
           telegramId: BigInt(userId),
         },
-        UserRole.GEEST,
+        RoleEnum.WORKER,
       );
-      console.log(`User created: ${username} with ID: ${userId}`);
     } else {
       console.error('User information is incomplete');
     }
@@ -67,23 +72,33 @@ export class UserService {
     return admins;
   }
   async isAdminChat(ctx: Context): Promise<boolean> {
-    console.log(ctx.from);
     const userId = ctx.from?.id;
-    console.log(`Checking if user is admin: ${userId}`);
     const admins = await this.getAdmins();
     if (!userId || !admins) {
       return false;
     }
 
     return admins?.users.some((user) => {
-      console.log(`Checking user: ${user.telegramId}`);
       return Number(user.telegramId) === Number(userId);
     });
   }
   async appendRequestToUser(userId: string, requestId: string): Promise<void> {
     return this.userRepository.appendRequestToUser(userId, requestId);
   }
-
+  async saveMessage(message: SerializedMessage) {
+    try {
+      await this.userRepository.saveMessage({
+        chatId: message.chatId,
+        accessType: message.accessType,
+        messageId: message.messageId,
+        requestId: message.requestId,
+        photoUrl: message.photoUrl ? message.photoUrl : '',
+        text: message.text ? message.text : '',
+      });
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  }
   async saveWorkerRequestPhotoMessage(
     message: SerializedMessage,
     requestId: string,

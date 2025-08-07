@@ -1,5 +1,5 @@
 import { createReadStream, ReadStream } from 'fs';
-import { AccessType } from 'generated/prisma';
+import { AccessType } from '@prisma/client';
 import { FullRequestType } from 'src/types/types';
 import { Markup } from 'telegraf';
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram';
@@ -106,7 +106,7 @@ abstract class BaseRequestMenu {
     request: FullRequestType,
     source?: Buffer<ArrayBufferLike>,
   ) {
-    const photoUrl = '/home/nikita/Code/klim-bot/src/assets/0056.jpg';
+    const photoUrl = './src/assets/0056.jpg';
     this.request = request;
     this.url = url ? url : photoUrl;
     this.source = source || Buffer.from([]);
@@ -119,29 +119,15 @@ abstract class BaseRequestMenu {
       return MESSAGES.NO_DATA;
     }
     const currentAccessType = accessType || this.getAccessType();
-    // CARD
-    let isCard = false;
-    let cardMethods: any[] = [];
-    if (Array.isArray(this.request.paymentMethod)) {
-      isCard = this.request.paymentMethod.some(
-        (pm: any) => pm.nameEn === 'CARD',
-      );
-      cardMethods = this.request.paymentMethod.flatMap(
-        (pm: any) => pm.cardMethods || [],
-      );
-    } else if (
-      this.request.paymentMethod &&
-      (this.request.paymentMethod as any).nameEn === 'CARD'
-    ) {
-      isCard = true;
-      cardMethods = (this.request.paymentMethod as any).cardMethods || [];
-    }
+    const isCard = this.request.paymentMethod?.nameEn === 'CARD';
+    console.log('isCard:', isCard, 'currentAccessType:', currentAccessType);
     if (isCard) {
-      const card =
-        cardMethods.length > 0 && cardMethods[0]?.card
-          ? `💳<b>Номер карты:</b> <code>${cardMethods[0].card}</code>\n`
-          : '';
-      const bank = '-';
+      const cardMethods = this.request.cardMethods || [];
+      console.log('cardMethods', this.request);
+
+      const bank = cardMethods[0]?.bank?.bankName
+        ? cardMethods[0]?.bank?.bankName
+        : '-';
       const amount = this.request.amount || 0;
       const rateValue = this.request.rates?.rate;
       const rate = rateValue
@@ -150,16 +136,17 @@ abstract class BaseRequestMenu {
       const usdt = rateValue
         ? `💎<b>USDT:</b> <code>${(amount / rateValue).toFixed(2)}</code>\n`
         : '';
-      const isBlacklisted = (cardMethods[0]?.blackList || []).length > 0;
-      const blacklist =
-        isBlacklisted && cardMethods[0]?.blackList?.[0]
-          ? '🚫Карта в чёрном списке: ' + cardMethods[0].blackList[0].reason
-            ? cardMethods[0].blackList[0].reason
-            : ''
-          : '';
+      const isBlacklisted =
+        cardMethods[0]?.blackList && cardMethods[0]?.blackList.length > 0;
+      const blacklist = isBlacklisted ? '🚫Карта в чёрном списке' : '';
+
       const acceptedBy = this.request.activeUser
-        ? `<b>Принята:</b> @${this.request.activeUser.username}\n`
+        ? `<b>Пользователь:</b> @${this.request.activeUser.username}\n`
         : '';
+      const card =
+        cardMethods.length > 0 && cardMethods[0]?.card
+          ? `💳<b>Номер карты:</b> <code>${acceptedBy ? cardMethods[0].card : Array.from(cardMethods[0].card, () => '*').join('')}</code>\n`
+          : '';
       const payedBy = this.request.payedByUser?.username
         ? '<b>Оплачено:</b> @' + this.request.payedByUser.username + '\n'
         : '';
@@ -171,39 +158,22 @@ abstract class BaseRequestMenu {
         rate +
         usdt +
         card +
-        (currentAccessType === 'ADMIN' ? acceptedBy : '') +
+        (currentAccessType === 'ADMIN' || currentAccessType === 'WORKER'
+          ? acceptedBy
+          : '') +
         (currentAccessType === 'ADMIN' ? payedBy : '') +
         (currentAccessType === 'ADMIN'
           ? `<b>Партнер:</b> <i>${vendor}</i>\n`
           : '') +
         (currentAccessType === 'ADMIN' || currentAccessType === 'WORKER'
-          ? !blacklist
-            ? ''
-            : blacklist
+          ? blacklist
           : '')
       );
-    }
-    // IBAN
-    let isIban = false;
-    let ibanMethods: any[] = [];
-    if (Array.isArray(this.request.paymentMethod)) {
-      isIban = this.request.paymentMethod.some(
-        (pm: any) => pm.nameEn === 'IBAN',
-      );
-      ibanMethods = this.request.paymentMethod.flatMap(
-        (pm: any) => pm.ibanMethods || [],
-      );
-    } else if (
-      this.request.paymentMethod &&
-      (this.request.paymentMethod as any).nameEn === 'IBAN'
-    ) {
-      isIban = true;
-      ibanMethods = (this.request.paymentMethod as any).ibanMethods || [];
-    }
-    if (isIban) {
+    } else if (this.request.paymentMethod?.nameEn === 'IBAN') {
+      const ibanMethods = this.request.ibanMethods || [];
       const name =
         ibanMethods.length > 0 && ibanMethods[0]?.name
-          ? `👤<b>Имя:</b> <i>${ibanMethods[0].name}</i>\n`
+          ? `👤<b>Имя:</b> <code>${ibanMethods[0].name}</code>\n`
           : '';
       const iban =
         ibanMethods.length > 0 && ibanMethods[0]?.iban
@@ -215,7 +185,7 @@ abstract class BaseRequestMenu {
           : '';
       const comment =
         ibanMethods.length > 0 && ibanMethods[0]?.comment
-          ? `💬<b>Комментарий:</b> <i>${ibanMethods[0].comment}</i>\n`
+          ? `💬<b>Комментарий:</b> <code>${ibanMethods[0].comment}</code>\n`
           : '';
       const amount = this.request.amount || 0;
       const rateValue = this.request.rates?.rate;
@@ -231,7 +201,7 @@ abstract class BaseRequestMenu {
       const payedBy = this.request.payedByUser?.username
         ? '<b>Оплачено:</b> @' + this.request.payedByUser.username + '\n'
         : '';
-
+      const vendor = this.request.vendor?.title || '-';
       return (
         `✉️<b>Заявка номер:</b> <code>${this.request.id ?? '-'}</code>\n` +
         `💵<b>Сумма:</b> <code>${amount}</code>\n` +
@@ -241,11 +211,16 @@ abstract class BaseRequestMenu {
         iban +
         inn +
         comment +
-        (currentAccessType === 'ADMIN' ? acceptedBy : '') +
-        (currentAccessType === 'ADMIN' ? payedBy : '')
+        (currentAccessType === 'ADMIN' || currentAccessType === 'WORKER'
+          ? acceptedBy
+          : '') +
+        (currentAccessType === 'ADMIN' ? payedBy : '') +
+        (currentAccessType === 'ADMIN'
+          ? `<b>Партнер:</b> <code>${vendor}</code>\n`
+          : '')
       );
     }
-    // Возвращаем базовое сообщение если тип платежа не распознан
+
     return `✉️<b>Заявка номер:</b> <code>${this.request.id ?? '-'}</code>\nНеизвестный тип платежа`;
   }
 
@@ -268,10 +243,6 @@ abstract class BaseRequestMenu {
         markup = requestId
           ? Markup.inlineKeyboard([
               [
-                createButton(
-                  BUTTON_TEXTS.WORKER_CANCEL_REQUEST,
-                  BUTTON_CALLBACKS.CANCEL_WORKER_REQUEST + requestId,
-                ),
                 createButton(
                   BUTTON_TEXTS.TAKE_REQUEST,
                   BUTTON_CALLBACKS.TAKE_REQUEST + requestId,
@@ -302,12 +273,18 @@ abstract class BaseRequestMenu {
       BUTTON_TEXTS.IN_WORK,
       BUTTON_CALLBACKS.IN_WORK,
     );
-
+    const newCancelButton = Markup.button.callback(
+      'Отмена',
+      'cancel_payment_' + requestId,
+    );
     const inline_keyboard = requestId
       ? Markup.inlineKeyboard([
           [
-            Markup.button.callback('Отказаться', 'cancel_request'),
-            Markup.button.callback('Невзять', 'accept_request_' + requestId),
+            createButton(
+              BUTTON_TEXTS.REQUEST_COMPLIED,
+              BUTTON_CALLBACKS.REQUEST_COMPLIED + requestId,
+            ),
+            newCancelButton,
           ],
         ]).reply_markup
       : markup;
@@ -319,7 +296,7 @@ abstract class BaseRequestMenu {
       BUTTON_TEXTS.DONE,
       BUTTON_CALLBACKS.DONE,
     );
-
+    console.log('Creating done menu with request:', this.messageFromRequest());
     return new MenuWithMedia(
       this.messageFromRequest(),
       markup,
@@ -333,10 +310,6 @@ abstract class BaseRequestMenu {
     if (accessType === 'WORKER' && requestId) {
       const markup = Markup.inlineKeyboard([
         [
-          createButton(
-            BUTTON_TEXTS.GIVE_NEXT,
-            BUTTON_CALLBACKS.GIVE_NEXT + requestId,
-          ),
           createButton(
             BUTTON_TEXTS.VALUT_CARD,
             BUTTON_CALLBACKS.VALUT_CARD + requestId,
@@ -458,8 +431,8 @@ export class MenuFactory {
 // Константы для кнопок и сообщений
 const BUTTON_TEXTS = {
   IN_WORK: 'В работе',
-  DONE: 'Выполнено',
-  REJECTED: 'Отклонено',
+  DONE: '✅Выполнено',
+  REJECTED: '🚫Отклонено',
   BACK: 'Назад',
   CARD: 'CARD',
   IBAN: 'IBAN',
@@ -471,7 +444,7 @@ const BUTTON_TEXTS = {
   REQUEST_COMPLIED: 'Перевел',
   GIVE_NEXT: 'Передать другому',
   VALUT_CARD: 'Валютная карта',
-  BACK_TO_TAKE_REQUEST: 'Вернуться назад',
+  BACK_TO_TAKE_REQUEST: 'Отказаться от заявки',
   REJECTED_BY_ADMIN: 'Отклонено админом',
 } as const;
 
@@ -501,7 +474,7 @@ const MESSAGES = {
   CARD_PAYMENT_FORM: (username: string) =>
     `@${username} отправьте, пожалуйста, заявку в форме:\n\n Карта сумма (5168745632147896 1000)`,
   IBAN_PAYMENT_FORM: (username: string) =>
-    `@${username} отправьте, пожалуйста, заявку в форме:\n\nИмя\nIBAN\nИНН\nСумма\nКомментарий (если нужно)`,
+    `@${username} отправьте, пожалуйста, заявку в форме:\nИмя\nIBAN\nИНН\nСумма\nКомментарий (если нужно)`,
   NO_DATA: 'Нет данных для отображения',
 } as const;
 

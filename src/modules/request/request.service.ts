@@ -107,16 +107,21 @@ export class RequestService {
     const cardPayment =
       await this.requestRepo.findCardPaymentByCardNumber(cardNumber);
     if (cardPayment) {
+      const cardMethod = cardPayment.paymentMethod
+        ?.flatMap((pm) => pm.cardMethods || [])
+        .find((cm) => cm.card);
       return this.requestRepo.addToBlackList({
-        card: cardPayment.cardMethods[0].card,
+        card: cardMethod?.card || cardNumber,
         chatId: 0,
         comment: reason || 'Card added to blacklist',
+        paymentMethodId: null,
       });
     } else {
       return this.requestRepo.addToBlackList({
         card: cardNumber,
         chatId: 0,
         comment: reason || 'Card added to blacklist',
+        paymentMethodId: null,
       });
     }
   }

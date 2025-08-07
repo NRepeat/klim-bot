@@ -106,15 +106,17 @@ export class UtilsService {
     request: FullRequestType,
     accessType: MessageAccessType,
   ) {
-    if (request && request.ibanMethods) {
-      if (request.ibanMethods.length === 0) {
-        return {
-          text: 'Нет доступных IBAN методов для этой заявки.',
-          inline_keyboard: [],
-        };
-      }
+    if (
+      request &&
+      request.paymentMethod &&
+      request.paymentMethod[0].nameEn !== 'IBAN'
+    ) {
+      return {
+        text: 'Нет доступных IBAN методов для этой заявки.',
+        inline_keyboard: [],
+      };
     }
-    const iban = request.ibanMethods![0];
+    const iban = request.paymentMethod?.[0]?.ibanMethods?.[0]!;
     // Формируем текст сообщения
     let text =
       `Заявка на перевод по IBAN\n` +
@@ -152,7 +154,8 @@ export class UtilsService {
     request: FullRequestType,
     accessType: MessageAccessType,
   ) {
-    const cardMethods = request?.cardMethods || [];
+    const cardMethods =
+      (request.paymentMethod && request.paymentMethod[0].cardMethods!) || [];
     const card = cardMethods.length > 0 ? cardMethods[0]?.card : '-';
     const bank = '-';
     const amount = request.amount || 0;

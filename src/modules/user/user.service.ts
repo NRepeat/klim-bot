@@ -60,7 +60,7 @@ export class UserService {
           onPause: true,
           telegramId: BigInt(userId),
         },
-        RoleEnum.GUEST,
+        RoleEnum.WORKER,
       );
     } else {
       console.error('User information is incomplete');

@@ -14,7 +14,7 @@ export class RatesActions {
     // this.ratesService.createRates(ctx, Currency.UAH);
     const isAdmin = await this.userService.isAdminChat(ctx);
     if (!isAdmin) {
-      // await ctx.reply('You are not allowed to use this command');
+      //
       return;
     }
     await ctx.scene.enter('create-rates');

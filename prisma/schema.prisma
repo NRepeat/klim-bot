@@ -100,6 +100,7 @@ model PaymentRequests {
   message                   Message[]
   rates                     Rates?                      @relation(fields: [ratesId], references: [id])
   ratesId                   String?
+  rate                      String?                     @default("")
   activeUserId              String?
   activeUser                User?                       @relation("activeRequests", fields: [activeUserId], references: [id])
   adminRequestPhotoMessage  AdminRequestPhotoMessage[]

@@ -40,6 +40,8 @@ export default class ReportService {
       'IBAN',
       'Валюта',
     ];
+    isForProvider && headerRow.splice(6, 0, 'Пользователь');
+
     sheet.addRow(headerRow);
     // Style header
     sheet.getRow(1).eachCell((cell) => {
@@ -55,19 +57,19 @@ export default class ReportService {
     let totalRate = 0;
     let rateCount = 0;
     for (const request of requests) {
-      console.log(request);
-      const rate = request.rates?.rate ?? '';
+      const rate = request.rates?.rate ?? request.rate;
       const amount = request.amount ?? 0;
       const cardNumber = request.cardMethods?.[0]?.card ?? '';
       const bank = this.getBankNameByCardNumber(cardNumber);
       const provider = request.vendor?.title ?? '';
+      const worker = request.payedByUser?.username ?? '';
+      console.log(request, 'workerworkerworker');
       const acceptedDateTime = request.completedAt ?? '';
       const inn =
         (request.ibanMethods &&
           request.ibanMethods.length !== 0 &&
           request.ibanMethods[0].inn) ||
         '';
-      console.log('Request INN:', request.ibanMethods);
       const clientName =
         (request.ibanMethods &&
           request.ibanMethods.length !== 0 &&
@@ -98,6 +100,8 @@ export default class ReportService {
         iban,
         result.toFixed(2) || '',
       ];
+      isForProvider && row.splice(6, 0, worker);
+
       sheet.addRow(row);
       totalAmount += amount;
       totalCurrency += result;
@@ -106,7 +110,6 @@ export default class ReportService {
         rateCount++;
       }
     }
-    // Autosize columns
     sheet.columns.forEach((col) => {
       let max = 10;
       col.eachCell?.({ includeEmpty: true }, (cell) => {
@@ -129,6 +132,8 @@ export default class ReportService {
       '',
       totalCurrency.toFixed(2),
     ];
+    isForProvider && totalRow.splice(6, 0, '');
+
     const totalRowRef = sheet.addRow(totalRow);
     totalRowRef.eachCell((cell) => {
       cell.fill = {

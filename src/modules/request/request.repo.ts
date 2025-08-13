@@ -353,6 +353,8 @@ export class RequestRepository {
         vendor: true,
         rates: true,
         currency: true,
+        payedByUser: true,
+
         ibanMethods: true,
         user: true,
       },

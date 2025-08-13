@@ -95,6 +95,10 @@ export class MenuActions {
     if (requests.length === 0) return ctx.reply('No requests to report');
     const report = await this.reportService.generateReportResult(
       requests as any as FullRequestType[],
+      false,
+    );
+    const adminReport = await this.reportService.generateReportResult(
+      requests as any as FullRequestType[],
       true,
     );
     const fileName = `${vendor.title}-report_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.xlsx`;
@@ -119,16 +123,16 @@ export class MenuActions {
       );
     }
     await this.telegramService.sendDocumentToAllUsers(
-      report.buffer,
+      adminReport.buffer,
       fileName,
-      report.caption,
+      adminReport.caption,
     );
   }
   @Command('report_all')
   async reportAll(@Ctx() ctx: Context) {
     const isAdmin = await this.userService.isAdminChat(ctx);
     if (!isAdmin) {
-      await ctx.reply('You are not allowed to use this command');
+      //
       return;
     }
     const vendors = await this.vendorService.getAllVendors();
@@ -141,7 +145,6 @@ export class MenuActions {
     for (const vendor of vendors) {
       const chatId = vendor.chatId?.toString();
       if (!vendor.work) {
-        // console.log(`Vendor ${vendor.title} is on pause, skipping...`);
         continue;
       }
       if (!chatId) continue;
@@ -154,6 +157,10 @@ export class MenuActions {
       if (!requests.length) continue;
       if (requests.length === 0) continue;
       const report = await this.reportService.generateReportResult(
+        requests as any as FullRequestType[],
+        false,
+      );
+      const adminReport = await this.reportService.generateReportResult(
         requests as any as FullRequestType[],
         true,
       );
@@ -168,11 +175,10 @@ export class MenuActions {
           { caption: report.caption },
         );
         allReports.push({
-          report: report.buffer,
+          report: adminReport.buffer,
           filename: fileName,
-          caption: report.caption,
+          caption: adminReport.caption,
         });
-        // console.log(`Report sent to vendor ${vendor.title}`);
         await this.vendorService.updateVendor({
           ...vendor,
           lastReportedAt: new Date(),
@@ -259,7 +265,7 @@ export class MenuActions {
     }
     const isAdmin = await this.userService.isAdminChat(ctx);
     if (!isAdmin) {
-      await ctx.reply('You are not allowed to use this command');
+      //
       return;
     }
     await this.userService.updateUser(
@@ -279,7 +285,6 @@ export class MenuActions {
     }
     const isAdmin = await this.userService.isAdminChat(ctx);
     if (!isAdmin) {
-      await ctx.reply('You are not allowed to use this command');
       return;
     }
     const card = ctx.text?.split(' ')[1]?.trim();
@@ -306,7 +311,6 @@ export class MenuActions {
     }
     const isAdmin = await this.userService.isAdminChat(ctx);
     if (!isAdmin) {
-      await ctx.reply('You are not allowed to use this command');
       return;
     }
     const card = ctx.text?.split(' ')[1]?.trim();
@@ -338,7 +342,6 @@ export class MenuActions {
     }
     const isAdmin = await this.userService.isAdminChat(ctx);
     if (!isAdmin) {
-      await ctx.reply('You are not allowed to use this command');
       return;
     }
     await this.userService.updateUser(
@@ -351,17 +354,33 @@ export class MenuActions {
   }
   @Command('on')
   async on(@Ctx() ctx: Context) {
-    await this.prismaService.settings.update({
-      where: { name: 'default' },
-      data: { onPause: false },
+    await this.prismaService.settings.upsert({
+      where: {
+        name: 'default',
+      },
+      update: {
+        onPause: false,
+      },
+      create: {
+        name: 'default',
+        onPause: false,
+      },
     });
     await ctx.reply('Bot is now active');
   }
   @Command('off')
   async off(@Ctx() ctx: Context) {
-    await this.prismaService.settings.update({
-      where: { name: 'default' },
-      data: { onPause: true },
+    await this.prismaService.settings.upsert({
+      where: {
+        name: 'default',
+      },
+      update: {
+        onPause: true,
+      },
+      create: {
+        name: 'default',
+        onPause: true,
+      },
     });
     await ctx.reply('Bot is now paused');
   }
@@ -390,7 +409,6 @@ export class MenuActions {
   async onBlackList(@Ctx() ctx: Context) {
     const isAdmin = await this.userService.isAdminChat(ctx);
     if (!isAdmin) {
-      await ctx.reply('You are not allowed to use this command');
       return;
     }
     const blackList = await this.requestService.getBlackList();

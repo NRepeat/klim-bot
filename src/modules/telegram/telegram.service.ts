@@ -616,7 +616,6 @@ export class TelegramService {
             chatId,
             {
               source: source,
-
               filename: fileName,
             },
             { parse_mode: 'HTML', caption: caption || '' },

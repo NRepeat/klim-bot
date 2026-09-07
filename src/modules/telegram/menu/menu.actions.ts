@@ -13,6 +13,31 @@ import { SceneContext } from 'telegraf/typings/scenes';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 
+/**
+ * Клавиатура для ответа на /start.
+ *
+ * Reply-клавиатура в Telegram висит на чате, а не на пользователе: показанная
+ * в группе, она остаётся у каждого её участника. Поэтому админское меню
+ * отдаём только в личку — иначе один /start админа в общей группе раздаёт
+ * кнопки «Показать пользователей» и «Обновить курсы» всем клиентам разом.
+ *
+ * Во всех прочих случаях клавиатуру снимаем явно. `reply_markup: undefined`
+ * этого не делает — он лишь не задаёт новую, а прилипшая однажды так и висит.
+ */
+export function startKeyboard(
+  isAdmin: boolean,
+  chatType?: string,
+): ReturnType<typeof Markup.keyboard>['reply_markup'] | { remove_keyboard: true } {
+  if (isAdmin && chatType === 'private') {
+    return Markup.keyboard([
+      [{ text: 'Показать пользователей' }, { text: 'Показать поставщиков' }],
+      [{ text: 'Черный список' }, { text: 'Обновить курсы' }],
+    ]).resize().reply_markup;
+  }
+
+  return Markup.removeKeyboard().reply_markup;
+}
+
 @Update()
 export class MenuActions {
   constructor(
@@ -34,18 +59,13 @@ export class MenuActions {
   }
   @Start()
   async start(@Ctx() ctx: Context) {
-    if (await this.userService.isAdminChat(ctx)) {
-      const inline_keyboard = Markup.keyboard([
-        [{ text: 'Показать пользователей' }, { text: 'Показать поставщиков' }],
-        [{ text: 'Черный список' }, { text: 'Обновить курсы' }],
-      ]).resize();
-      await ctx.reply('Welcome', {
-        reply_markup: inline_keyboard.reply_markup,
-      });
-    } else {
-      await ctx.reply('Welcome', {
-        reply_markup: undefined,
-      });
+    const isAdmin = await this.userService.isAdminChat(ctx);
+
+    await ctx.reply('Welcome', {
+      reply_markup: startKeyboard(isAdmin, ctx.chat?.type),
+    });
+
+    if (!isAdmin) {
       await this.userService.createUser(ctx);
       console.log(
         `New user created: ${ctx.from?.username} with ID: ${ctx.from?.id}`,

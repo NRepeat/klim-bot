@@ -28,6 +28,7 @@ const DEFAULT_MIN_ORDER_USD = 350;
 const FEED_FLOOR: Record<string, number> = {
   ALPCNY: 5000,
   WCTCNY: 5000,
+  CARDCNY: 10000,
 };
 
 type XmlRateRow = {

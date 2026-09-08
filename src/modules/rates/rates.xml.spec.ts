@@ -79,6 +79,21 @@ describe('buildRatesXml', () => {
     expect(xml).toContain('<out>0.855</out>');
   });
 
+  it('lifts CNY to its own 5000 floor instead of the dollar one', () => {
+    // 350 USD x 6.55 = 2292 CNY lands in the entry band, but Alipay and WeChat
+    // are sold from 5000 CNY — the feed has to quote that band's rate.
+    const tiers = [
+      { xml: 'ALPCNY', rate: 6.55, minAmount: 500, maxAmount: 4999 },
+      { xml: 'ALPCNY', rate: 6.62, minAmount: 5000, maxAmount: 19999 },
+      { xml: 'ALPCNY', rate: 6.63, minAmount: 20000, maxAmount: 0 },
+    ];
+
+    const xml = buildRatesXml(tiers, '2026-09-08T00:00:00.000Z');
+
+    expect(xml).toContain('<out>6.62</out>');
+    expect(xml).toContain('<minamount>5000</minamount>');
+  });
+
   it('follows the vendor order floor when it is raised', () => {
     const tiers = [
       { xml: 'CARDUAH', rate: 44.15, minAmount: 2000, maxAmount: 9999 },

@@ -19,6 +19,16 @@ const XML_FROM_CODE = 'USDTTRC20';
 const UNBOUNDED_AMOUNT = 1000000;
 // Used only when a vendor row predates the minOrderUsd column.
 const DEFAULT_MIN_ORDER_USD = 350;
+// Order floor in the payout currency for methods whose tiers start above the
+// vendor's dollar floor. CNY bands break at 5000, and 350 USD is ~2290 CNY, so
+// the feed quoted the entry band (6.55) while the exchange sells from the
+// 5000-19999 one (6.62).
+// ponytail: map in code, not in the DB — two codes so far; a Vendors column
+// when operators need to set the floor themselves.
+const FEED_FLOOR: Record<string, number> = {
+  ALPCNY: 5000,
+  WCTCNY: 5000,
+};
 
 type XmlRateRow = {
   xml: string | null;
@@ -45,7 +55,10 @@ export function buildRatesXml(
     // differently: the middle of two tiers is the lowest one, and the top of
     // KZT's [9000, 300000] is a tier no order of ours reaches.
     const byMin = [...list].sort((a, b) => a.minAmount - b.minAmount);
-    const reference = minOrderUsd * byMin[0].rate;
+    const reference = Math.max(
+      minOrderUsd * byMin[0].rate,
+      FEED_FLOOR[code] ?? 0,
+    );
     const tier =
       byMin.find(
         (t) =>

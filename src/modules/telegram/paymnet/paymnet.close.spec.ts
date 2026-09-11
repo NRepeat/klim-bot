@@ -49,6 +49,7 @@ describe('closeStage во время сверки', () => {
       wizard: { state },
       session: { messagesToDelete: [], requestMenuMessageId: [] },
       chat: { id: 1 },
+      from: { id: 777 },
       answerCbQuery: jest.fn(),
       scene: { leave: jest.fn() },
       reply: jest.fn(async () => ({ message_id: 2 })),
@@ -62,6 +63,15 @@ describe('closeStage во время сверки', () => {
     const inFlight = wizard.proceedFinalStep(orderCtx as never);
     while (verify.mock.calls.length === 0) await Promise.resolve();
     expect(state.closeStage).toBe('checking');
+    // сверка идёт по площадке и по тому, кто закрывает: чужими ключами
+    // ордер либо не найдётся, либо найдётся чужой
+    expect(verify).toHaveBeenCalledWith(
+      'r1',
+      '1234567',
+      expect.any(String),
+      'binance',
+      777,
+    );
 
     // отмена во время сверки — «подождите», сцена жива, карточка не трогается
     const cancelCtx = {

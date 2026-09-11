@@ -42,12 +42,24 @@ interface PaymentWizardState {
 }
 
 // Тексты шагов закрытия — как в greatbot, флоу единый для всех ботов.
-// Комиссию не спрашиваем: Binance отдаёт её из ордера, остальным — справочник CloseFee.
+// Комиссию не спрашиваем: биржа отдаёт её из ордера, остальным — справочник CloseFee.
 const ASK_ACCOUNT = '🏦 Где закрыта заявка?';
 const ASK_PARTNER = '🤝 Имя партнёра';
 const ASK_RATE = '📊 Курс закрытия';
-const ASK_ORDER = '🧾 ID P2P-ордера Binance';
-const CHECKING = '⏳ Сверяю с Binance…';
+
+/**
+ * Площадки с автосверкой: там спрашиваем ID ордера и берём курс с комиссией из
+ * него. Остальные биржи P2P-API нам не дают — они идут ручным курсом бухгалтера.
+ */
+const AUTO_CHECKED = ['binance', 'bybit'];
+
+/** `binance` → `Binance`: то же имя, что на кнопке. */
+const displayAccount = (account: string) =>
+  account.charAt(0).toUpperCase() + account.slice(1);
+
+const askOrder = (account: string) =>
+  `🧾 ID P2P-ордера ${displayAccount(account)}`;
+const checking = (account: string) => `⏳ Сверяю с ${displayAccount(account)}…`;
 
 const CLOSE_TYPE_KB = Markup.inlineKeyboard([
   [
@@ -264,18 +276,23 @@ export default class PaymentWizard {
         return;
       }
 
-      // Кнопка площадки: Binance — сверка по ID ордера, партнёр — сначала имя,
-      // остальные биржи — сразу курс.
+      // Кнопка площадки: где есть автосверка — по ID ордера, партнёр — сначала
+      // имя, остальные биржи — сразу курс.
       if (data.startsWith('close_acc_') && state.closeStage === 'account') {
         const account = data.substring('close_acc_'.length);
         await ctx.answerCbQuery();
         if (account === 'partner') {
           state.closeStage = 'partner';
           await this.editClosePrompt(ctx, state, ASK_PARTNER, CLOSE_CANCEL_KB);
-        } else if (account === 'binance') {
+        } else if (AUTO_CHECKED.includes(account)) {
           state.closeAccount = account;
           state.closeStage = 'order';
-          await this.editClosePrompt(ctx, state, ASK_ORDER, CLOSE_CANCEL_KB);
+          await this.editClosePrompt(
+            ctx,
+            state,
+            askOrder(account),
+            CLOSE_CANCEL_KB,
+          );
         } else {
           state.closeAccount = account;
           state.closeStage = 'rate';
@@ -431,7 +448,7 @@ export default class PaymentWizard {
       // аккаунта. Комиссия тогда из справочника, ордер не сохраняем.
       const manual = /^курс\s+(.+)$/iu.exec(text);
       if (manual) {
-        // Обход сверки Binance — тоже только бухгалтер; всем прочим
+        // Обход сверки — тоже только бухгалтер; всем прочим
         // остаётся честный путь через ID ордера.
         if (!this.isBookkeeper(ctx)) {
           await this.replyCloseError(ctx, MANUAL_RATE_DENIED);
@@ -460,7 +477,10 @@ export default class PaymentWizard {
           await this.finishClose(ctx, state, { rate: bareRate, fee, orderId: null });
           return;
         }
-        await this.replyCloseError(ctx, 'ID ордера — число из ордера Binance.');
+        await this.replyCloseError(
+          ctx,
+          `ID ордера — число из ордера ${displayAccount(state.closeAccount!)}.`,
+        );
         return;
       }
 
@@ -490,18 +510,22 @@ export default class PaymentWizard {
       // при любом неуспехе вернёмся в 'order'.
       state.closeStage = 'checking';
       // поиск в истории биржи занимает секунды — показываем, что не зависли
-      await this.editClosePrompt(ctx, state, CHECKING);
+      await this.editClosePrompt(ctx, state, checking(state.closeAccount!));
+      // сверяем ключами того, кто закрывает: ордер лежит в истории его
+      // биржевого аккаунта, чужим ключом он не найдётся
       const verdict = await this.exchangeCheckService.verify(
         state.requestId,
         text,
         usdtAmount.toFixed(8),
+        state.closeAccount!,
+        ctx.from?.id ?? 0,
       );
       if (!verdict.ok) {
         state.closeStage = 'order';
         await this.editClosePrompt(
           ctx,
           state,
-          `${verdict.message}\n\n${ASK_ORDER}`,
+          `${verdict.message}\n\n${askOrder(state.closeAccount!)}`,
           CLOSE_CANCEL_KB,
         );
         return;

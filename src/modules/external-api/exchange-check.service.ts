@@ -34,9 +34,10 @@ export function mapVerifyResponse(v: unknown): ExchangeVerifyResult {
 }
 
 /**
- * Клиент сервиса exchange-check: сверяет P2P-ордер Binance с заявкой и
- * атомарно резервирует ордер за парой (workspace, request_id) во всех ботах —
- * один ордер закрывает ровно одну заявку.
+ * Клиент сервиса exchange-check: сверяет P2P-ордер биржи с заявкой и атомарно
+ * резервирует ордер за парой (workspace, request_id) во всех ботах — один ордер
+ * закрывает ровно одну заявку. Ключи сервис берёт по Telegram id закрывающего:
+ * у каждого сотрудника свой биржевой аккаунт.
  */
 @Injectable()
 export class ExchangeCheckService {
@@ -55,6 +56,8 @@ export class ExchangeCheckService {
     requestId: string,
     orderId: string,
     expectedAmount: string,
+    exchange: string,
+    operatorId: number,
   ): Promise<ExchangeVerifyResult> {
     try {
       const res = await fetch(`${this.url}/verify`, {
@@ -63,10 +66,12 @@ export class ExchangeCheckService {
         body: JSON.stringify({
           workspace: 'klim',
           request_id: requestId,
-          exchange: 'binance',
+          exchange,
           order_id: orderId,
           expected_amount: expectedAmount,
           expected_asset: 'USDT',
+          // ключи берутся по закрывающему: у каждого сотрудника свой аккаунт
+          operator_id: operatorId,
         }),
         // сервис сам листает историю биржи — даём ему больше времени, чем себе
         signal: AbortSignal.timeout(30_000),

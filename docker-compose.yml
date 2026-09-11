@@ -28,6 +28,10 @@ services:
         - "image-name=klim-bot"
     container_name: klim-bot-app
     restart: always
+    extra_hosts:
+      # exchange-check крутится на этом же хосте (:8090); из bridge-сети до него
+      # только через host-gateway
+      - "host.docker.internal:host-gateway"
     ports:
       - '${PORT:-3005}:${PORT:-3005}'
     volumes:

@@ -422,8 +422,14 @@ model CardBank {
 }
 
 model Settings {
-  name      String   @id @default("default")
-  onPause   Boolean  @default(false)
+  name    String  @id @default("default")
+  onPause Boolean @default(false)
+
+  /// Общая группа приёма заявок. Задаётся командой /register_main прямо в
+  /// группе и перекрывает env WORK_GROUP_CHAT: переезд в другую группу не
+  /// должен требовать правки .env и рестарта контейнера.
+  workGroupChatId BigInt? @map("work_group_chat_id")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

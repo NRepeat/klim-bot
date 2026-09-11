@@ -17,6 +17,7 @@ import { ConfigService } from '@nestjs/config';
 import { CurrencyEnum } from '@prisma/client';
 import { RequestMessageFactory } from './request/request-message.factory';
 import { installTelegramThrottle } from './telegram-throttle';
+import { WorkGroupService } from './work-group.service';
 
 const photoUrl = './src/assets/0056.jpg';
 
@@ -29,6 +30,7 @@ export class TelegramService {
     private readonly userService: UserService,
     private readonly requestService: RequestService,
     private readonly configService: ConfigService,
+    private readonly workGroupService: WorkGroupService,
   ) {
     installTelegramThrottle(
       this.bot.telegram as unknown as Parameters<
@@ -199,7 +201,7 @@ export class TelegramService {
   }
   async notificateToWorkGroup(requests: FullRequestType[]) {
     try {
-      const chatId = this.configService.get<number>('WORK_GROUP_CHAT');
+      const chatId = await this.workGroupService.chatId();
 
       if (!chatId) {
         throw new Error('Work group chat not found');
@@ -262,8 +264,8 @@ export class TelegramService {
         await this.requestService.findReminderMessages(requestId);
       if (reminders.length === 0) return;
       const chatId =
-        Number(reminders[0].chatId) ||
-        this.configService.get<number>('WORK_GROUP_CHAT');
+        Number(reminders[0].chatId) || (await this.workGroupService.chatId());
+      if (!chatId) return; // группа не настроена — удалять нечего и негде
       await this.deleteAllTelegramMessages(
         reminders.map((r) => Number(r.messageId)),
         chatId,
@@ -279,7 +281,7 @@ export class TelegramService {
 
   async sendRequestToWorkGroup(request: FullRequestType) {
     try {
-      const chatId = this.configService.get<number>('WORK_GROUP_CHAT');
+      const chatId = await this.workGroupService.chatId();
       if (!chatId) {
         throw new Error('Work group chat not found');
       }

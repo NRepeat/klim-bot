@@ -7,6 +7,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import * as LocalSession from 'telegraf-session-local';
 import { RequestTaskModule } from './modules/request-task/request-task.module';
 import { UserService } from './modules/user/user.service';
+import { WorkGroupService } from './modules/telegram/work-group.service';
 import { UserModule } from './modules/user/user.module';
 import { ExternalApiModule } from './modules/external-api/external-api.module';
 import { PayoutFieldsModule } from './modules/payout-fields/payout-fields.module';
@@ -63,6 +64,7 @@ export class AppModule implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly userService: UserService,
+    private readonly workGroupService: WorkGroupService,
   ) {}
 
   private delay(ms: number) {
@@ -188,19 +190,23 @@ export class AppModule implements OnModuleInit {
         }
       }
     }
-    const chatId = this.configService.get<number>('WORK_GROUP_CHAT');
-    try {
-      await this.setCommandsWithRetry(
-        bot,
-        [
-          { command: 'start', description: 'Начать работу с ботом' },
-          { command: 'pay', description: 'Создать заказ' },
-          { command: 'all_rates', description: 'Показать все курсы' },
-        ],
-        { scope: { type: 'chat', chat_id: Number(chatId) } },
-      );
-    } catch (error) {
-      console.error('Error setting group chat commands:', error);
+    // меню команд вешаем на ту группу, что зарегистрирована сейчас, а не на
+    // ту, что была в env при сборке образа
+    const chatId = await this.workGroupService.chatId();
+    if (chatId) {
+      try {
+        await this.setCommandsWithRetry(
+          bot,
+          [
+            { command: 'start', description: 'Начать работу с ботом' },
+            { command: 'pay', description: 'Создать заказ' },
+            { command: 'all_rates', description: 'Показать все курсы' },
+          ],
+          { scope: { type: 'chat', chat_id: Number(chatId) } },
+        );
+      } catch (error) {
+        console.error('Error setting group chat commands:', error);
+      }
     }
 
     await this.delay(DELAY_BETWEEN_CALLS);

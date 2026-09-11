@@ -24,6 +24,7 @@ import { ExternalApiModule } from '../external-api/external-api.module';
 import { PayoutFieldsActions } from './payout-fields/payout-fields.actions';
 import { BoxApiService } from '../payout-fields/box-api.service';
 import { AdminGuard } from './admin.guard';
+import { WorkGroupService } from './work-group.service';
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { AdminGuard } from './admin.guard';
     ExternalApiModule,
   ],
   controllers: [],
-  exports: [TelegramService],
+  exports: [TelegramService, WorkGroupService],
   providers: [
     TelegramService,
     CreateRatesScene,
@@ -56,6 +57,7 @@ import { AdminGuard } from './admin.guard';
     PayoutFieldsActions,
     BoxApiService,
     AdminGuard,
+    WorkGroupService,
   ],
 })
 export class TelegramModule {}

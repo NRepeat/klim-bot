@@ -12,6 +12,7 @@ import { TelegramService } from '../telegram.service';
 import { SceneContext } from 'telegraf/typings/scenes';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { WorkGroupService } from '../work-group.service';
 
 /**
  * Клавиатура для ответа на /start.
@@ -49,6 +50,7 @@ export class MenuActions {
     private readonly telegramService: TelegramService,
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
+    private readonly workGroupService: WorkGroupService,
   ) {}
 
   async isBotPaused(ctx: Context): Promise<boolean> {
@@ -76,6 +78,30 @@ export class MenuActions {
   async getChatId(@Ctx() ctx: Context) {
     await ctx.reply(`Chat ID: ${ctx.chat?.id}`);
   }
+  /**
+   * `/register_main` — сделать текущий чат общей группой приёма заявок.
+   *
+   * Только владельцам (`OWNER_TG_IDS`): команда уводит весь поток заявок в
+   * другой чат, ошибиться чатом здесь дороже, чем не иметь команды вовсе.
+   * Не путать с `/start_work_group` — та задаёт личную рабочую группу
+   * оператора, куда уезжает уже взятая им заявка.
+   */
+  @Command('register_main')
+  async registerMainGroup(@Ctx() ctx: Context) {
+    if (!this.workGroupService.isOwner(ctx.from?.id)) {
+      // молча игнорировать нельзя: владелец решит, что бот сломался
+      await ctx.reply('⛔ Команда доступна только владельцам.');
+      return;
+    }
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    await this.workGroupService.setChatId(chatId);
+    await ctx.reply(
+      `✅ Общая группа заявок — этот чат.\nchat_id: ${chatId}\n\n` +
+        'Новые заявки будут приходить сюда. Рабочие группы операторов не менялись.',
+    );
+  }
+
   @Command('start_work_group')
   async startWorkGroup(@Ctx() ctx: Context) {
     const userId = ctx.from?.id;
@@ -509,7 +535,7 @@ export class MenuActions {
       console.log('[/pay] bot paused, skip');
       return;
     }
-    const workGroup = this.configService.get<number>('WORK_GROUP_CHAT');
+    const workGroup = await this.workGroupService.chatId();
     if (workGroup === ctx.chat?.id) {
       console.log('[/pay] workGroup chat, skip');
       return;

@@ -31,6 +31,14 @@ export interface ReportResult {
 
 @Injectable()
 export default class ReportService {
+  /**
+   * Отчёт по заявкам.
+   *
+   * `isForProvider` — внутренняя версия (уходит админам). Партнёрская версия
+   * **не должна** содержать ничего про закрытие: по курсу закрытия и курсу
+   * клиента считается наш заработок на его же заявке. Там же и наши операторы:
+   * кто из наших людей вёл заявку — не его дело.
+   */
   async generateReportResult(
     requests: FullRequestType[],
     isForProvider: boolean,
@@ -52,13 +60,10 @@ export default class ReportService {
       'ИНН',
       'Имя клиента',
       'Комментарий',
-      'Площадка',
-      'Курс закрытия',
-      'Комиссия биржи',
-      'Ордер',
     ];
     if (isForProvider) {
       headerRow.splice(9, 0, 'Пользователь');
+      headerRow.push('Площадка', 'Курс закрытия', 'Комиссия биржи', 'Ордер');
     }
 
     sheet.addRow(headerRow);
@@ -100,13 +105,15 @@ export default class ReportService {
         methodData.inn,
         methodData.clientName,
         methodData.comment,
-        request.closeAccount ?? '',
-        closeRate !== null ? closeRate : '',
-        closeFee !== null ? closeFee : '',
-        request.closeOrderId ?? '',
       ];
       if (isForProvider) {
         row.splice(9, 0, worker);
+        row.push(
+          request.closeAccount ?? '',
+          closeRate !== null ? closeRate : '',
+          closeFee !== null ? closeFee : '',
+          request.closeOrderId ?? '',
+        );
       }
 
       sheet.addRow(row);
@@ -167,7 +174,37 @@ export default class ReportService {
       };
       cell.font = { bold: true };
     });
-    // Разрез «закрыто по площадкам»: количество, объём в USDT, сумма комиссий.
+    // Разрез «закрыто по площадкам» — внутренний: показывает, где и почём мы
+    // закрываемся. В партнёрскую версию не попадает.
+    if (isForProvider) {
+      this.addPlatformSheet(workbook, requests);
+    }
+
+    // Незакрытые заявки — все, что ещё не закрыты. Партнёру показываем без
+    // имени оператора: кто из наших ведёт заявку — не его дело.
+    this.addUnclosedSheet(workbook, unclosedRequests, isForProvider);
+
+    // Caption
+    const now = new Date();
+    const captionParts = [
+      `Количество заявок: ${requests.length}`,
+    ];
+    if (totalConverted > 0) {
+      captionParts.push(`Сумма USDT: ${this.roundNumber(totalConverted)}`);
+    }
+    captionParts.push(
+      `Время: ${now.toLocaleString('sv-SE', { hour12: false })}`,
+    );
+    const caption = captionParts.join(',\n');
+    // Buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return { buffer: Buffer.from(buffer), caption };
+  }
+
+  private addPlatformSheet(
+    workbook: ExcelJS.Workbook,
+    requests: FullRequestType[],
+  ) {
     const platformSheet = workbook.addWorksheet('Площадки');
     this.styleHeaderRow(
       platformSheet.addRow(['Площадка', 'Количество', 'Объём USDT', 'Комиссии']),
@@ -197,47 +234,37 @@ export default class ReportService {
       ]);
     }
     this.autoWidth(platformSheet);
+  }
 
-    // Незакрытые заявки — все, что ещё не закрыты, с оператором в работе.
+  private addUnclosedSheet(
+    workbook: ExcelJS.Workbook,
+    unclosedRequests: FullRequestType[],
+    isForProvider: boolean,
+  ) {
     const unclosedSheet = workbook.addWorksheet('Незакрытые');
-    this.styleHeaderRow(
-      unclosedSheet.addRow([
-        'Номер заявки',
-        'Сумма',
-        'Валюта',
-        'Статус',
-        'Оператор',
-        'Создана',
-      ]),
-    );
+    const header = ['Номер заявки', 'Сумма', 'Валюта', 'Статус', 'Создана'];
+    if (isForProvider) {
+      header.splice(4, 0, 'Оператор');
+    }
+    this.styleHeaderRow(unclosedSheet.addRow(header));
     for (const request of unclosedRequests) {
-      unclosedSheet.addRow([
+      const row: (string | number)[] = [
         request.id ?? '',
         this.roundNumber(this.toNumber(request.amount) ?? 0),
         request.currency?.code ?? request.currency?.nameEn ?? '',
         request.status ?? '',
-        request.activeUser?.username ?? request.payedByUser?.username ?? '',
         this.formatDateTime(request.createdAt),
-      ]);
+      ];
+      if (isForProvider) {
+        row.splice(
+          4,
+          0,
+          request.activeUser?.username ?? request.payedByUser?.username ?? '',
+        );
+      }
+      unclosedSheet.addRow(row);
     }
     this.autoWidth(unclosedSheet);
-
-    // Caption
-    const now = new Date();
-    const captionParts = [
-      `Количество заявок: ${requests.length}`,
-      // `Сумма: ${this.roundNumber(totalAmount)}`,
-    ];
-    if (totalConverted > 0) {
-      captionParts.push(`Сумма USDT: ${this.roundNumber(totalConverted)}`);
-    }
-    captionParts.push(
-      `Время: ${now.toLocaleString('sv-SE', { hour12: false })}`,
-    );
-    const caption = captionParts.join(',\n');
-    // Buffer
-    const buffer = await workbook.xlsx.writeBuffer();
-    return { buffer: Buffer.from(buffer), caption };
   }
 
   private resolveMethodReportData(request: FullRequestType): MethodReportData {

@@ -443,6 +443,45 @@ export class RequestRepository {
     });
   }
 
+  /**
+   * Закрытие заявки одним update: статус, оператор и данные площадки вместе —
+   * отмена на промежуточном шаге визарда не оставляет половину полей.
+   * Суммы едут строками: Prisma кладёт их в DECIMAL без float-округления.
+   */
+  async completeRequestWithClose(
+    requestId: string,
+    userId: string,
+    close: { account: string; rate: string; fee: string; orderId: string | null },
+  ): Promise<void> {
+    await this.prisma.paymentRequests.update({
+      where: { id: requestId },
+      data: {
+        status: 'COMPLETED',
+        payedByUser: { connect: { id: userId } },
+        completedAt: new Date(),
+        closeAccount: close.account,
+        closeRate: close.rate,
+        closeFee: close.fee,
+        closeOrderId: close.orderId,
+      },
+    });
+  }
+
+  /** Комиссия площадки из справочника; отсутствие строки — не блокер, а ноль. */
+  async closeFeeFor(account: string): Promise<string> {
+    const row = await this.prisma.closeFee.findUnique({ where: { account } });
+    return row ? row.fee.toString() : '0';
+  }
+
+  /** Незакрытые заявки вендора — все, что не закрыты и не отменены, без окна по датам. */
+  async getUnclosedRequestsForVendor(vendorId: string) {
+    return this.prisma.paymentRequests.findMany({
+      where: { vendorId, status: { notIn: ['COMPLETED', 'FAILED'] } },
+      include: { ...PAYMENT_REQUEST_DEFAULT_INCLUDE },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async createIbanRequest(data: IbanRequestType) {
     const duplicate = await this.findRecentDuplicate({
       vendorId: data.vendorId,

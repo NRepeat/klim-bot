@@ -66,6 +66,9 @@ export class AcceptRequestScene {
       }
       const workGroupChatId = user.workGroupChatId;
       if (!workGroupChatId) {
+        await ctx.reply(
+          '⚠️ У вас не настроена рабочая группа. Попросите администратора привязать её (Меню → Пользователи), без неё заявку взять нельзя.',
+        );
         await ctx.scene.leave();
         return;
       }

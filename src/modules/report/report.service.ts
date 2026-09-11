@@ -34,6 +34,7 @@ export default class ReportService {
   async generateReportResult(
     requests: FullRequestType[],
     isForProvider: boolean,
+    unclosedRequests: FullRequestType[] = [],
   ): Promise<ReportResult> {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Отчет');
@@ -51,6 +52,10 @@ export default class ReportService {
       'ИНН',
       'Имя клиента',
       'Комментарий',
+      'Площадка',
+      'Курс закрытия',
+      'Комиссия биржи',
+      'Ордер',
     ];
     if (isForProvider) {
       headerRow.splice(9, 0, 'Пользователь');
@@ -79,6 +84,8 @@ export default class ReportService {
       const worker = request.payedByUser?.username ?? '';
       const currency = request.currency?.code ?? request.currency?.nameEn ?? '';
       const methodData = this.resolveMethodReportData(request);
+      const closeRate = this.toNumber(request.closeRate);
+      const closeFee = this.toNumber(request.closeFee);
       const row = [
         request.id ?? '',
         methodData.type,
@@ -93,6 +100,10 @@ export default class ReportService {
         methodData.inn,
         methodData.clientName,
         methodData.comment,
+        request.closeAccount ?? '',
+        closeRate !== null ? closeRate : '',
+        closeFee !== null ? closeFee : '',
+        request.closeOrderId ?? '',
       ];
       if (isForProvider) {
         row.splice(9, 0, worker);
@@ -156,6 +167,61 @@ export default class ReportService {
       };
       cell.font = { bold: true };
     });
+    // Разрез «закрыто по площадкам»: количество, объём в USDT, сумма комиссий.
+    const platformSheet = workbook.addWorksheet('Площадки');
+    this.styleHeaderRow(
+      platformSheet.addRow(['Площадка', 'Количество', 'Объём USDT', 'Комиссии']),
+    );
+    const byPlatform = new Map<
+      string,
+      { count: number; volume: number; fees: number }
+    >();
+    for (const request of requests) {
+      const key = request.closeAccount ?? 'не указано';
+      const amount = this.toNumber(request.amount) ?? 0;
+      const rateValue = this.toNumber(request.rates?.rate ?? request.rate);
+      const volume = rateValue && rateValue !== 0 ? amount / rateValue : 0;
+      const fee = this.toNumber(request.closeFee) ?? 0;
+      const acc = byPlatform.get(key) ?? { count: 0, volume: 0, fees: 0 };
+      acc.count += 1;
+      acc.volume += volume;
+      acc.fees += fee;
+      byPlatform.set(key, acc);
+    }
+    for (const [platform, acc] of byPlatform) {
+      platformSheet.addRow([
+        platform,
+        acc.count,
+        this.roundNumber(acc.volume),
+        this.roundNumber(acc.fees, 8),
+      ]);
+    }
+    this.autoWidth(platformSheet);
+
+    // Незакрытые заявки — все, что ещё не закрыты, с оператором в работе.
+    const unclosedSheet = workbook.addWorksheet('Незакрытые');
+    this.styleHeaderRow(
+      unclosedSheet.addRow([
+        'Номер заявки',
+        'Сумма',
+        'Валюта',
+        'Статус',
+        'Оператор',
+        'Создана',
+      ]),
+    );
+    for (const request of unclosedRequests) {
+      unclosedSheet.addRow([
+        request.id ?? '',
+        this.roundNumber(this.toNumber(request.amount) ?? 0),
+        request.currency?.code ?? request.currency?.nameEn ?? '',
+        request.status ?? '',
+        request.activeUser?.username ?? request.payedByUser?.username ?? '',
+        this.formatDateTime(request.createdAt),
+      ]);
+    }
+    this.autoWidth(unclosedSheet);
+
     // Caption
     const now = new Date();
     const captionParts = [
@@ -342,12 +408,38 @@ export default class ReportService {
     }
   }
 
+  private styleHeaderRow(row: ExcelJS.Row) {
+    row.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD3D3D3' },
+      };
+      cell.font = { bold: true };
+    });
+  }
+
+  private autoWidth(sheet: ExcelJS.Worksheet) {
+    sheet.columns.forEach((col) => {
+      let max = 10;
+      col.eachCell?.({ includeEmpty: true }, (cell) => {
+        max = Math.max(max, cell.value ? cell.value.toString().length : 0);
+      });
+      col.width = max + 2;
+    });
+  }
+
   private toNumber(value: unknown): number | null {
     if (typeof value === 'number' && Number.isFinite(value)) {
       return value;
     }
     if (typeof value === 'string') {
       const parsed = Number(value.replace(',', '.'));
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    // Prisma Decimal (closeRate/closeFee) приходит объектом — парсим строку
+    if (value != null && typeof value === 'object') {
+      const parsed = Number(String(value));
       return Number.isFinite(parsed) ? parsed : null;
     }
     return null;

@@ -94,6 +94,24 @@ export class RequestService {
     }
     await this.requestRepo.updateRequestStatus(requestId, status, dbUser.id);
   }
+  /** Закрытие заявки со всеми обязательными полями (площадка/курс/комиссия/ордер). */
+  async completeRequestWithClose(
+    requestId: string,
+    userId: number,
+    close: { account: string; rate: string; fee: string; orderId: string | null },
+  ): Promise<void> {
+    const dbUser = await this.userService.findByTelegramId(userId);
+    if (!dbUser) {
+      throw new Error('User not found');
+    }
+    await this.requestRepo.completeRequestWithClose(requestId, dbUser.id, close);
+  }
+  async closeFeeFor(account: string): Promise<string> {
+    return this.requestRepo.closeFeeFor(account);
+  }
+  async getUnclosedRequestsForVendor(vendorId: string) {
+    return this.requestRepo.getUnclosedRequestsForVendor(vendorId);
+  }
   async acceptRequest(
     requestId: string,
     userId: number,

@@ -160,6 +160,20 @@ model PaymentRequests {
   workerRequestPhotoMessage WorkerRequestPhotoMessage[]
   paymentMethodId           String?
   methods                   PaymentRequestMethod[]
+  // Шаги закрытия заявки: где закрыта (binance|okx|htx|bybit|mexc|partner:<имя>),
+  // почём и с какой комиссией. closeOrderId — ID P2P-ордера Binance: уникален,
+  // один ордер закрывает ровно одну заявку.
+  closeAccount              String?
+  closeRate                 Decimal?                    @db.Decimal(32, 16)
+  closeFee                  Decimal?                    @db.Decimal(30, 8)
+  closeOrderId              String?                     @unique
+}
+
+// Справочник комиссий площадок закрытия (fee:<площадка> в терминах контракта).
+// Отсутствие строки не блокирует закрытие — комиссия тогда 0.
+model CloseFee {
+  account String  @id
+  fee     Decimal @db.Decimal(30, 8)
 }
 
 enum AccessType {

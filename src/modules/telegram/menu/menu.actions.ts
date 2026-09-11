@@ -115,13 +115,19 @@ export class MenuActions {
       );
     if (!requests.length) return;
     if (requests.length === 0) return ctx.reply('No requests to report');
+    // лист «Незакрытые»: все висящие заявки вендора, не только за окно отчёта
+    const unclosed = (await this.requestService.getUnclosedRequestsForVendor(
+      vendor.id,
+    )) as any as FullRequestType[];
     const report = await this.reportService.generateReportResult(
       requests as any as FullRequestType[],
       false,
+      unclosed,
     );
     const adminReport = await this.reportService.generateReportResult(
       requests as any as FullRequestType[],
       true,
+      unclosed,
     );
     const fileName = `${vendor.title}-report_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.xlsx`;
     try {
@@ -178,13 +184,18 @@ export class MenuActions {
         );
       if (!requests.length) continue;
       if (requests.length === 0) continue;
+      const unclosed = (await this.requestService.getUnclosedRequestsForVendor(
+        vendor.id,
+      )) as any as FullRequestType[];
       const report = await this.reportService.generateReportResult(
         requests as any as FullRequestType[],
         false,
+        unclosed,
       );
       const adminReport = await this.reportService.generateReportResult(
         requests as any as FullRequestType[],
         true,
+        unclosed,
       );
       const fileName = `${vendor.title}-report_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.xlsx`;
       try {

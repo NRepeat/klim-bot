@@ -37,20 +37,33 @@ const cardMethod = {
 
 const SECRETS = ['45.2', 'binance', '22794613456789012345', '0.32'];
 
-describe('карточка заявки не раскрывает закрытие', () => {
-  it.each(['PUBLIC', 'WORKER', 'ADMIN'] as const)(
-    'в карточке %s нет ни курса закрытия, ни площадки, ни ордера',
+describe('закрытие видно своим, но не партнёру', () => {
+  it('в карточке партнёра нет ни курса закрытия, ни площадки, ни ордера', () => {
+    const text =
+      RequestMessageFactory.create('PUBLIC', closedRequest(), cardMethod)
+        ?.text ?? '';
+
+    expect(text).not.toBe('');
+    for (const secret of SECRETS) {
+      expect(text).not.toContain(secret);
+    }
+    // клиентский курс остаётся — его партнёр и так знает
+    expect(text).toContain('44.6');
+  });
+
+  it.each(['WORKER', 'ADMIN'] as const)(
+    'в карточке %s закрытие есть: иначе «чем закрыли» видно только в базе',
     (access) => {
       const text =
         RequestMessageFactory.create(access, closedRequest(), cardMethod)
           ?.text ?? '';
 
-      expect(text).not.toBe('');
-      for (const secret of SECRETS) {
-        expect(text).not.toContain(secret);
-      }
-      // клиентский курс остаётся — его партнёр и так знает
-      expect(text).toContain('44.6');
+      // площадка печатается человеческим именем: binance → Binance
+      expect(text).toContain('Закрытие');
+      expect(text).toContain('Binance');
+      expect(text).toContain('45.2');
+      expect(text).toContain('0.32');
+      expect(text).toContain('22794613456789012345');
     },
   );
 });

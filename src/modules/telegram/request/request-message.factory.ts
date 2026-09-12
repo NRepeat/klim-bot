@@ -364,7 +364,36 @@ export class RequestMessageFactory {
       lines.push(`👤<b>Принята:</b> @${request.activeUser.username}`);
     }
 
+    const close = this.formatCloseLine(request);
+    if (close) lines.push(close);
+
     return lines.filter((line): line is string => Boolean(line));
+  }
+
+  /**
+   * Строка закрытия: где, почём и по какому ордеру закрыли заявку.
+   *
+   * Нужна оператору в рабочей группе и админу — иначе «чем закрыли» видно
+   * только в базе. Партнёру её вырезает `wrapWithButtons`: по курсу закрытия
+   * и курсу клиента считается наш заработок на его же заявке.
+   */
+  static readonly CLOSE_PREFIX = '🏦<b>Закрытие:</b>';
+
+  private static formatCloseLine(request: FullRequestType): string | null {
+    const account = request.closeAccount;
+    const rate = request.closeRate;
+    if (!account || rate === null || rate === undefined) return null;
+
+    const name = account.startsWith('partner:')
+      ? `партнёр ${account.slice('partner:'.length)}`
+      : account.charAt(0).toUpperCase() + account.slice(1);
+
+    const parts = [`${this.CLOSE_PREFIX} ${name}`, `курс ${String(rate)}`];
+    if (request.closeFee !== null && request.closeFee !== undefined) {
+      parts.push(`комиссия ${String(request.closeFee)}`);
+    }
+    if (request.closeOrderId) parts.push(`ордер ${request.closeOrderId}`);
+    return parts.join(' · ');
   }
 
   private static wrapWithButtons(
@@ -375,7 +404,11 @@ export class RequestMessageFactory {
   ): ReplyPhotoMessage {
     const sanitizedLines =
       accessType === 'PUBLIC'
-        ? lines.filter((line) => !line.startsWith('👤<b>Принята:'))
+        ? lines.filter(
+            (line) =>
+              !line.startsWith('👤<b>Принята:') &&
+              !line.startsWith(this.CLOSE_PREFIX),
+          )
         : lines;
     // Копируемый блок — только у IBAN и только в рабочей группе и группах
     // операторов: там реквизиты переносят в банк целиком. По карте оператор

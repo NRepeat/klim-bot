@@ -58,6 +58,8 @@ export class ExchangeCheckService {
     expectedAmount: string,
     exchange: string,
     operatorId: number,
+    expectedFiat?: string,
+    fiat?: string,
   ): Promise<ExchangeVerifyResult> {
     try {
       const res = await fetch(`${this.url}/verify`, {
@@ -72,6 +74,9 @@ export class ExchangeCheckService {
           expected_asset: 'USDT',
           // ключи берутся по закрывающему: у каждого сотрудника свой аккаунт
           operator_id: operatorId,
+          // сумма заявки в фиате — по ней и сверяется ордер
+          expected_fiat: expectedFiat,
+          fiat,
         }),
         // сервис сам листает историю биржи — даём ему больше времени, чем себе
         signal: AbortSignal.timeout(30_000),

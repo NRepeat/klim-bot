@@ -519,6 +519,11 @@ export default class PaymentWizard {
         usdtAmount.toFixed(8),
         state.closeAccount!,
         ctx.from?.id ?? 0,
+        // Главная сверка — по фиату: крипта в ордере считается по курсу
+        // оператора, а в заявке по курсу клиента, и расходятся они всегда —
+        // это и есть наш заработок. Гривна у обеих сторон одна.
+        String(request.amount),
+        request.currency?.name ?? request.currency?.nameEn ?? '',
       );
       if (!verdict.ok) {
         state.closeStage = 'order';
